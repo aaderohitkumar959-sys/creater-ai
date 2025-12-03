@@ -1,0 +1,374 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id            String         @id @default(uuid())
+  name          String?
+  email         String         @unique
+  emailVerified DateTime?
+  image         String?
+  role          Role           @default(USER)
+  accounts      Account[]
+  sessions      Session[]
+  creator       Creator?
+  conversations Conversation[]
+  coinWallet    CoinWallet?
+  payments      Payment[]
+
+  // Moderation relations
+  reportsMade     Report[]    @relation("ReportsMade")
+  reportsReceived Report[]    @relation("ReportsReceived")
+  reportsReviewed Report[]    @relation("ReportsReviewed")
+  violations      Violation[]
+  bans            UserBan[]   @relation("UserBans")
+  bansIssued      UserBan[]   @relation("BansIssued")
+  appeals         Appeal[]
+  appealsReviewed Appeal[]    @relation("AppealsReviewed")
+  auditLogs       AuditLog[]
+
+  isBanned    Boolean   @default(false)
+  bannedUntil DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Account {
+  id                String  @id @default(uuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Creator {
+  id        String    @id @default(uuid())
+  userId    String    @unique
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  bio       String?
+  personas  Persona[]
+  earnings  Int       @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Persona {
+  id            String         @id @default(uuid())
+  creatorId     String
+  creator       Creator        @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  name          String
+  avatarUrl     String?
+  description   String?
+  personality   Json? // Stores slider values { "friendliness": 80, "humor": 50 }
+  trainingData  TrainingData[]
+  conversations Conversation[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model TrainingData {
+  id        String       @id @default(uuid())
+  personaId String
+  persona   Persona      @relation(fields: [personaId], references: [id], onDelete: Cascade)
+  type      TrainingType
+  content   String       @db.Text // Text content or file URL
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+}
+
+enum TrainingType {
+  TEXT
+  FILE
+}
+
+model Conversation {
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  personaId String
+  persona   Persona   @relation(fields: [personaId], references: [id], onDelete: Cascade)
+  messages  Message[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@unique([userId, personaId])
+}
+
+model Message {
+  id             String       @id @default(uuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  sender         Role // USER or CREATOR (AI)
+  content        String       @db.Text
+  coinCost       Int          @default(2)
+  createdAt      DateTime     @default(now())
+}
+
+model CoinWallet {
+  id           String            @id @default(uuid())
+  userId       String            @unique
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  balance      Int               @default(0)
+  transactions CoinTransaction[]
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+}
+
+model CoinTransaction {
+  id          String          @id @default(uuid())
+  walletId    String
+  wallet      CoinWallet      @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  type        TransactionType
+  amount      Int
+  description String?
+  metadata    Json? // Store extra info like messageId, paymentId
+  createdAt   DateTime        @default(now())
+}
+
+model CoinPack {
+  id         String   @id @default(uuid())
+  name       String
+  coins      Int
+  bonusCoins Int      @default(0)
+  priceUSD   Float
+  priceINR   Float
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Payment {
+  id            String          @id @default(uuid())
+  userId        String
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider      PaymentProvider
+  amount        Float
+  currency      String
+  status        PaymentStatus   @default(PENDING)
+  providerTxnId String? // Stripe payment_intent_id or Razorpay order_id
+  coinPackId    String?
+  coinsGranted  Int?
+  metadata      Json?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+}
+
+enum TransactionType {
+  PURCHASE
+  SPEND
+  EARN
+  REFUND
+  WITHDRAWAL
+}
+
+enum PaymentProvider {
+  STRIPE
+  RAZORPAY
+}
+
+enum PaymentStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+model Report {
+  id         String       @id @default(uuid())
+  reporterId String
+  reportedId String? // User or null for content
+  messageId  String? // Message being reported
+  type       ReportType
+  category   String
+  reason     String
+  status     ReportStatus @default(PENDING)
+  reviewedBy String?
+  reviewNote String?
+  createdAt  DateTime     @default(now())
+  reviewedAt DateTime?
+
+  reporter User  @relation("ReportsMade", fields: [reporterId], references: [id])
+  reported User? @relation("ReportsReceived", fields: [reportedId], references: [id])
+  reviewer User? @relation("ReportsReviewed", fields: [reviewedBy], references: [id])
+
+  @@index([status, createdAt])
+  @@index([reportedId])
+}
+
+model Violation {
+  id         String            @id @default(uuid())
+  userId     String
+  type       ViolationType
+  severity   Severity
+  content    String? // Flagged content
+  categories String[] // Moderation categories
+  action     ModerationAction?
+  note       String?
+  createdAt  DateTime          @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+}
+
+model UserBan {
+  id        String    @id @default(uuid())
+  userId    String
+  type      BanType
+  reason    String
+  bannedBy  String
+  expiresAt DateTime? // null = permanent
+  appealId  String?   @unique
+  createdAt DateTime  @default(now())
+
+  user   User    @relation("UserBans", fields: [userId], references: [id])
+  banner User    @relation("BansIssued", fields: [bannedBy], references: [id])
+  appeal Appeal? @relation(fields: [appealId], references: [id])
+
+  @@index([userId, expiresAt])
+}
+
+model Appeal {
+  id         String       @id @default(uuid())
+  userId     String
+  banId      String       @unique
+  reason     String
+  status     AppealStatus @default(PENDING)
+  reviewedBy String?
+  reviewNote String?
+  createdAt  DateTime     @default(now())
+  reviewedAt DateTime?
+
+  user     User     @relation(fields: [userId], references: [id])
+  ban      UserBan?
+  reviewer User?    @relation("AppealsReviewed", fields: [reviewedBy], references: [id])
+
+  @@index([status, createdAt])
+}
+
+model AuditLog {
+  id         String      @id @default(uuid())
+  userId     String
+  action     AuditAction
+  entityType String // User, Message, Report, etc.
+  entityId   String
+  metadata   Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime    @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+  @@index([entityType, entityId])
+}
+
+enum ReportType {
+  MESSAGE
+  USER
+  PERSONA
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWING
+  RESOLVED
+  DISMISSED
+}
+
+enum ViolationType {
+  HATE_SPEECH
+  HARASSMENT
+  SEXUAL_CONTENT
+  VIOLENCE
+  SELF_HARM
+  SPAM
+  ILLEGAL
+  MISINFORMATION
+  OTHER
+}
+
+enum Severity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum ModerationAction {
+  WARNING
+  TEMP_BAN
+  PERM_BAN
+}
+
+enum BanType {
+  CHAT
+  PLATFORM
+}
+
+enum AppealStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum AuditAction {
+  USER_BANNED
+  USER_UNBANNED
+  REPORT_CREATED
+  REPORT_REVIEWED
+  VIOLATION_LOGGED
+  APPEAL_CREATED
+  APPEAL_APPROVED
+  APPEAL_REJECTED
+}
+
+enum Role {
+  USER
+  ADMIN
+  CREATOR
+  MODERATOR
+}
+
+model AnalyticsEvent {
+  id        String   @id @default(uuid())
+  userId    String?
+  event     String   // 'SIGNUP', 'MESSAGE_SENT', 'PURCHASE'
+  metadata  Json?
+  createdAt DateTime @default(now())
+  
+  @@index([event, createdAt])
+}
