@@ -1,0 +1,9 @@
+{
+    "buildCommand": "cd ../.. && npm install && cd apps/web && npm run build",
+    "outputDirectory": "apps/web/.next",
+    "installCommand": "cd ../.. && npm install",
+    "framework": "nextjs",
+    "env": {
+        "NEXT_PUBLIC_API_URL": "https://creater-ai.onrender.com"
+    }
+}
