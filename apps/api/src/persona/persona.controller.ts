@@ -22,6 +22,26 @@ export class PersonaController {
         });
     }
 
+    @Get('featured')
+    async getFeaturedPersonas() {
+        return this.prisma.persona.findMany({
+            where: {
+                isFeatured: true,
+            },
+            include: {
+                creator: {
+                    select: {
+                        id: true,
+                        bio: true,
+                    },
+                },
+            },
+            orderBy: {
+                createdAt: 'desc',
+            },
+        });
+    }
+
     @Get(':id')
     async getPersona(@Param('id') id: string) {
         return this.prisma.persona.findUnique({

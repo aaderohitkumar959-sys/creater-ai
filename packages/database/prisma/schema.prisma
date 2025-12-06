@@ -92,6 +92,8 @@ model Persona {
   name          String
   avatarUrl     String?
   description   String?
+  category      String?        // Romance, Friendship, Mentor, etc.
+  isFeatured    Boolean        @default(false)  // Show on homepage
   personality   Json? // Stores slider values { "friendliness": 80, "humor": 50 }
   trainingData  TrainingData[]
   conversations Conversation[]

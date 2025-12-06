@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Sparkles, DollarSign, MessageSquare, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import FeaturedCharacters from "@/components/home/FeaturedCharacters";
 
 export default function Home() {
   return (
@@ -50,6 +51,9 @@ export default function Home() {
           </Link>
         </div>
       </section>
+
+      {/* Featured AI Characters Gallery */}
+      <FeaturedCharacters />
 
       {/* Features */}
       <section className="container mx-auto px-4 py-16">
