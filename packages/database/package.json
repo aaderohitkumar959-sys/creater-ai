@@ -4,7 +4,9 @@
     "main": "index.ts",
     "scripts": {
         "test": "echo \"Error: no test specified\" && exit 1",
-        "prisma": "prisma"
+        "prisma": "prisma",
+        "postinstall": "prisma generate --schema=prisma/schema.prisma",
+        "build": "prisma generate --schema=prisma/schema.prisma"
     },
     "prisma": {
         "seed": "ts-node seed.ts"
