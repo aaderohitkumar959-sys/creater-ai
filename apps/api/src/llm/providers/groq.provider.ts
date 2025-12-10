@@ -1,108 +1,112 @@
 import { BaseLLMProvider, LLMMessage, LLMResponse } from './base.provider';
 
 export class GroqProvider extends BaseLLMProvider {
-    private apiKey: string;
-    private baseUrl = 'https://api.groq.com/openai/v1';
+  private apiKey: string;
+  private baseUrl = 'https://api.groq.com/openai/v1';
 
-    constructor(apiKey: string) {
-        super();
-        this.apiKey = apiKey;
+  constructor(apiKey: string) {
+    super();
+    this.apiKey = apiKey;
+  }
+
+  async generateResponse(
+    messages: LLMMessage[],
+    options?: { temperature?: number; maxTokens?: number; stream?: boolean },
+  ): Promise<LLMResponse> {
+    const response = await fetch(`${this.baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${this.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile', // Latest Groq model
+        messages,
+        temperature: options?.temperature || 0.7,
+        max_tokens: options?.maxTokens || 500,
+        stream: false,
+      }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(
+        `Groq API error: ${error.error?.message || 'Unknown error'}`,
+      );
     }
 
-    async generateResponse(
-        messages: LLMMessage[],
-        options?: { temperature?: number; maxTokens?: number; stream?: boolean }
-    ): Promise<LLMResponse> {
-        const response = await fetch(`${this.baseUrl}/chat/completions`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${this.apiKey}`,
-            },
-            body: JSON.stringify({
-                model: 'llama-3.3-70b-versatile', // Latest Groq model
-                messages,
-                temperature: options?.temperature || 0.7,
-                max_tokens: options?.maxTokens || 500,
-                stream: false,
-            }),
-        });
+    const data = await response.json();
+    const choice = data.choices[0];
 
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(`Groq API error: ${error.error?.message || 'Unknown error'}`);
-        }
+    return {
+      content: choice.message.content,
+      model: data.model,
+      tokensUsed: data.usage.total_tokens,
+      cost: 0, // Groq is free
+      provider: 'groq',
+    };
+  }
 
-        const data = await response.json();
-        const choice = data.choices[0];
+  async *streamResponse(
+    messages: LLMMessage[],
+    options?: { temperature?: number; maxTokens?: number },
+  ): AsyncGenerator<string> {
+    const response = await fetch(`${this.baseUrl}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${this.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages,
+        temperature: options?.temperature || 0.7,
+        max_tokens: options?.maxTokens || 500,
+        stream: true,
+      }),
+    });
 
-        return {
-            content: choice.message.content,
-            model: data.model,
-            tokensUsed: data.usage.total_tokens,
-            cost: 0, // Groq is free
-            provider: 'groq',
-        };
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(
+        `Groq API error: ${error.error?.message || 'Unknown error'}`,
+      );
     }
 
-    async *streamResponse(
-        messages: LLMMessage[],
-        options?: { temperature?: number; maxTokens?: number }
-    ): AsyncGenerator<string> {
-        const response = await fetch(`${this.baseUrl}/chat/completions`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${this.apiKey}`,
-            },
-            body: JSON.stringify({
-                model: 'llama-3.3-70b-versatile',
-                messages,
-                temperature: options?.temperature || 0.7,
-                max_tokens: options?.maxTokens || 500,
-                stream: true,
-            }),
-        });
+    const reader = response.body?.getReader();
+    if (!reader) throw new Error('No response body');
 
-        if (!response.ok) {
-            const error = await response.json();
-            throw new Error(`Groq API error: ${error.error?.message || 'Unknown error'}`);
-        }
+    const decoder = new TextDecoder();
+    let buffer = '';
 
-        const reader = response.body?.getReader();
-        if (!reader) throw new Error('No response body');
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
 
-        const decoder = new TextDecoder();
-        let buffer = '';
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
 
-        try {
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            const data = line.slice(6);
+            if (data === '[DONE]') continue;
 
-                buffer += decoder.decode(value, { stream: true });
-                const lines = buffer.split('\n');
-                buffer = lines.pop() || '';
-
-                for (const line of lines) {
-                    if (line.startsWith('data: ')) {
-                        const data = line.slice(6);
-                        if (data === '[DONE]') continue;
-
-                        try {
-                            const parsed = JSON.parse(data);
-                            const content = parsed.choices[0]?.delta?.content;
-                            if (content) {
-                                yield content;
-                            }
-                        } catch (e) {
-                            // Skip malformed JSON
-                        }
-                    }
-                }
+            try {
+              const parsed = JSON.parse(data);
+              const content = parsed.choices[0]?.delta?.content;
+              if (content) {
+                yield content;
+              }
+            } catch (e) {
+              // Skip malformed JSON
             }
-        } finally {
-            reader.releaseLock();
+          }
         }
+      }
+    } finally {
+      reader.releaseLock();
     }
+  }
 }

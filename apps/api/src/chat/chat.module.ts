@@ -6,11 +6,12 @@ import { ChatStreamController } from './chat-stream.controller';
 import { LLMModule } from '../llm/llm.module';
 import { ModerationModule } from '../moderation/moderation.module';
 import { AnalyticsModule } from '../analytics/analytics.module';
+import { MeterModule } from '../meter/meter.module';
 
 @Module({
-    imports: [LLMModule, ModerationModule, AnalyticsModule],
-    controllers: [ChatController, ChatStreamController],
-    providers: [ChatService, ChatGateway],
-    exports: [ChatService],
+  imports: [LLMModule, ModerationModule, AnalyticsModule, MeterModule],
+  controllers: [ChatController, ChatStreamController],
+  providers: [ChatService, ChatGateway],
+  exports: [ChatService],
 })
-export class ChatModule { }
+export class ChatModule {}

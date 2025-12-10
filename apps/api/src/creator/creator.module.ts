@@ -5,8 +5,8 @@ import { SocialFetcherService } from './social-fetcher.service';
 import { SocialFetcherController } from './social-fetcher.controller';
 
 @Module({
-    providers: [CreatorService, SocialFetcherService],
-    controllers: [CreatorController, SocialFetcherController],
-    exports: [CreatorService],
+  providers: [CreatorService, SocialFetcherService],
+  controllers: [CreatorController, SocialFetcherController],
+  exports: [CreatorService],
 })
-export class CreatorModule { }
+export class CreatorModule {}

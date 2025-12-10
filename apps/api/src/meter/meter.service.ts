@@ -1,0 +1,86 @@
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+
+@Injectable()
+export class MeteredService {
+  private readonly DAILY_LIMIT = 40;
+
+  constructor(private prisma: PrismaService) {}
+
+  async checkLimit(
+    userId: string,
+  ): Promise<{ allowed: boolean; remaining: number }> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        dailyMessageCount: true,
+        lastMessageDate: true,
+        role: true,
+        subscription: true,
+      },
+    });
+
+    if (!user) return { allowed: false, remaining: 0 };
+
+    // Premium users have no limit
+    if (user.subscription?.status === 'ACTIVE' || user.role === 'ADMIN') {
+      return { allowed: true, remaining: -1 }; // -1 indicates unlimited
+    }
+
+    const today = new Date();
+    const lastDate = new Date(user.lastMessageDate);
+    const isSameDay =
+      today.getDate() === lastDate.getDate() &&
+      today.getMonth() === lastDate.getMonth() &&
+      today.getFullYear() === lastDate.getFullYear();
+
+    // If it's a new day, they have full limit
+    if (!isSameDay) {
+      return { allowed: true, remaining: this.DAILY_LIMIT };
+    }
+
+    const remaining = Math.max(0, this.DAILY_LIMIT - user.dailyMessageCount);
+    return { allowed: remaining > 0, remaining };
+  }
+
+  async incrementUsage(userId: string): Promise<void> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { dailyMessageCount: true, lastMessageDate: true },
+    });
+
+    if (!user) return;
+
+    const today = new Date();
+    const lastDate = new Date(user.lastMessageDate);
+    const isSameDay =
+      today.getDate() === lastDate.getDate() &&
+      today.getMonth() === lastDate.getMonth() &&
+      today.getFullYear() === lastDate.getFullYear();
+
+    if (!isSameDay) {
+      // Reset count for new day
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          dailyMessageCount: 1,
+          lastMessageDate: today,
+        },
+      });
+    } else {
+      // Increment count
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          dailyMessageCount: { increment: 1 },
+          lastMessageDate: today,
+        },
+      });
+    }
+  }
+
+  async getRemainingMessages(userId: string): Promise<number> {
+    const { remaining } = await this.checkLimit(userId);
+    return remaining;
+  }
+}

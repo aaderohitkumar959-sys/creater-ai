@@ -6,19 +6,19 @@ import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class RefreshTokenStrategy extends PassportStrategy(
-    Strategy,
-    'jwt-refresh',
+  Strategy,
+  'jwt-refresh',
 ) {
-    constructor(config: ConfigService) {
-        super({
-            jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-            secretOrKey: config.get<string>('JWT_REFRESH_SECRET') || 'refresh-secret',
-            passReqToCallback: true,
-        });
-    }
+  constructor(config: ConfigService) {
+    super({
+      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      secretOrKey: config.get<string>('JWT_REFRESH_SECRET') || 'refresh-secret',
+      passReqToCallback: true,
+    });
+  }
 
-    validate(req: Request, payload: any) {
-        const refreshToken = req.get('Authorization')?.replace('Bearer', '').trim();
-        return { ...payload, refreshToken };
-    }
+  validate(req: Request, payload: any) {
+    const refreshToken = req.get('Authorization')?.replace('Bearer', '').trim();
+    return { ...payload, refreshToken };
+  }
 }

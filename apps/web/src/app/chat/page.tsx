@@ -1,7 +1,7 @@
 "use client"
 
 import { Suspense, useEffect, useState } from "react"
-import ChatInterface from "@/components/chat/chat-interface"
+import { ChatInterface } from "@/components/chat/ChatInterface"
 import { useSearchParams } from "next/navigation"
 import { useSession } from "next-auth/react"
 
@@ -35,12 +35,15 @@ function ChatContent() {
 
     return (
         <ChatInterface
-            conversationId={conversationId}
-            personaId={personaId}
-            personaName={personaName}
-            userId={userId}
+            persona={{
+                id: personaId,
+                name: personaName,
+                avatarUrl: "/placeholder.png", // Default avatar since it's not in params
+                isPremium: false
+            }}
         />
     )
+
 }
 
 export default function ChatPage() {

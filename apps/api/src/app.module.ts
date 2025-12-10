@@ -15,14 +15,19 @@ import { ModerationModule } from './moderation/moderation.module';
 import { AdminModule } from './admin/admin.module';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { PersonaModule } from './persona/persona.module';
+import { MeterModule } from './meter/meter.module';
+import { NotificationModule } from './notification/notification.module';
+import { QuestModule } from './quest/quest.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    ThrottlerModule.forRoot([{
-      ttl: 60000,
-      limit: 100,
-    }]),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000,
+        limit: 100,
+      },
+    ]),
     PrismaModule,
     AuthModule,
     CreatorModule,
@@ -34,6 +39,9 @@ import { PersonaModule } from './persona/persona.module';
     AdminModule,
     AnalyticsModule,
     PersonaModule,
+    MeterModule,
+    NotificationModule,
+    QuestModule,
   ],
   controllers: [AppController],
   providers: [
@@ -44,4 +52,4 @@ import { PersonaModule } from './persona/persona.module';
     },
   ],
 })
-export class AppModule { }
+export class AppModule {}

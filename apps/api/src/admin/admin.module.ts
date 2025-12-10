@@ -3,7 +3,7 @@ import { AdminController } from './admin.controller';
 import { AnalyticsModule } from '../analytics/analytics.module';
 
 @Module({
-    imports: [AnalyticsModule],
-    controllers: [AdminController],
+  imports: [AnalyticsModule],
+  controllers: [AdminController],
 })
-export class AdminModule { }
+export class AdminModule {}

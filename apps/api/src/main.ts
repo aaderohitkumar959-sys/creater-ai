@@ -8,16 +8,26 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
   // 1. Enable Helmet with CSP
-  app.use(helmet({
-    contentSecurityPolicy: {
-      directives: {
-        defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "https://js.stripe.com", "https://checkout.razorpay.com"],
-        frameSrc: ["'self'", "https://js.stripe.com", "https://api.razorpay.com"],
-        imgSrc: ["'self'", "data:", "https:"],
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: [
+            "'self'",
+            'https://js.stripe.com',
+            'https://checkout.razorpay.com',
+          ],
+          frameSrc: [
+            "'self'",
+            'https://js.stripe.com',
+            'https://api.razorpay.com',
+          ],
+          imgSrc: ["'self'", 'data:', 'https:'],
+        },
       },
-    },
-  }));
+    }),
+  );
 
   // 2. Strict CORS
   app.enableCors({
@@ -32,10 +42,12 @@ async function bootstrap() {
     next();
   });
 
-  app.useGlobalPipes(new ValidationPipe({
-    whitelist: true,
-    transform: true,
-  }));
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      transform: true,
+    }),
+  );
 
   await app.listen(process.env.PORT ?? 3001, '0.0.0.0');
   console.log(`Application is running on: ${await app.getUrl()}`);

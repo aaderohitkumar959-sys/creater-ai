@@ -1,15 +1,17 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter, Outfit } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
+import { Toaster } from 'react-hot-toast';
+import { DailyRewardCheck } from '@/components/gamification/DailyRewardCheck';
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const inter = Inter({
+  variable: "--font-sans",
   subsets: ["latin"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const outfit = Outfit({
+  variable: "--font-display",
   subsets: ["latin"],
 });
 
@@ -21,7 +23,7 @@ export const metadata: Metadata = {
     icon: "/favicon.ico",
     apple: "/icon-192x192.png",
   },
-  themeColor: "#3b82f6",
+  themeColor: "#6366f1",
 };
 
 export default function RootLayout({
@@ -32,7 +34,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+        className={`${inter.variable} ${outfit.variable} antialiased`}
       >
         <Providers>
           <div className="flex flex-col min-h-screen">
@@ -47,10 +49,10 @@ export default function RootLayout({
               </div>
             </footer>
           </div>
+          <Toaster />
         </Providers>
       </body>
     </html>
   );
 }
-
 

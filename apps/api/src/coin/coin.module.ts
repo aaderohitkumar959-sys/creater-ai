@@ -5,8 +5,8 @@ import { AdRewardController } from './ad-reward.controller';
 
 @Global()
 @Module({
-    providers: [CoinService],
-    controllers: [CoinController, AdRewardController],
-    exports: [CoinService],
+  providers: [CoinService],
+  controllers: [CoinController, AdRewardController],
+  exports: [CoinService],
 })
-export class CoinModule { }
+export class CoinModule {}

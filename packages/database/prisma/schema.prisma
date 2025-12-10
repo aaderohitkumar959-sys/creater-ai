@@ -8,18 +8,28 @@ generator client {
 }
 
 model User {
-  id            String         @id @default(uuid())
+  id            String    @id @default(cuid())
   name          String?
-  email         String         @unique
+  email         String?   @unique
   emailVerified DateTime?
   image         String?
-  role          Role           @default(USER)
+  role          Role      @default(USER) // Changed from Role to UserRole
+  coins         Int       @default(50) // Starting bonus
+
+  // Metered Messaging
+  dailyMessageCount Int      @default(0)
+  lastMessageDate   DateTime @default(now())
+
+  loginStreak            Int       @default(0)
+  lastLoginDate          DateTime  @default(now())
+  lastDailyRewardClaimed DateTime?
+
   accounts      Account[]
   sessions      Session[]
-  creator       Creator?
+  messages      Message[] // Added
   conversations Conversation[]
-  coinWallet    CoinWallet?
-  payments      Payment[]
+
+  subscription Subscription? // Added
 
   // Moderation relations
   reportsMade     Report[]    @relation("ReportsMade")
@@ -35,6 +45,22 @@ model User {
   isBanned    Boolean   @default(false)
   bannedUntil DateTime?
 
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  pushSubscriptions PushSubscription[] // Added
+  Creator           Creator?
+  CoinWallet        CoinWallet?
+  Payment           Payment[]
+}
+
+model PushSubscription {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 }
@@ -86,19 +112,20 @@ model Creator {
 }
 
 model Persona {
-  id            String         @id @default(uuid())
-  creatorId     String
-  creator       Creator        @relation(fields: [creatorId], references: [id], onDelete: Cascade)
-  name          String
-  avatarUrl     String?
-  description   String?
-  category      String?        // Romance, Friendship, Mentor, etc.
-  isFeatured    Boolean        @default(false)  // Show on homepage
-  personality   Json? // Stores slider values { "friendliness": 80, "humor": 50 }
-  trainingData  TrainingData[]
-  conversations Conversation[]
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  id              String         @id @default(uuid())
+  creatorId       String
+  creator         Creator        @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  name            String
+  avatarUrl       String?
+  description     String?
+  category        String? // Romance, Friendship, Mentor, etc.
+  isFeatured      Boolean        @default(false) // Show on homepage
+  defaultCoinCost Int            @default(2) // Cost per message
+  personality     Json? // Stores slider values { "friendliness": 80, "humor": 50 }
+  trainingData    TrainingData[]
+  conversations   Conversation[]
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 }
 
 model TrainingData {
@@ -137,6 +164,8 @@ model Message {
   content        String       @db.Text
   coinCost       Int          @default(2)
   createdAt      DateTime     @default(now())
+  User           User?        @relation(fields: [userId], references: [id])
+  userId         String?
 }
 
 model CoinWallet {
@@ -368,9 +397,21 @@ enum Role {
 model AnalyticsEvent {
   id        String   @id @default(uuid())
   userId    String?
-  event     String   // 'SIGNUP', 'MESSAGE_SENT', 'PURCHASE'
+  event     String // 'SIGNUP', 'MESSAGE_SENT', 'PURCHASE'
   metadata  Json?
   createdAt DateTime @default(now())
-  
+
   @@index([event, createdAt])
+}
+
+model Subscription {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan      String // PREMIUM_MONTHLY, PREMIUM_YEARLY
+  status    String // ACTIVE, CANCELED, EXPIRED
+  startDate DateTime @default(now())
+  endDate   DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
