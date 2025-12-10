@@ -1,145 +1,198 @@
 import Link from "next/link";
-import { Sparkles, DollarSign, MessageSquare, Users } from "lucide-react";
+import { Sparkles, MessageSquare, Zap, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import FeaturedCharacters from "@/components/home/FeaturedCharacters";
 
 export default function Home() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div className="min-h-screen bg-background">
       {/* Navigation */}
-      <nav className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50">
+      <nav className="border-b border-border backdrop-blur-xl bg-glass sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-8 h-8 text-blue-600" />
-            <span className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text">
+            <Sparkles className="w-8 h-8 text-primary animate-float" />
+            <span className="text-2xl font-bold text-gradient">
               CreatorAI
             </span>
           </div>
           <div className="flex gap-4">
+            <Link href="/explore">
+              <Button variant="ghost" className="text-text-secondary hover:text-text-primary">
+                Explore
+              </Button>
+            </Link>
             <Link href="/login">
-              <Button variant="outline">Login</Button>
+              <Button variant="outline" className="border-border-light">Login</Button>
             </Link>
             <Link href="/become-creator">
-              <Button>Become a Creator</Button>
+              <Button className="btn-primary glow">Become a Creator</Button>
             </Link>
           </div>
         </div>
       </nav>
 
       {/* Hero Section */}
-      <section className="container mx-auto px-4 py-20 text-center">
-        <h1 className="text-6xl font-bold mb-6 bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text">
-          Build & Monetize
-          <br />
-          AI Characters
-        </h1>
-        <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-          Create Instagram-style AI personalities, chat with them in real-time,
-          and earn money from every conversation.
-        </p>
-        <div className="flex gap-4 justify-center">
-          <Link href="/dashboard">
-            <Button size="lg" className="text-lg px-8">
-              Get Started Free
-            </Button>
-          </Link>
-          <Link href="/admin">
-            <Button size="lg" variant="outline" className="text-lg px-8">
-              Admin Panel
-            </Button>
-          </Link>
+      <section className="hero-gradient relative overflow-hidden">
+        <div className="absolute inset-0 opacity-20">
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/30 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-secondary/30 rounded-full blur-3xl animate-pulse animation-delay-200" />
+        </div>
+
+        <div className="container mx-auto px-4 py-32 text-center relative z-10">
+          <div className="animate-fade-in">
+            <h1 className="text-display-lg mb-6">
+              Chat with{" "}
+              <span className="text-gradient">AI Personalities</span>
+            </h1>
+            <p className="text-xl text-text-secondary mb-12 max-w-2xl mx-auto">
+              From anime girlfriends to wise mentors. Meet unique AI characters that feel alive.
+            </p>
+            <div className="flex gap-4 justify-center">
+              <Link href="/explore">
+                <Button size="lg" className="btn-primary glow text-lg px-8 h-14">
+                  <MessageSquare className="mr-2 h-5 w-5" />
+                  Start Chatting Free
+                </Button>
+              </Link>
+              <Link href="/become-creator">
+                <Button size="lg" variant="outline" className="text-lg px-8 h-14 border-border-light hover:border-primary">
+                  <Sparkles className="mr-2 h-5 w-5" />
+                  Create Your AI
+                </Button>
+              </Link>
+            </div>
+          </div>
+
+          {/* Stats */}
+          <div className="mt-20 grid grid-cols-3 gap-8 max-w-3xl mx-auto animate-slide-up animation-delay-200">
+            <div className="glass-card p-6">
+              <div className="text-4xl font-bold text-gradient mb-2">20+</div>
+              <div className="text-text-muted text-sm">AI Personalities</div>
+            </div>
+            <div className="glass-card p-6">
+              <div className="text-4xl font-bold text-gradient mb-2">1k+</div>
+              <div className="text-text-muted text-sm">Conversations</div>
+            </div>
+            <div className="glass-card p-6">
+              <div className="text-4xl font-bold text-gradient mb-2">4.9★</div>
+              <div className="text-text-muted text-sm">User Rating</div>
+            </div>
+          </div>
         </div>
       </section>
 
-      {/* Featured AI Characters Gallery */}
-      <FeaturedCharacters />
+      {/* Featured Personas */}
+      <section className="container mx-auto px-4 py-20">
+        <div className="text-center mb-12 animate-fade-in">
+          <h2 className="text-display-sm mb-4 text-text-primary">
+            Popular AI Characters
+          </h2>
+          <p className="text-text-secondary">
+            Start chatting with our most loved personalities
+          </p>
+        </div>
+        <FeaturedCharacters />
+      </section>
 
       {/* Features */}
-      <section className="container mx-auto px-4 py-16">
-        <h2 className="text-3xl font-bold text-center mb-12">
-          Everything You Need to Succeed
-        </h2>
+      <section className="container mx-auto px-4 py-20">
         <div className="grid md:grid-cols-3 gap-8">
-          <Card>
-            <CardHeader>
-              <Sparkles className="w-12 h-12 text-blue-600 mb-4" />
-              <CardTitle>AI Character Creation</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600">
-                Build unique AI personas with custom personalities, training data,
-                and conversation styles.
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <MessageSquare className="w-12 h-12 text-purple-600 mb-4" />
-              <CardTitle>Real-Time Chat</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600">
-                Engage users with instant AI responses powered by advanced language
-                models via WebSocket.
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <DollarSign className="w-12 h-12 text-green-600 mb-4" />
-              <CardTitle>Earn Revenue</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-gray-600">
-                Get paid 70% of every message. Users pay 2 coins per message,
-                you earn 1.4 coins each.
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
-
-      {/* Stats */}
-      <section className="container mx-auto px-4 py-16 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl text-white my-16">
-        <div className="grid md:grid-cols-3 gap-8 text-center">
-          <div>
-            <div className="text-4xl font-bold mb-2">1,234+</div>
-            <div className="text-blue-100">Active Users</div>
+          <div className="persona-card p-8 text-center animate-scale-in">
+            <div className="w-16 h-16 bg-gradient-primary rounded-2xl mx-auto mb-4 flex items-center justify-center shadow-glow-md">
+              <MessageSquare className="w-8 h-8 text-white" />
+            </div>
+            <h3 className="text-xl font-bold mb-3 text-text-primary">Real-time Chat</h3>
+            <p className="text-text-secondary">
+              Instant responses with personality. Every character feels unique and alive.
+            </p>
           </div>
-          <div>
-            <div className="text-4xl font-bold mb-2">89</div>
-            <div className="text-blue-100">Creators</div>
+
+          <div className="persona-card p-8 text-center animate-scale-in animation-delay-100">
+            <div className="w-16 h-16 bg-gradient-to-br from-secondary to-accent-purple rounded-2xl mx-auto mb-4 flex items-center justify-center shadow-glow-purple">
+              <Heart className="w-8 h-8 text-white" />
+            </div>
+            <h3 className="text-xl font-bold mb-3 text-text-primary">Emotional Intelligence</h3>
+            <p className="text-text-secondary">
+              AI that remembers you, understands context, and adapts to your mood.
+            </p>
           </div>
-          <div>
-            <div className="text-4xl font-bold mb-2">$45K+</div>
-            <div className="text-blue-100">Total Earnings</div>
+
+          <div className="persona-card p-8 text-center animate-scale-in animation-delay-200">
+            <div className="w-16 h-16 bg-gradient-to-br from-accent-green to-accent-blue rounded-2xl mx-auto mb-4 flex items-center justify-center shadow-glow-md">
+              <Zap className="w-8 h-8 text-white" />
+            </div>
+            <h3 className="text-xl font-bold mb-3 text-text-primary">Always Free</h3>
+            <p className="text-text-secondary">
+              40 messages per day free. Premium for unlimited chats and exclusive characters.
+            </p>
           </div>
         </div>
       </section>
 
-      {/* CTA */}
-      <section className="container mx-auto px-4 py-20 text-center">
-        <h2 className="text-4xl font-bold mb-6">Ready to Start Earning?</h2>
-        <p className="text-xl text-gray-600 mb-8">
-          Join thousands of creators monetizing their AI characters today.
-        </p>
-        <Link href="/become-creator">
-          <Button size="lg" className="text-lg px-12">
-            Create Your First AI Character
-          </Button>
-        </Link>
+      {/* CTA Section */}
+      <section className="container mx-auto px-4 py-20">
+        <div className="glass-card p-12 text-center relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-primary opacity-10" />
+          <div className="relative z-10">
+            <h2 className="text-display-sm mb-4 text-text-primary">
+              Ready to meet your new AI friend?
+            </h2>
+            <p className="text-text-secondary mb-8 max-w-2xl mx-auto">
+              Join thousands chatting with unique AI personalities. It's free to start!
+            </p>
+            <Link href="/explore">
+              <Button size="lg" className="btn-primary glow text-lg px-10 h-14">
+                <MessageSquare className="mr-2 h-5 w-5" />
+                Explore All Personas
+              </Button>
+            </Link>
+          </div>
+        </div>
       </section>
 
       {/* Footer */}
-      <footer className="border-t bg-gray-50 mt-20">
-        <div className="container mx-auto px-4 py-8 text-center text-gray-600">
-          <p>© 2024 CreatorAI. Built with Next.js, NestJS, and AI.</p>
+      <footer className="border-t border-border mt-20">
+        <div className="container mx-auto px-4 py-12">
+          <div className="grid md:grid-cols-4 gap-8 mb-8">
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <Sparkles className="w-6 h-6 text-primary" />
+                <span className="text-lg font-bold text-gradient">CreatorAI</span>
+              </div>
+              <p className="text-text-muted text-sm">
+                The next generation of AI character chat.
+              </p>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-4 text-text-primary">Product</h4>
+              <ul className="space-y-2 text-sm text-text-muted">
+                <li><Link href="/explore" className="hover:text-primary">Explore</Link></li>
+                <li><Link href="/store" className="hover:text-primary">Personas Store</Link></li>
+                <li><Link href="/become-creator" className="hover:text-primary">Become Creator</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-4 text-text-primary">Company</h4>
+              <ul className="space-y-2 text-sm text-text-muted">
+                <li><a href="#" className="hover:text-primary">About</a></li>
+                <li><a href="#" className="hover:text-primary">Blog</a></li>
+                <li><a href="#" className="hover:text-primary">Careers</a></li>
+              </ul>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-4 text-text-primary">Legal</h4>
+              <ul className="space-y-2 text-sm text-text-muted">
+                <li><a href="#" className="hover:text-primary">Privacy</a></li>
+                <li><a href="#" className="hover:text-primary">Terms</a></li>
+                <li><a href="#" className="hover:text-primary">Guidelines</a></li>
+              </ul>
+            </div>
+          </div>
+          <div className="border-t border-border pt-8 text-center text-text-muted text-sm">
+            <p>© 2025 CreatorAI. Built with ❤️ for amazing conversations.</p>
+          </div>
         </div>
       </footer>
     </div>
   );
 }
-

@@ -5,13 +5,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Send, Image as ImageIcon, Mic, MoreVertical, Lock, Download } from 'lucide-react';
+import { Send, Image as ImageIcon, Sparkles, Lock, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { DayPass } from '@/components/monetization/DayPass';
 import { toast } from 'react-hot-toast';
 import { useChat } from '@/hooks/useChat';
-import { Progress } from '@/components/ui/progress';
-import { GiftSelector } from '@/components/chat/GiftSelector';
 import { useSession } from 'next-auth/react';
 
 interface Message {
@@ -26,7 +23,10 @@ interface ChatInterfaceProps {
         id: string;
         name: string;
         avatarUrl: string;
+        description?: string;
+        personality?: string;
         isPremium?: boolean;
+        defaultCoinCost?: number;
     };
     initialMessages?: Message[];
 }
@@ -35,27 +35,19 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ persona, initialMe
     const { data: session } = useSession();
     const [messages, setMessages] = useState<Message[]>(initialMessages);
     const [inputValue, setInputValue] = useState('');
-    const [isDayPassOpen, setIsDayPassOpen] = useState(false);
-    const [dailyCount, setDailyCount] = useState(0);
-    const [isPremium, setIsPremium] = useState(false);
+    const [isTyping, setIsTyping] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
     const { sendMessage, isLoading } = useChat();
 
-    const DAILY_LIMIT = 40;
-
+    // Auto-scroll to bottom
     useEffect(() => {
         if (scrollRef.current) {
             scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
         }
-    }, [messages]);
+    }, [messages, isTyping]);
 
     const handleSend = async () => {
-        if (!inputValue.trim()) return;
-
-        if (!isPremium && dailyCount >= DAILY_LIMIT) {
-            setIsDayPassOpen(true);
-            return;
-        }
+        if (!inputValue.trim() || isLoading) return;
 
         const newMessage: Message = {
             id: Date.now().toString(),
@@ -66,185 +58,205 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ persona, initialMe
 
         setMessages((prev) => [...prev, newMessage]);
         setInputValue('');
-        setDailyCount((prev) => prev + 1);
+        setIsTyping(true);
 
         try {
             const response = await sendMessage(persona.id, inputValue);
+            setIsTyping(false);
+
             const aiMessage: Message = {
-                id: Date.now().toString(),
+                id: (Date.now() + 1).toString(),
                 content: response.content,
                 sender: 'CREATOR',
                 createdAt: new Date(),
             };
             setMessages((prev) => [...prev, aiMessage]);
         } catch (error: any) {
-            if (error?.response?.status === 403) {
-                setIsDayPassOpen(true);
-                toast.error("Daily limit reached.");
-            } else {
-                toast.error("Failed to send message.");
-            }
+            setIsTyping(false);
+            toast.error(error.message || 'Failed to send message');
         }
     };
 
-    const handleSendGift = async (giftId: string, cost: number) => {
-        if (!session?.user?.id) return;
-
-        try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/chat/gift`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${session.user.accessToken || ''}`
-                },
-                body: JSON.stringify({
-                    userId: session.user.id,
-                    personaId: persona.id,
-                    giftId,
-                    amount: cost
-                })
-            });
-
-            if (!res.ok) throw new Error('Failed to send gift');
-
-            const systemMessage: Message = {
-                id: Date.now().toString(),
-                content: `🎁 Sent a gift! (${cost} coins)`,
-                sender: 'SYSTEM',
-                createdAt: new Date(),
-            };
-            setMessages(prev => [...prev, systemMessage]);
-
-        } catch (error) {
-            console.error(error);
-            throw error;
+    const handleKeyPress = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            handleSend();
         }
-    };
-
-    const handleSaveChat = () => {
-        if (!isPremium) {
-            toast.error("Saving chats is a Premium feature.");
-            return;
-        }
-        const chatContent = messages.map(m => `${m.sender}: ${m.content}`).join('\n');
-        const blob = new Blob([chatContent], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `${persona.name}-chat.txt`;
-        a.click();
-        toast.success("Chat saved!");
     };
 
     return (
-        <div className="flex flex-col h-full bg-background relative">
-            {/* Meter Bar */}
-            {!isPremium && (
-                <div className="absolute top-0 left-0 w-full z-10">
-                    <Progress value={(dailyCount / DAILY_LIMIT) * 100} className="h-1 rounded-none bg-muted" indicatorClassName={cn(dailyCount > 35 ? "bg-red-500" : "bg-primary")} />
-                </div>
-            )}
-
-            {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b bg-card/50 backdrop-blur-md sticky top-0 z-10">
-                <div className="flex items-center gap-3">
-                    <Avatar className="w-10 h-10 border-2 border-primary/20">
-                        <AvatarImage src={persona.avatarUrl} />
-                        <AvatarFallback>{persona.name[0]}</AvatarFallback>
-                    </Avatar>
-                    <div>
-                        <h2 className="font-bold text-sm">{persona.name}</h2>
-                        <div className="flex items-center gap-1">
-                            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                            <span className="text-xs text-muted-foreground">Online</span>
-                        </div>
-                    </div>
-                </div>
-                <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="icon" onClick={handleSaveChat}>
-                        <Download className="w-5 h-5 text-muted-foreground" />
-                    </Button>
-                    <Button variant="ghost" size="icon">
-                        <MoreVertical className="w-5 h-5 text-muted-foreground" />
-                    </Button>
-                </div>
-            </div>
-
-            {/* Messages */}
-            <ScrollArea className="flex-1 p-4" ref={scrollRef}>
-                <div className="space-y-4 pb-4">
-                    {messages.map((msg) => (
-                        <div
-                            key={msg.id}
-                            className={cn(
-                                "flex w-full",
-                                msg.sender === 'USER' ? "justify-end" : msg.sender === 'SYSTEM' ? "justify-center" : "justify-start"
+        <div className="flex h-screen bg-background">
+            {/* Persona Sidebar */}
+            <div className="hidden lg:block w-80 border-r border-border glass-card">
+                <div className="p-6 space-y-6">
+                    {/* Persona Avatar & Info */}
+                    <div className="text-center">
+                        <div className="relative inline-block mb-4">
+                            <Avatar className="w-32 h-32 border-4 border-primary/20 shadow-glow-md">
+                                <AvatarImage src={persona.avatarUrl} alt={persona.name} />
+                                <AvatarFallback>{persona.name[0]}</AvatarFallback>
+                            </Avatar>
+                            {persona.isPremium && (
+                                <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 flex items-center gap-1 bg-accent-yellow/20 px-3 py-1 rounded-full border border-accent-yellow/40 backdrop-blur-sm">
+                                    <Sparkles className="w-3 h-3 text-accent-yellow" />
+                                    <span className="text-xs font-semibold text-accent-yellow">Premium</span>
+                                </div>
                             )}
-                        >
-                            <div
-                                className={cn(
-                                    "max-w-[80%] px-4 py-3 text-sm shadow-sm",
-                                    msg.sender === 'USER'
-                                        ? "bg-primary text-primary-foreground rounded-2xl rounded-tr-sm"
-                                        : msg.sender === 'SYSTEM'
-                                            ? "bg-muted/50 text-muted-foreground text-xs rounded-full px-6 py-1 shadow-none italic"
-                                            : "bg-muted text-foreground rounded-2xl rounded-tl-sm"
-                                )}
-                            >
-                                {msg.content}
-                            </div>
                         </div>
-                    ))}
-                    {isLoading && (
-                        <div className="flex w-full justify-start">
-                            <div className="bg-muted px-4 py-3 rounded-2xl rounded-tl-sm flex gap-1 items-center">
-                                <span className="w-2 h-2 bg-foreground/50 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
-                                <span className="w-2 h-2 bg-foreground/50 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
-                                <span className="w-2 h-2 bg-foreground/50 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                        <h2 className="text-2xl font-bold text-gradient mb-2">{persona.name}</h2>
+                        {persona.description && (
+                            <p className="text-sm text-text-secondary">{persona.description}</p>
+                        )}
+                    </div>
+
+                    {/* Personality Traits */}
+                    {persona.personality && (
+                        <div className="glass-card p-4 rounded-xl">
+                            <h3 className="text-sm font-semibold text-text-primary mb-3">Personality</h3>
+                            <div className="flex flex-wrap gap-2">
+                                {persona.personality.split(',').map((trait, idx) => (
+                                    <span
+                                        key={idx}
+                                        className="px-3 py-1 bg-surface-elevated rounded-full text-xs text-text-secondary border border-border-light"
+                                    >
+                                        {trait.trim()}
+                                    </span>
+                                ))}
                             </div>
                         </div>
                     )}
-                </div>
-            </ScrollArea>
 
-            {/* Composer */}
-            <div className="p-4 bg-background border-t">
-                <div className="flex items-center gap-2 bg-muted/50 p-2 rounded-full border border-input focus-within:border-primary/50 transition-colors">
-                    <GiftSelector onSendGift={handleSendGift} />
-                    <Input
-                        value={inputValue}
-                        onChange={(e) => setInputValue(e.target.value)}
-                        onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                        placeholder="Type a message..."
-                        className="border-none bg-transparent focus-visible:ring-0 shadow-none px-2"
-                    />
-                    <Button variant="ghost" size="icon" className="rounded-full text-muted-foreground hover:text-primary">
-                        <Mic className="w-5 h-5" />
-                    </Button>
-                    <Button
-                        onClick={handleSend}
-                        size="icon"
-                        className="rounded-full bg-gradient-to-r from-primary to-secondary hover:opacity-90 transition-opacity"
-                        disabled={!inputValue.trim() || isLoading}
-                    >
-                        <Send className="w-4 h-4 text-white" />
-                    </Button>
-                </div>
-                {!isPremium && (
-                    <div className="text-center mt-2 text-xs text-muted-foreground">
-                        {DAILY_LIMIT - dailyCount} messages left today
+                    {/* Quick Actions */}
+                    <div className="glass-card p-4 rounded-xl space-y-2">
+                        <Button variant="outline" className="w-full justify-start border-border-light hover:border-primary">
+                            <ImageIcon className="w-4 h-4 mr-2" />
+                            Send Image
+                        </Button>
+                        <Button variant="outline" className="w-full justify-start border-border-light hover:border-primary">
+                            <Sparkles className="w-4 h-4 mr-2" />
+                            View Memories
+                        </Button>
                     </div>
-                )}
+                </div>
             </div>
 
-            <DayPass
-                isOpen={isDayPassOpen}
-                onClose={() => setIsDayPassOpen(false)}
-                onSuccess={() => {
-                    setDailyCount(0);
-                    toast.success("You're back in action!");
-                }}
-            />
+            {/* Chat Area */}
+            <div className="flex-1 flex flex-col">
+                {/* Header */}
+                <div className="border-b border-border glass-card p-4 flex items-center justify-between backdrop-blur-xl sticky top-0 z-10">
+                    <div className="flex items-center gap-3">
+                        <Avatar className="w-12 h-12 border-2 border-primary/20">
+                            <AvatarImage src={persona.avatarUrl} alt={persona.name} />
+                            <AvatarFallback>{persona.name[0]}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                            <h3 className="font-semibold text-text-primary">{persona.name}</h3>
+                            <p className="text-xs text-text-muted">
+                                {isTyping ? 'Typing...' : 'Online'}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Messages */}
+                <ScrollArea className="flex-1 p-6" ref={scrollRef}>
+                    <div className="space-y-6 max-w-4xl mx-auto">
+                        {messages.map((message, idx) => (
+                            <div
+                                key={message.id}
+                                className={cn(
+                                    "flex gap-3 animate-fade-in",
+                                    message.sender === 'USER' ? 'justify-end' : 'justify-start'
+                                )}
+                                style={{ animationDelay: `${idx * 50}ms` }}
+                            >
+                                {message.sender === 'CREATOR' && (
+                                    <Avatar className="w-10 h-10 border-2 border-primary/20 flex-shrink-0">
+                                        <AvatarImage src={persona.avatarUrl} alt={persona.name} />
+                                        <AvatarFallback>{persona.name[0]}</AvatarFallback>
+                                    </Avatar>
+                                )}
+
+                                <div
+                                    className={cn(
+                                        "chat-bubble max-w-[75%]",
+                                        message.sender === 'USER'
+                                            ? 'chat-bubble-user'
+                                            : 'bg-surface-elevated border border-border-light'
+                                    )}
+                                >
+                                    <p className={cn(
+                                        "text-sm leading-relaxed",
+                                        message.sender === 'USER' ? 'text-white' : 'text-text-primary'
+                                    )}>
+                                        {message.content}
+                                    </p>
+                                    <span className={cn(
+                                        "text-[10px] mt-1 block",
+                                        message.sender === 'USER' ? 'text-white/60' : 'text-text-muted'
+                                    )}>
+                                        {new Date(message.createdAt).toLocaleTimeString([], {
+                                            hour: '2-digit',
+                                            minute: '2-digit'
+                                        })}
+                                    </span>
+                                </div>
+
+                                {message.sender === 'USER' && (
+                                    <Avatar className="w-10 h-10 border-2 border-primary/20 flex-shrink-0">
+                                        <AvatarImage src={session?.user?.image || ''} alt="You" />
+                                        <AvatarFallback>U</AvatarFallback>
+                                    </Avatar>
+                                )}
+                            </div>
+                        ))}
+
+                        {/* Typing Indicator */}
+                        {isTyping && (
+                            <div className="flex gap-3 animate-fade-in">
+                                <Avatar className="w-10 h-10 border-2 border-primary/20">
+                                    <AvatarImage src={persona.avatarUrl} alt={persona.name} />
+                                    <AvatarFallback>{persona.name[0]}</AvatarFallback>
+                                </Avatar>
+                                <div className="chat-bubble bg-surface-elevated border border-border-light">
+                                    <div className="flex gap-1 items-center">
+                                        <div className="w-2 h-2 bg-primary rounded-full animate-bounce" />
+                                        <div className="w-2 h-2 bg-primary rounded-full animate-bounce animation-delay-100" />
+                                        <div className="w-2 h-2 bg-primary rounded-full animate-bounce animation-delay-200" />
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                </ScrollArea>
+
+                {/* Input Area */}
+                <div className="border-t border-border glass-card p-4 backdrop-blur-xl">
+                    <div className="max-w-4xl mx-auto flex gap-3 items-end">
+                        <div className="flex-1 relative">
+                            <Input
+                                value={inputValue}
+                                onChange={(e) => setInputValue(e.target.value)}
+                                onKeyPress={handleKeyPress}
+                                placeholder="Type your message..."
+                                className="input-field pr-12 min-h-[52px] resize-none"
+                                disabled={isLoading}
+                            />
+                        </div>
+                        <Button
+                            onClick={handleSend}
+                            disabled={!inputValue.trim() || isLoading}
+                            className="btn-primary h-[52px] px-6"
+                        >
+                            {isLoading ? (
+                                <Loader2 className="w-5 h-5 animate-spin" />
+                            ) : (
+                                <Send className="w-5 h-5" />
+                            )}
+                        </Button>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 };
