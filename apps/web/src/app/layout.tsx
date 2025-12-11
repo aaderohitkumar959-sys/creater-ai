@@ -32,9 +32,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning style={{ backgroundColor: '#0B0F19' }}>
       <body
         className={`${inter.variable} ${outfit.variable} antialiased`}
+        style={{ backgroundColor: '#0B0F19', color: '#F8FAFC', minHeight: '100vh' }}
       >
         <Providers>
           <div className="flex flex-col min-h-screen">
