@@ -29,20 +29,20 @@ async function getPersona(id: string) {
         },
         't4': {
             id: 't4',
-            name: 'Jake',
-            avatar: '',
+            name: 'Yuri Forger',
+            avatar: 'https://lh3.googleusercontent.com/d/1NjzDmT-NoQka2c4-aCjBMdj-aIZBoSeF',
             isPremium: false,
         },
         't5': {
             id: 't5',
-            name: 'Aria',
-            avatar: '',
+            name: 'Boa Hancock',
+            avatar: 'https://lh3.googleusercontent.com/d/1L559UR3NA144sUlODryF-_qNpWIiR-O9',
             isPremium: false,
         },
         't6': {
             id: 't6',
-            name: 'Noah',
-            avatar: '',
+            name: 'Kimi',
+            avatar: 'https://lh3.googleusercontent.com/d/1PTsCoZtNIze7gXSMOu-ulBG2SRZfFADu',
             isPremium: false,
         },
         't7': {
