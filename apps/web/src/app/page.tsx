@@ -1,198 +1,250 @@
-import Link from "next/link";
-import { Sparkles, MessageSquare, Zap, Heart } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import FeaturedCharacters from "@/components/home/FeaturedCharacters";
+/**
+ * Home Page - Logged In User's Main Screen
+ * Mobile-first Instagram/Character.ai hybrid experience
+ */
+
+'use client';
+
+import React, { useEffect, useState } from 'react';
+import { TopBar } from '@/components/navigation/top-bar';
+import { ContinueChatting } from '@/components/home/continue-chatting';
+import { PinnedAIs } from '@/components/home/pinned-ais';
+import { TrendingGrid } from '@/components/home/trending-grid';
+
+// Mock data - Replace with actual API calls
+const mockRecentChats = [
+  {
+    id: '1',
+    personaId: 'p1',
+    personaName: 'Sarah',
+    personaAvatar: '',
+    lastMessage: "I'm so glad you're back! How was your day?",
+    lastTalked: '2h ago',
+  },
+  {
+    id: '2',
+    personaId: 'p2',
+    personaName: 'Alex',
+    personaAvatar: '',
+    lastMessage: 'That sounds really interesting! Tell me more.',
+    lastTalked: 'yesterday',
+  },
+  {
+    id: '3',
+    personaId: 'p3',
+    personaName: 'Luna',
+    personaAvatar: '',
+    lastMessage: 'See you soon! 💫',
+    lastTalked: '3d ago',
+  },
+];
+
+const mockPinnedAIs = [
+  {
+    id: 'p1',
+    name: 'Sarah the Mentor',
+    avatar: '',
+    description: 'A wise career coach who helps you navigate professional challenges',
+    category: 'Mentor',
+  },
+  {
+    id: 'p2',
+    name: 'Alex the Friend',
+    avatar: '',
+    description: 'Your caring companion who is always there to listen',
+    category: 'Friendship',
+  },
+];
+
+const mockTrendingAIs = [
+  {
+    id: 't1',
+    name: 'Levi Ackerman',
+    avatar: 'https://lh3.googleusercontent.com/d/1_zjNiswAGxTbleMPxbR1KUsnAjtElVQQ',
+    vibe: 'Humanity\'s strongest soldier—cold, disciplined, and brutally honest',
+    category: 'Anime Legend',
+    messageCount: 25000,
+    isNew: false,
+    isTrending: true,
+    isFeatured: true,
+    description: 'Humanity\'s strongest soldier—cold, disciplined, and brutally honest. Levi speaks little, acts decisively, and values strength, loyalty, and survival above all else. Beneath his harsh exterior lies a deep sense of responsibility and care for those he protects.',
+    personality: {
+      friendliness: 35,
+      humor: 20,
+      empathy: 40,
+      profanity: 25,
+      verbosity: 30,
+      emoji: 5
+    },
+    trainingData: [
+      'Don\'t waste my time. If you\'re going to talk, make it worth something.',
+      'Strength isn\'t about talent. It\'s about discipline and choosing to stand up again.',
+      'I don\'t promise comfort. I promise honesty—and survival.'
+    ],
+    coinCost: 2,
+  },
+  {
+    id: 't2',
+    name: 'Gojo Satoru',
+    avatar: 'https://lh3.googleusercontent.com/d/1WYUgmmSGrbiN2xx7tYK2mqZnr6_8FjpI',
+    vibe: 'The strongest sorcerer alive—confident, playful, and overwhelmingly powerful',
+    category: 'Anime Legend',
+    messageCount: 28000,
+    isNew: false,
+    isTrending: true,
+    isFeatured: true,
+    description: 'The strongest sorcerer alive—confident, playful, and overwhelmingly powerful. Gojo teases effortlessly, speaks with absolute certainty, and makes danger feel like a joke, all while protecting those he chooses with unmatched strength.',
+    personality: {
+      friendliness: 70,
+      humor: 85,
+      empathy: 55,
+      profanity: 15,
+      verbosity: 45,
+      emoji: 20
+    },
+    trainingData: [
+      'Relax. If things get messy, I\'ll handle it—no one\'s touching you.',
+      'Being strong is fun. Being the strongest? Even better.',
+      'You worry too much. Trust me… this situation is already under control.'
+    ],
+    coinCost: 2,
+  },
+  {
+    id: 't3',
+    name: 'Queen Medusa',
+    avatar: 'https://lh3.googleusercontent.com/d/1e5i1htBgZ2ef6DlPQG6P1_RNBZ1dWhON',
+    vibe: 'The cold and ruthless queen of the Snake-People—proud, dominant, and dangerously beautiful',
+    category: 'Anime Legend',
+    messageCount: 31000,
+    isNew: false,
+    isTrending: true,
+    isFeatured: true,
+    description: 'The cold and ruthless queen of the Snake-People—proud, dominant, and dangerously beautiful. Queen Medusa speaks with authority and sharp confidence, hiding rare moments of vulnerability beneath her icy control and royal pride.',
+    personality: {
+      friendliness: 30,
+      humor: 15,
+      empathy: 35,
+      profanity: 20,
+      verbosity: 40,
+      emoji: 5
+    },
+    trainingData: [
+      'Do not mistake my silence for weakness. I rule because I am feared.',
+      'Power is not given—it is taken, protected, and defended without mercy.',
+      'You stand before a queen. Speak carefully… or kneel.'
+    ],
+    coinCost: 2,
+  },
+  {
+    id: 't4',
+    name: 'Jake',
+    avatar: '',
+    vibe: 'Funny gaming buddy who loves epic adventures',
+    category: 'Entertainment',
+    messageCount: 9800,
+    isNew: true,
+    isTrending: false,
+  },
+  {
+    id: 't5',
+    name: 'Aria',
+    avatar: '',
+    vibe: 'Romantic companion with a poetic soul',
+    category: 'Romance',
+    messageCount: 22000,
+    isNew: false,
+    isTrending: true,
+  },
+  {
+    id: 't6',
+    name: 'Noah',
+    avatar: '',
+    vibe: 'Tech mentor who explains complex topics simply',
+    category: 'Learning',
+    messageCount: 6500,
+    isNew: false,
+    isTrending: false,
+  },
+  {
+    id: 't7',
+    name: 'Zara',
+    avatar: '',
+    vibe: 'Mindfulness guide for daily meditation practice',
+    category: 'Wellness',
+    messageCount: 11000,
+    isNew: true,
+    isTrending: true,
+  },
+  {
+    id: 't8',
+    name: 'Leo',
+    avatar: '',
+    vibe: 'Adventure seeker who loves travel stories',
+    category: 'Entertainment',
+    messageCount: 7300,
+    isNew: false,
+    isTrending: false,
+  },
+];
 
 export default function Home() {
+  const [recentChats, setRecentChats] = useState(mockRecentChats);
+  const [pinnedAIs, setPinnedAIs] = useState(mockPinnedAIs);
+  const [trendingAIs, setTrendingAIs] = useState(mockTrendingAIs);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    // TODO: Fetch actual user data from API
+    // For now, simulate loading
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleUnpin = (id: string) => {
+    setPinnedAIs(prev => prev.filter(ai => ai.id !== id));
+    // TODO: Update user preferences in API
+  };
+
   return (
-    <div className="min-h-screen bg-background">
-      {/* Navigation */}
-      <nav className="border-b border-border backdrop-blur-xl bg-glass sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-8 h-8 text-primary animate-float" />
-            <span className="text-2xl font-bold text-gradient">
-              CreatorAI
-            </span>
-          </div>
-          <div className="flex gap-4">
-            <Link href="/explore">
-              <Button variant="ghost" className="text-text-secondary hover:text-text-primary">
-                Explore
-              </Button>
-            </Link>
-            <Link href="/login">
-              <Button variant="outline" className="border-border-light">Login</Button>
-            </Link>
-            <Link href="/become-creator">
-              <Button className="btn-primary glow">Become a Creator</Button>
-            </Link>
-          </div>
-        </div>
-      </nav>
+    <div className="min-h-screen bg-[var(--bg-primary)]">
+      {/* Top Bar - Scroll aware */}
+      <TopBar />
 
-      {/* Hero Section */}
-      <section className="hero-gradient relative overflow-hidden">
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/30 rounded-full blur-3xl animate-pulse" />
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-secondary/30 rounded-full blur-3xl animate-pulse animation-delay-200" />
-        </div>
-
-        <div className="container mx-auto px-4 py-32 text-center relative z-10">
-          <div className="animate-fade-in">
-            <h1 className="text-display-lg mb-6">
-              Chat with{" "}
-              <span className="text-gradient">AI Personalities</span>
-            </h1>
-            <p className="text-xl text-text-secondary mb-12 max-w-2xl mx-auto">
-              From anime girlfriends to wise mentors. Meet unique AI characters that feel alive.
-            </p>
-            <div className="flex gap-4 justify-center">
-              <Link href="/explore">
-                <Button size="lg" className="btn-primary glow text-lg px-8 h-14">
-                  <MessageSquare className="mr-2 h-5 w-5" />
-                  Start Chatting Free
-                </Button>
-              </Link>
-              <Link href="/become-creator">
-                <Button size="lg" variant="outline" className="text-lg px-8 h-14 border-border-light hover:border-primary">
-                  <Sparkles className="mr-2 h-5 w-5" />
-                  Create Your AI
-                </Button>
-              </Link>
+      {/* Main Content */}
+      <main className="pt-4">
+        {loading ? (
+          <div className="container-mobile space-y-6">
+            <div className="h-32 glass-medium rounded-xl animate-pulse" />
+            <div className="h-48 glass-medium rounded-xl animate-pulse" />
+            <div className="grid grid-cols-2 gap-3">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="h-64 glass-medium rounded-xl animate-pulse" />
+              ))}
             </div>
           </div>
+        ) : (
+          <>
+            {/* Continue Chatting - Emotional Continuity */}
+            <ContinueChatting recentChats={recentChats} />
 
-          {/* Stats */}
-          <div className="mt-20 grid grid-cols-3 gap-8 max-w-3xl mx-auto animate-slide-up animation-delay-200">
-            <div className="glass-card p-6">
-              <div className="text-4xl font-bold text-gradient mb-2">20+</div>
-              <div className="text-text-muted text-sm">AI Personalities</div>
-            </div>
-            <div className="glass-card p-6">
-              <div className="text-4xl font-bold text-gradient mb-2">1k+</div>
-              <div className="text-text-muted text-sm">Conversations</div>
-            </div>
-            <div className="glass-card p-6">
-              <div className="text-4xl font-bold text-gradient mb-2">4.9★</div>
-              <div className="text-text-muted text-sm">User Rating</div>
-            </div>
-          </div>
-        </div>
-      </section>
+            {/* Pinned AIs */}
+            <PinnedAIs
+              pinnedAIs={pinnedAIs}
+              onUnpin={handleUnpin}
+              maxPins={3}
+            />
 
-      {/* Featured Personas */}
-      <section className="container mx-auto px-4 py-20">
-        <div className="text-center mb-12 animate-fade-in">
-          <h2 className="text-display-sm mb-4 text-text-primary">
-            Popular AI Characters
-          </h2>
-          <p className="text-text-secondary">
-            Start chatting with our most loved personalities
-          </p>
-        </div>
-        <FeaturedCharacters />
-      </section>
-
-      {/* Features */}
-      <section className="container mx-auto px-4 py-20">
-        <div className="grid md:grid-cols-3 gap-8">
-          <div className="persona-card p-8 text-center animate-scale-in">
-            <div className="w-16 h-16 bg-gradient-primary rounded-2xl mx-auto mb-4 flex items-center justify-center shadow-glow-md">
-              <MessageSquare className="w-8 h-8 text-white" />
-            </div>
-            <h3 className="text-xl font-bold mb-3 text-text-primary">Real-time Chat</h3>
-            <p className="text-text-secondary">
-              Instant responses with personality. Every character feels unique and alive.
-            </p>
-          </div>
-
-          <div className="persona-card p-8 text-center animate-scale-in animation-delay-100">
-            <div className="w-16 h-16 bg-gradient-to-br from-secondary to-accent-purple rounded-2xl mx-auto mb-4 flex items-center justify-center shadow-glow-purple">
-              <Heart className="w-8 h-8 text-white" />
-            </div>
-            <h3 className="text-xl font-bold mb-3 text-text-primary">Emotional Intelligence</h3>
-            <p className="text-text-secondary">
-              AI that remembers you, understands context, and adapts to your mood.
-            </p>
-          </div>
-
-          <div className="persona-card p-8 text-center animate-scale-in animation-delay-200">
-            <div className="w-16 h-16 bg-gradient-to-br from-accent-green to-accent-blue rounded-2xl mx-auto mb-4 flex items-center justify-center shadow-glow-md">
-              <Zap className="w-8 h-8 text-white" />
-            </div>
-            <h3 className="text-xl font-bold mb-3 text-text-primary">Always Free</h3>
-            <p className="text-text-secondary">
-              40 messages per day free. Premium for unlimited chats and exclusive characters.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="container mx-auto px-4 py-20">
-        <div className="glass-card p-12 text-center relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-primary opacity-10" />
-          <div className="relative z-10">
-            <h2 className="text-display-sm mb-4 text-text-primary">
-              Ready to meet your new AI friend?
-            </h2>
-            <p className="text-text-secondary mb-8 max-w-2xl mx-auto">
-              Join thousands chatting with unique AI personalities. It's free to start!
-            </p>
-            <Link href="/explore">
-              <Button size="lg" className="btn-primary glow text-lg px-10 h-14">
-                <MessageSquare className="mr-2 h-5 w-5" />
-                Explore All Personas
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="border-t border-border mt-20">
-        <div className="container mx-auto px-4 py-12">
-          <div className="grid md:grid-cols-4 gap-8 mb-8">
-            <div>
-              <div className="flex items-center gap-2 mb-4">
-                <Sparkles className="w-6 h-6 text-primary" />
-                <span className="text-lg font-bold text-gradient">CreatorAI</span>
-              </div>
-              <p className="text-text-muted text-sm">
-                The next generation of AI character chat.
-              </p>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4 text-text-primary">Product</h4>
-              <ul className="space-y-2 text-sm text-text-muted">
-                <li><Link href="/explore" className="hover:text-primary">Explore</Link></li>
-                <li><Link href="/store" className="hover:text-primary">Personas Store</Link></li>
-                <li><Link href="/become-creator" className="hover:text-primary">Become Creator</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4 text-text-primary">Company</h4>
-              <ul className="space-y-2 text-sm text-text-muted">
-                <li><a href="#" className="hover:text-primary">About</a></li>
-                <li><a href="#" className="hover:text-primary">Blog</a></li>
-                <li><a href="#" className="hover:text-primary">Careers</a></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4 text-text-primary">Legal</h4>
-              <ul className="space-y-2 text-sm text-text-muted">
-                <li><a href="#" className="hover:text-primary">Privacy</a></li>
-                <li><a href="#" className="hover:text-primary">Terms</a></li>
-                <li><a href="#" className="hover:text-primary">Guidelines</a></li>
-              </ul>
-            </div>
-          </div>
-          <div className="border-t border-border pt-8 text-center text-text-muted text-sm">
-            <p>© 2025 CreatorAI. Built with ❤️ for amazing conversations.</p>
-          </div>
-        </div>
-      </footer>
+            {/* Popular/Trending Grid */}
+            <TrendingGrid
+              ais={trendingAIs}
+              title="Popular AI Characters"
+            />
+          </>
+        )}
+      </main>
     </div>
   );
 }

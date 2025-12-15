@@ -22,8 +22,8 @@ const nextConfig: NextConfig = {
     ],
   },
   env: {
-    // Fallback for API URL if not set (helps prevent crash, though calls will fail)
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'https://creator-ai-backend.onrender.com', // Replace with actual if known
+    // Production backend API URL
+    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'https://creater-ai.onrender.com',
   }
 };
 

@@ -29,11 +29,32 @@ async function bootstrap() {
     }),
   );
 
-  // 2. Strict CORS
+  // 2. Strict CORS - Allow production Vercel and localhost
+  const allowedOrigins = [
+    'https://creater-ai-web.vercel.app',  // Production
+    'http://localhost:3000',               // Local dev
+    'http://localhost:3001',               // Local backend dev
+  ];
+
+  if (process.env.FRONTEND_URL) {
+    allowedOrigins.push(process.env.FRONTEND_URL);
+  }
+
   app.enableCors({
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE',
+    origin: (origin, callback) => {
+      // Allow requests with no origin (mobile apps, Postman, etc)
+      if (!origin) return callback(null, true);
+
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        console.warn(`CORS blocked origin: ${origin}`);
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
+    methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
+    allowedHeaders: ['Content-Type', 'Authorization'],
   });
 
   // Add logging middleware

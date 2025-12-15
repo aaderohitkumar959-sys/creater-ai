@@ -4,6 +4,7 @@ import "./globals.css";
 import { Providers } from "@/components/providers";
 import { Toaster } from 'react-hot-toast';
 import { DailyRewardCheck } from '@/components/gamification/DailyRewardCheck';
+import { BottomNav } from '@/components/navigation/bottom-nav';
 
 const inter = Inter({
   variable: "--font-sans",
@@ -17,14 +18,14 @@ const outfit = Outfit({
 
 export const metadata: Metadata = {
   title: "CreatorAI - AI Character Platform",
-  description: "Build and monetize Instagram-style AI characters",
+  description: "Chat with unique AI personalities. Your AI companion awaits.",
   manifest: "/manifest.json",
   icons: {
     icon: "/favicon.ico",
     apple: "/icon-192x192.png",
   },
-  themeColor: "#6366f1",
 };
+
 
 export default function RootLayout({
   children,
@@ -32,25 +33,36 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning style={{ backgroundColor: '#0B0F19' }}>
+    <html lang="en" suppressHydrationWarning style={{ backgroundColor: '#0B0F14' }}>
       <body
-        className={`${inter.variable} ${outfit.variable} antialiased`}
-        style={{ backgroundColor: '#0B0F19', color: '#F8FAFC', minHeight: '100vh' }}
+        className={`${inter.variable} ${outfit.variable} antialiased bg-[var(--bg-primary)] text-[var(--text-primary)]`}
+        style={{ minHeight: '100vh' }}
+        suppressHydrationWarning
       >
         <Providers>
-          <div className="flex flex-col min-h-screen">
-            <div className="flex-grow">
-              {children}
-            </div>
-            <footer className="py-6 text-center text-sm text-muted-foreground border-t mt-auto">
-              <div className="container mx-auto flex justify-center gap-6">
-                <a href="/terms" className="hover:underline">Terms of Service</a>
-                <a href="/privacy" className="hover:underline">Privacy Policy</a>
-                <span>© {new Date().getFullYear()} CreatorAI</span>
-              </div>
-            </footer>
+          {/* Main content with bottom padding for nav */}
+          <div className="pb-nav">
+            {children}
           </div>
-          <Toaster />
+
+          {/* Bottom Navigation - Global */}
+          <BottomNav />
+
+          {/* Toast Notifications */}
+          <Toaster
+            position="top-center"
+            toastOptions={{
+              style: {
+                background: 'rgba(14, 22, 35, 0.9)',
+                color: '#fff',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                backdropFilter: 'blur(15px)',
+              },
+            }}
+          />
+
+          {/* Daily Reward Check */}
+          <DailyRewardCheck />
         </Providers>
       </body>
     </html>

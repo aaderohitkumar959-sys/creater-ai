@@ -1,123 +1,207 @@
-"use client";
+/**
+ * Wallet Page - Telegram Style
+ * Large coin balance, premium card, and purchase options
+ */
 
-import { useEffect, useState } from "react";
-import { api } from "@/lib/api";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Coins, CreditCard, ArrowUpRight, ArrowDownLeft } from "lucide-react";
-import Link from "next/link";
-import { format } from "date-fns";
+'use client';
+
+import React, { useEffect, useState } from 'react';
+import { TopBar } from '@/components/navigation/top-bar';
+import { PremiumCard } from '@/components/wallet/premium-card';
+import { CoinPacks } from '@/components/wallet/coin-packs';
+import { Coins, TrendingUp, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
 
 interface Transaction {
     id: string;
-    type: 'PURCHASE' | 'SPEND' | 'EARN';
+    type: 'PURCHASE' | 'SPEND' | 'EARN' | 'REWARD';
     amount: number;
     description: string;
-    createdAt: string;
+    createdAt: Date;
 }
 
+// Mock data
+const mockTransactions: Transaction[] = [
+    {
+        id: '1',
+        type: 'PURCHASE',
+        amount: 500,
+        description: 'Purchased 500 coins',
+        createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24),
+    },
+    {
+        id: '2',
+        type: 'SPEND',
+        amount: -20,
+        description: 'Chat with Sarah the Mentor',
+        createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2),
+    },
+    {
+        id: '3',
+        type: 'REWARD',
+        amount: 10,
+        description: 'Daily login bonus',
+        createdAt: new Date(Date.now() - 1000 * 60 * 30),
+    },
+];
+
 export default function WalletPage() {
-    const [balance, setBalance] = useState<number>(0);
-    const [transactions, setTransactions] = useState<Transaction[]>([]);
+    const [balance, setBalance] = useState(240);
+    const [transactions, setTransactions] = useState<Transaction[]>(mockTransactions);
+    const [isPremium, setIsPremium] = useState(false);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const [balanceData, transactionsData] = await Promise.all([
-                    api.getWalletBalance(),
-                    api.getTransactionHistory(),
-                ]);
-                setBalance(balanceData);
-                setTransactions(transactionsData);
-            } catch (error) {
-                console.error("Failed to fetch wallet data:", error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        fetchData();
+        // TODO: Fetch from API
+        const timer = setTimeout(() => {
+            setLoading(false);
+        }, 500);
+        return () => clearTimeout(timer);
     }, []);
 
-    if (loading) {
-        return <div className="flex justify-center items-center h-screen">Loading...</div>;
-    }
+    const handleUpgrade = () => {
+        // TODO: Navigate to premium purchase flow
+        alert('Premium upgrade flow coming soon!');
+    };
+
+    const handlePurchase = (packId: string) => {
+        // TODO: Navigate to purchase flow
+        alert(`Purchase pack: ${packId}`);
+    };
 
     return (
-        <div className="container mx-auto py-8 px-4">
-            <div className="flex justify-between items-center mb-8">
-                <h1 className="text-3xl font-bold">My Wallet</h1>
-                <Link href="/wallet/buy">
-                    <Button size="lg" className="gap-2">
-                        <Coins className="w-5 h-5" />
-                        Buy Coins
-                    </Button>
-                </Link>
-            </div>
+        <div className="min-h-screen bg-[var(--bg-primary)]">
+            <TopBar showSearch={false} />
 
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Current Balance</CardTitle>
-                        <Coins className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{balance.toLocaleString()} Coins</div>
-                        <p className="text-xs text-muted-foreground">
-                            Available for use
+            <div className="container-mobile pt-4 pb-8 space-y-6">
+                {/* Coin Balance - Large display */}
+                <div className="relative overflow-hidden rounded-2xl p-8 glass-medium border border-[var(--border-medium)]">
+                    {/* Background gradient */}
+                    <div
+                        className="absolute inset-0 opacity-10"
+                        style={{
+                            background: 'radial-gradient(circle at top right, rgba(59, 130, 246, 0.5), transparent 50%)',
+                        }}
+                    />
+
+                    <div className="relative z-10 text-center">
+                        <p className="text-sm text-[var(--text-muted)] mb-2">Your Balance</p>
+                        <div className="flex items-center justify-center gap-3 mb-2">
+                            <Coins className="text-yellow-500" size={40} />
+                            <h1 className="text-5xl font-bold text-gradient">
+                                {balance.toLocaleString()}
+                            </h1>
+                        </div>
+                        <p className="text-sm text-[var(--text-secondary)]">
+                            ≈ {Math.floor(balance / 2)} messages remaining
                         </p>
-                    </CardContent>
-                </Card>
-            </div>
+                    </div>
+                </div>
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Transaction History</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Type</TableHead>
-                                <TableHead>Description</TableHead>
-                                <TableHead>Amount</TableHead>
-                                <TableHead className="text-right">Date</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {transactions.length === 0 ? (
-                                <TableRow>
-                                    <TableCell colSpan={4} className="text-center py-4">
-                                        No transactions yet
-                                    </TableCell>
-                                </TableRow>
-                            ) : (
-                                transactions.map((tx) => (
-                                    <TableRow key={tx.id}>
-                                        <TableCell>
-                                            <div className="flex items-center gap-2">
-                                                {tx.type === 'PURCHASE' && <CreditCard className="w-4 h-4 text-green-500" />}
-                                                {tx.type === 'SPEND' && <ArrowUpRight className="w-4 h-4 text-red-500" />}
-                                                {tx.type === 'EARN' && <ArrowDownLeft className="w-4 h-4 text-blue-500" />}
-                                                <span className="capitalize">{tx.type.toLowerCase()}</span>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>{tx.description}</TableCell>
-                                        <TableCell className={tx.amount > 0 ? "text-green-600 font-medium" : "text-red-600 font-medium"}>
-                                            {tx.amount > 0 ? "+" : ""}{tx.amount.toLocaleString()}
-                                        </TableCell>
-                                        <TableCell className="text-right text-muted-foreground">
-                                            {format(new Date(tx.createdAt), "MMM d, yyyy HH:mm")}
-                                        </TableCell>
-                                    </TableRow>
-                                ))
-                            )}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
+                {/* Premium Card */}
+                <PremiumCard
+                    isPremium={isPremium}
+                    onUpgrade={handleUpgrade}
+                />
+
+                {/* Coin Packs */}
+                {!isPremium && (
+                    <CoinPacks onPurchase={handlePurchase} />
+                )}
+
+                {/* Transaction History */}
+                <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-[var(--text-primary)]">
+                        Recent Activity
+                    </h3>
+
+                    {loading ? (
+                        <div className="space-y-2">
+                            {[1, 2, 3].map((i) => (
+                                <div key={i} className="h-16 glass-medium rounded-xl animate-pulse" />
+                            ))}
+                        </div>
+                    ) : transactions.length === 0 ? (
+                        <div className="text-center py-12 glass-medium rounded-xl">
+                            <Coins size={48} className="text-[var(--text-muted)] mx-auto mb-3" />
+                            <p className="text-[var(--text-secondary)]">No transactions yet</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-2">
+                            {transactions.map((tx) => (
+                                <TransactionItem key={tx.id} transaction={tx} />
+                            ))}
+                        </div>
+                    )}
+                </div>
+
+                {/* Helper info */}
+                <div className="glass-light rounded-xl p-4 space-y-2">
+                    <p className="text-sm font-medium text-[var(--text-primary)]">
+                        💡 How coins work
+                    </p>
+                    <ul className="text-xs text-[var(--text-secondary)] space-y-1 pl-4">
+                        <li>• Each message costs 2 coins</li>
+                        <li>• Earn free coins daily by logging in</li>
+                        <li>• Premium members get unlimited messages</li>
+                        <li>• Unused coins never expire</li>
+                    </ul>
+                </div>
+            </div>
         </div>
     );
 }
+
+// Transaction Item Component
+interface TransactionItemProps {
+    transaction: Transaction;
+}
+
+const TransactionItem: React.FC<TransactionItemProps> = ({ transaction }) => {
+    const getIcon = () => {
+        switch (transaction.type) {
+            case 'PURCHASE':
+                return <ArrowDownLeft className="text-green-500" size={20} />;
+            case 'SPEND':
+                return <ArrowUpRight className="text-red-500" size={20} />;
+            case 'EARN':
+            case 'REWARD':
+                return <TrendingUp className="text-blue-500" size={20} />;
+            default:
+                return <Coins className="text-[var(--text-muted)]" size={20} />;
+        }
+    };
+
+    const isPositive = transaction.amount > 0;
+
+    return (
+        <div className="glass-medium rounded-xl p-4 flex items-center justify-between">
+            <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-[var(--bg-tertiary)]">
+                    {getIcon()}
+                </div>
+                <div>
+                    <p className="text-sm font-medium text-[var(--text-primary)]">
+                        {transaction.description}
+                    </p>
+                    <p className="text-xs text-[var(--text-muted)]">
+                        {format(transaction.createdAt, 'MMM d, h:mm a')}
+                    </p>
+                </div>
+            </div>
+
+            <div className="text-right">
+                <p
+                    className={cn(
+                        'text-lg font-bold',
+                        isPositive ? 'text-green-500' : 'text-red-500'
+                    )}
+                >
+                    {isPositive ? '+' : ''}{transaction.amount}
+                </p>
+                <p className="text-xs text-[var(--text-muted)]">coins</p>
+            </div>
+        </div>
+    );
+};

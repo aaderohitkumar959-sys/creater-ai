@@ -25,7 +25,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private chatService: ChatService,
     private llmService: LLMService,
     private coinService: CoinService,
-  ) {}
+  ) { }
 
   handleConnection(client: Socket) {
     console.log(`Client connected: ${client.id}`);
@@ -101,13 +101,20 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
           content: msg.content,
         }));
 
-        // Generate AI response
+        console.log('[CHAT] Generating AI response for persona:', data.personaId);
+
+        // Generate AI response with timeout
         const { content: aiResponse } =
           await this.llmService.generatePersonaResponse(
             data.personaId,
             data.content,
             conversationHistory,
           );
+
+        console.log('[CHAT SUCCESS] AI response generated:', {
+          personaId: data.personaId,
+          responseLength: aiResponse.length,
+        });
 
         // Save AI response
         await this.chatService.saveMessage(
@@ -124,13 +131,28 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
           timestamp: new Date(),
         });
       } catch (error) {
-        console.error('Error generating AI response:', error);
-        // Send error message
+        console.error('[CHAT ERROR] Failed to generate AI response:', {
+          error: error.message,
+          stack: error.stack,
+          personaId: data.personaId,
+          userId: data.userId,
+          conversationId: data.conversationId,
+          messageLength: data.content.length,
+        });
+
+        // Send friendly error message to user
         this.server.to(data.conversationId).emit('newMessage', {
           conversationId: data.conversationId,
-          content: 'Sorry, I encountered an error. Please try again.',
+          content: "I'm having trouble responding right now. Please try again in a moment! 🔄",
           sender: 'CREATOR',
           timestamp: new Date(),
+          isError: true,
+        });
+
+        // Also emit an error event for frontend to handle
+        client.emit('chatError', {
+          message: 'AI response failed',
+          canRetry: true,
         });
       }
     }
