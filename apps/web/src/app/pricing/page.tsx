@@ -136,8 +136,8 @@ export default function PricingPage() {
                         <button
                             onClick={() => setSelectedTab("coins")}
                             className={`px-6 py-2 rounded-md transition-all ${selectedTab === "coins"
-                                    ? "bg-background shadow-sm"
-                                    : "text-muted-foreground hover:text-foreground"
+                                ? "bg-background shadow-sm"
+                                : "text-muted-foreground hover:text-foreground"
                                 }`}
                         >
                             Coins
@@ -161,8 +161,8 @@ export default function PricingPage() {
                         <Card
                             key={pack.id}
                             className={`p-6 relative ${pack.popular
-                                    ? "border-primary shadow-lg shadow-primary/20"
-                                    : ""
+                                ? "border-primary shadow-lg shadow-primary/20"
+                                : ""
                                 }`}
                         >
                             {pack.popular && (
