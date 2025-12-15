@@ -45,6 +45,12 @@ async function getPersona(id: string) {
             avatar: '',
             isPremium: false,
         },
+        't7': {
+            id: 't7',
+            name: 'Makima',
+            avatar: 'https://lh3.googleusercontent.com/d/1KlMIPKYWBZEwpkmK7KythAFoaJ7Et9kF',
+            isPremium: false,
+        },
     };
 
     return personas[id] || null;

@@ -1,20 +1,9 @@
 import type { Metadata } from "next";
-import { Inter, Outfit } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/providers";
 import { Toaster } from 'react-hot-toast';
 import { DailyRewardCheck } from '@/components/gamification/DailyRewardCheck';
 import { BottomNav } from '@/components/navigation/bottom-nav';
-
-const inter = Inter({
-  variable: "--font-sans",
-  subsets: ["latin"],
-});
-
-const outfit = Outfit({
-  variable: "--font-display",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "CreatorAI - AI Character Platform",
@@ -26,7 +15,6 @@ export const metadata: Metadata = {
   },
 };
 
-
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -34,38 +22,42 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning style={{ backgroundColor: '#0B0F14' }}>
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+      </head>
       <body
-        className={`${inter.variable} ${outfit.variable} antialiased bg-[var(--bg-primary)] text-[var(--text-primary)]`}
-        style={{ minHeight: '100vh' }}
+        className="antialiased bg-[var(--bg-primary)] text-[var(--text-primary)]"
+        style={{ minHeight: '100vh', fontFamily: 'Inter, sans-serif' }}
         suppressHydrationWarning
       >
         <Providers>
           {/* Main content with bottom padding for nav */}
-          <div className="pb-nav">
+          <div className="pb-20">
             {children}
           </div>
 
-          {/* Bottom Navigation - Global */}
+          {/* Bottom Navigation */}
           <BottomNav />
+
+          {/* Daily Reward Check (runs on mount) */}
+          <DailyRewardCheck />
 
           {/* Toast Notifications */}
           <Toaster
             position="top-center"
             toastOptions={{
+              duration: 3000,
               style: {
-                background: 'rgba(14, 22, 35, 0.9)',
-                color: '#fff',
-                border: '1px solid rgba(255, 255, 255, 0.1)',
-                backdropFilter: 'blur(15px)',
+                background: '#1E293B',
+                color: '#F8FAFC',
+                border: '1px solid #334155',
               },
             }}
           />
-
-          {/* Daily Reward Check */}
-          <DailyRewardCheck />
         </Providers>
       </body>
     </html>
   );
 }
-
