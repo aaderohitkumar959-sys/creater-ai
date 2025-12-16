@@ -4,6 +4,7 @@ import { Providers } from "@/components/providers";
 import { Toaster } from 'react-hot-toast';
 import { DailyRewardCheck } from '@/components/gamification/DailyRewardCheck';
 import { BottomNav } from '@/components/navigation/bottom-nav';
+import { Analytics } from '@vercel/analytics/next';
 
 export const metadata: Metadata = {
   title: "CreatorAI - AI Character Platform",
@@ -56,6 +57,9 @@ export default function RootLayout({
               },
             }}
           />
+
+          {/* Vercel Web Analytics */}
+          <Analytics />
         </Providers>
       </body>
     </html>
