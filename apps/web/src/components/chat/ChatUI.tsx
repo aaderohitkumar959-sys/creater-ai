@@ -67,16 +67,46 @@ export const ChatUI: React.FC<ChatUIProps> = ({ persona }) => {
 
         setIsTyping(true);
 
-        setTimeout(() => {
+        try {
+            // Call real backend API
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/chat/send`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    personaId: persona.id,
+                    message: content,
+                }),
+                credentials: 'include', // Include cookies for auth
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to send message');
+            }
+
+            const data = await response.json();
+
             const aiMessage: Message = {
+                id: data.aiMessage?.id || (Date.now() + 1).toString(),
+                content: data.aiMessage?.content || "I'm having trouble responding right now. Please try again.",
+                sender: 'ai',
+                timestamp: new Date(data.aiMessage?.createdAt || Date.now()),
+            };
+            setMessages(prev => [...prev, aiMessage]);
+        } catch (error) {
+            console.error('Chat error:', error);
+            // Show error message to user
+            const errorMessage: Message = {
                 id: (Date.now() + 1).toString(),
-                content: `Thanks for your message! I'm ${persona.name} and I'm here to chat with you. (This is a demo response - connect to real AI API for actual responses)`,
+                content: "Sorry, I couldn't process your message. Please make sure you're logged in and try again.",
                 sender: 'ai',
                 timestamp: new Date(),
             };
-            setMessages(prev => [...prev, aiMessage]);
+            setMessages(prev => [...prev, errorMessage]);
+        } finally {
             setIsTyping(false);
-        }, 2000);
+        }
     };
 
     const handlePin = () => {
