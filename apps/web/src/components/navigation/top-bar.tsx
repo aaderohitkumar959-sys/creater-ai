@@ -59,10 +59,10 @@ export const TopBar: React.FC<TopBarProps> = ({
                     onClick={() => router.push('/')}
                 >
                     <div className="w-8 h-8 rounded-lg bg-gradient-accent flex items-center justify-center">
-                        <span className="text-white font-bold text-lg">C</span>
+                        <span className="text-white font-bold text-lg">S</span>
                     </div>
                     <span className="text-xl font-bold text-gradient hidden sm:block">
-                        CreatorAI
+                        Syelope
                     </span>
                 </div>
 

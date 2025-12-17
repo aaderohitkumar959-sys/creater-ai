@@ -8,7 +8,7 @@ import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 
 export const metadata: Metadata = {
-  title: "CreatorAI - AI Character Platform",
+  title: "Syelope - AI Character Platform",
   description: "Chat with unique AI personalities. Your AI companion awaits.",
   manifest: "/manifest.json",
   icons: {
