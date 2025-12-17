@@ -84,6 +84,7 @@ export const TopBar: React.FC<TopBarProps> = ({
                         </button>
                     )}
 
+
                     {/* Notifications Icon */}
                     {showNotifications && (
                         <button
@@ -108,6 +109,20 @@ export const TopBar: React.FC<TopBarProps> = ({
                             )}
                         </button>
                     )}
+
+                    {/* Login Button */}
+                    <button
+                        onClick={() => router.push('/login')}
+                        className={cn(
+                            'px-4 py-2 rounded-lg font-semibold',
+                            'bg-gradient-accent text-white',
+                            'transition-all duration-250',
+                            'hover:opacity-90 active:scale-95',
+                            'shadow-lg shadow-blue-500/20'
+                        )}
+                    >
+                        Login
+                    </button>
                 </div>
             </div>
         </header>
