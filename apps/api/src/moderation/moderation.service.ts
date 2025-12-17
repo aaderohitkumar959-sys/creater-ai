@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
 
-interface ModerationResult {
+export interface ModerationResult {  // ✅ EXPORTED so controllers can use it
   blocked: boolean;
   reason?: string;
   categories?: string[];

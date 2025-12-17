@@ -94,12 +94,12 @@ export class ChatService {
     // 2. Pre-send moderation
     const moderationResult = await this.moderation.checkContent(message);
 
-    if (!moderationResult.allowed) {
+    if (moderationResult.blocked) {  // Fixed: was .allowed, now .blocked
       // Log violation
       await this.moderation.logViolation(
         userId,
+        moderationResult.reason || 'CONTENT_VIOLATION',  // Fixed: was categories (array), now reason (string)
         message,
-        moderationResult.categories,
       );
       throw new ForbiddenException('Message blocked by moderation filters.');
     }
@@ -141,7 +141,7 @@ export class ChatService {
     const safetyCheck = await this.moderation.validateResponse(aiResponse);
 
     let finalResponse = aiResponse;
-    if (!safetyCheck.safe) {
+    if (safetyCheck.blocked) {  // Fixed: was .safe (inverted), now .blocked
       finalResponse =
         'I apologize, but I cannot continue this conversation topic as it violates our safety guidelines.';
     }
@@ -195,11 +195,11 @@ export class ChatService {
     // 2. Pre-send moderation
     const moderationResult = await this.moderation.checkContent(message);
 
-    if (!moderationResult.allowed) {
+    if (moderationResult.blocked) {  // Fixed: was .allowed (inverted), now .blocked
       await this.moderation.logViolation(
         userId,
+        moderationResult.reason || 'CONTENT_VIOLATION',  // Fixed: was categories (array), now reason (string)
         message,
-        moderationResult.categories,
       );
       yield {
         type: 'complete',
@@ -251,7 +251,7 @@ export class ChatService {
 
     // Post-response check (after full generation)
     const safetyCheck = await this.moderation.validateResponse(fullResponse);
-    if (!safetyCheck.safe) {
+    if (safetyCheck.blocked) {  // Fixed: was .safe (inverted), now .blocked
       fullResponse = '[Content Redacted by Safety Filter]';
     }
 

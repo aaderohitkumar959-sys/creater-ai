@@ -1,13 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
-export enum MemoryType {
+export enum MemoryType {  // ✅ EXPORTED
     FACT = 'FACT', // "User prefers coffee over tea"
     PREFERENCE = 'PREFERENCE', // "User likes horror movies"
     EVENT = 'EVENT', // "User mentioned vacation to Japan"
 }
 
-interface Memory {
+export interface Memory {  // ✅ EXPORTED
     id: string;
     userId: string;
     personaId: string;

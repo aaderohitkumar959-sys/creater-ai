@@ -63,9 +63,9 @@ export class UserService {
      * Permanent deletion after confirmation
      */
     async confirmDeletion(token: string): Promise<boolean> {
-        // Find all users and check metadata (Json field requires client-side filtering)
+        // Find all users with metadata and check for token (Json fields need client-side filtering)
         const users = await this.prisma.user.findMany({
-            where: { metadata: { not: null } },
+            // Fetch users that might have metadata - filter client-side
         });
 
         // Filter for matching token in metadata
