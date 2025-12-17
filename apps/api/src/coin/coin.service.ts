@@ -1,17 +1,17 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class CoinService {
+  constructor(private prisma: PrismaService) { }
+
   async getOrCreateWallet(userId: string) {
-    let wallet = await prisma.coinWallet.findUnique({
+    let wallet = await this.prisma.coinWallet.findUnique({
       where: { userId },
     });
 
     if (!wallet) {
-      wallet = await prisma.coinWallet.create({
+      wallet = await this.prisma.coinWallet.create({
         data: { userId },
       });
     }
@@ -24,6 +24,10 @@ export class CoinService {
     return wallet.balance;
   }
 
+  /**
+   * Add coins to user wallet (used for purchases, rewards)
+   * Uses database transaction for atomicity
+   */
   async addCoins(
     userId: string,
     amount: number,
@@ -32,65 +36,103 @@ export class CoinService {
   ) {
     const wallet = await this.getOrCreateWallet(userId);
 
-    await prisma.coinTransaction.create({
-      data: {
-        walletId: wallet.id,
-        type: 'PURCHASE',
-        amount,
-        description,
-        metadata,
-      },
-    });
+    // FIXED: Use transaction for atomicity
+    return await this.prisma.$transaction(async (tx) => {
+      await tx.coinTransaction.create({
+        data: {
+          walletId: wallet.id,
+          type: 'PURCHASE',
+          amount,
+          description,
+          metadata,
+        },
+      });
 
-    await prisma.coinWallet.update({
-      where: { id: wallet.id },
-      data: { balance: { increment: amount } },
-    });
+      const updatedWallet = await tx.coinWallet.update({
+        where: { id: wallet.id },
+        data: { balance: { increment: amount } },
+      });
 
-    return this.getBalance(userId);
+      return updatedWallet.balance;
+    });
   }
 
+  /**
+   * Deduct coins from user wallet (used for messages, purchases)
+   * Uses transaction with optimistic locking to prevent race conditions
+   * Returns true if successful, false if insufficient balance
+   */
   async deductCoins(
     userId: string,
     amount: number,
     description: string,
     metadata?: any,
   ): Promise<boolean> {
-    const wallet = await this.getOrCreateWallet(userId);
+    try {
+      await this.prisma.$transaction(async (tx) => {
+        // Get wallet with current balance
+        const wallet = await tx.coinWallet.findUnique({
+          where: { userId },
+        });
 
-    if (wallet.balance < amount) {
-      return false; // Insufficient balance
+        if (!wallet || wallet.balance < amount) {
+          throw new Error('INSUFFICIENT_BALANCE');
+        }
+
+        // Create transaction record
+        await tx.coinTransaction.create({
+          data: {
+            walletId: wallet.id,
+            type: 'SPEND',
+            amount: -amount,
+            description,
+            metadata,
+          },
+        });
+
+        // Update wallet balance with constraint check
+        const updated = await tx.coinWallet.updateMany({
+          where: {
+            id: wallet.id,
+            balance: { gte: amount }, // Ensure balance hasn't changed
+          },
+          data: { balance: { decrement: amount } },
+        });
+
+        if (updated.count === 0) {
+          throw new Error('CONCURRENT_MODIFICATION');
+        }
+      }, {
+        isolationLevel: 'Serializable', // Highest isolation for money operations
+      });
+
+      return true;
+    } catch (error) {
+      if (error.message === 'INSUFFICIENT_BALANCE' || error.message === 'CONCURRENT_MODIFICATION') {
+        return false;
+      }
+      throw error;
     }
-
-    await prisma.coinTransaction.create({
-      data: {
-        walletId: wallet.id,
-        type: 'SPEND',
-        amount: -amount,
-        description,
-        metadata,
-      },
-    });
-
-    await prisma.coinWallet.update({
-      where: { id: wallet.id },
-      data: { balance: { decrement: amount } },
-    });
-
-    return true;
   }
 
+  /**
+   * DEPRECATED: This method will be removed in user-only platform
+   * All personas are platform-owned, no creator revenue split
+   */
   async addCreatorEarnings(
     creatorUserId: string,
     amount: number,
     metadata?: any,
   ) {
-    const platformFee = Math.floor(amount * 0.3); // 30% platform fee
+    // TODO: Remove this method after removing creator features
+    console.warn('[DEPRECATED] addCreatorEarnings should not be used in user-only platform');
+
+    const platformFee = Math.floor(amount * 0.3);
     const creatorEarnings = amount - platformFee;
 
     const wallet = await this.getOrCreateWallet(creatorUserId);
 
-    await prisma.coinTransaction.create({
+    await this.prisma.coinTransaction.create({
       data: {
         walletId: wallet.id,
         type: 'EARN',
@@ -100,7 +142,7 @@ export class CoinService {
       },
     });
 
-    await prisma.coinWallet.update({
+    await this.prisma.coinWallet.update({
       where: { id: wallet.id },
       data: { balance: { increment: creatorEarnings } },
     });
@@ -111,7 +153,7 @@ export class CoinService {
   async getTransactionHistory(userId: string, limit = 20) {
     const wallet = await this.getOrCreateWallet(userId);
 
-    return prisma.coinTransaction.findMany({
+    return this.prisma.coinTransaction.findMany({
       where: { walletId: wallet.id },
       orderBy: { createdAt: 'desc' },
       take: limit,
@@ -128,7 +170,7 @@ export class CoinService {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const count = await prisma.coinTransaction.count({
+    const count = await this.prisma.coinTransaction.count({
       where: {
         walletId: wallet.id,
         type: 'EARN',
@@ -148,21 +190,51 @@ export class CoinService {
 
     const wallet = await this.getOrCreateWallet(userId);
 
-    await prisma.coinTransaction.create({
-      data: {
-        walletId: wallet.id,
-        type: 'EARN',
-        amount,
-        description: 'Earned from ad reward',
-        metadata: { source: 'advertisement', timestamp: new Date() },
-      },
+    // FIXED: Use transaction
+    return await this.prisma.$transaction(async (tx) => {
+      await tx.coinTransaction.create({
+        data: {
+          walletId: wallet.id,
+          type: 'EARN',
+          amount,
+          description: 'Earned from ad reward',
+          metadata: { source: 'advertisement', timestamp: new Date() },
+        },
+      });
+
+      const updated = await tx.coinWallet.update({
+        where: { id: wallet.id },
+        data: { balance: { increment: amount } },
+      });
+
+      return updated.balance;
+    });
+  }
+
+  /**
+   * Verify wallet integrity (for admin/debugging)
+   * Checks if transaction sum matches wallet balance
+   */
+  async verifyWalletIntegrity(userId: string): Promise<{
+    isValid: boolean;
+    walletBalance: number;
+    transactionSum: number;
+    difference: number;
+  }> {
+    const wallet = await this.getOrCreateWallet(userId);
+
+    const transactions = await this.prisma.coinTransaction.findMany({
+      where: { walletId: wallet.id },
     });
 
-    await prisma.coinWallet.update({
-      where: { id: wallet.id },
-      data: { balance: { increment: amount } },
-    });
+    const transactionSum = transactions.reduce((sum, tx) => sum + tx.amount, 0);
+    const difference = wallet.balance - transactionSum;
 
-    return this.getBalance(userId);
+    return {
+      isValid: difference === 0,
+      walletBalance: wallet.balance,
+      transactionSum,
+      difference,
+    };
   }
 }

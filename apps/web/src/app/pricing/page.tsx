@@ -1,294 +1,297 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import { Check, Sparkles, Zap } from "lucide-react";
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/navigation";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import toast from "react-hot-toast";
-
-const coinPacks = [
-    {
-        id: "starter",
-        name: "Starter",
-        coins: 100,
-        price: 0.99,
-        priceINR: 79,
-        popular: false,
-    },
-    {
-        id: "popular",
-        name: "Popular",
-        coins: 550,
-        bonusCoins: 50,
-        price: 4.99,
-        priceINR: 399,
-        popular: true,
-        savings: "10% bonus",
-    },
-    {
-        id: "best-value",
-        name: "Best Value",
-        coins: 1200,
-        bonusCoins: 200,
-        price: 9.99,
-        priceINR: 799,
-        popular: false,
-        savings: "20% bonus",
-    },
-];
-
-const subscriptionPlan = {
-    name: "Premium Unlimited",
-    price: 9.99,
-    priceINR: 799,
-    pricePerMonth: true,
-    features: [
-        "Unlimited messages",
-        "Priority AI responses (faster)",
-        "No ads",
-        "Early access to new characters",
-        "Exclusive premium characters (coming soon)",
-    ],
-};
+import { useState } from 'react';
+import { Check, Sparkles, Crown, Zap, Infinity } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 
 export default function PricingPage() {
-    const { data: session } = useSession();
     const router = useRouter();
-    const [loading, setLoading] = useState<string | null>(null);
-    const [selectedTab, setSelectedTab] = useState<"coins" | "subscription">(
-        "coins"
-    );
+    const { data: session } = useSession();
+    const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
 
-    const handleBuyCoins = async (packId: string) => {
+    const tiers = [
+        {
+            name: 'Free',
+            icon: <Sparkles className="w-10 h-10 text-violet-400" />,
+            priceMonthly: 0,
+            priceYearly: 0,
+            tier: 'FREE',
+            popular: false,
+            features: [
+                '50 messages per day',
+                'Basic AI responses',
+                'Standard speed',
+                'Ad-supported',
+            ],
+            buttonText: 'Current Plan',
+            buttonDisabled: true,
+        },
+        {
+            name: 'Starter',
+            icon: <Zap className="w-10 h-10 text-yellow-400" />,
+            priceMonthly: 4.99,
+            priceYearly: 49.99,
+            tier: billingCycle === 'monthly' ? 'STARTER_MONTHLY' : 'STARTER_YEARLY',
+            popular: false,
+            bonusCoins: 500,
+            features: [
+                '200 messages per day',
+                'Long-term memory',
+                '500 bonus coins',
+                'Faster responses',
+                'Ad-free experience',
+            ],
+            buttonText: 'Upgrade to Starter',
+        },
+        {
+            name: 'Premium',
+            icon: <Crown className="w-10 h-10 text-yellow-300" />,
+            priceMonthly: 7.99,
+            priceYearly: 74.99,
+            tier: billingCycle === 'monthly' ? 'PREMIUM_MONTHLY' : 'PREMIUM_YEARLY',
+            popular: true,
+            bonusCoins: 1500,
+            features: [
+                '500 messages per day',
+                'Advanced memory',
+                '1,500 bonus coins',
+                'Priority AI access',
+                'Early feature access',
+                'Premium support',
+            ],
+            buttonText: 'Upgrade to Premium',
+        },
+        {
+            name: 'Unlimited',
+            icon: <Infinity className="w-10 h-10 text-cyan-400" />,
+            priceMonthly: 12.99,
+            priceYearly: 129.99,
+            tier: billingCycle === 'monthly' ? 'UNLIMITED_MONTHLY' : 'UNLIMITED_YEARLY',
+            popular: false,
+            bonusCoins: 3000,
+            features: [
+                'Unlimited messages',
+                'Maximum memory',
+                '3,000 bonus coins',
+                'Highest priority',
+                'All premium features',
+                'Dedicated support',
+                'Custom AI training',
+            ],
+            buttonText: 'Upgrade to Unlimited',
+        },
+    ];
+
+    const handleUpgrade = async (tier: string) => {
         if (!session) {
-            toast.error("Please sign in to purchase coins");
-            router.push("/auth/signin");
+            router.push('/login');
             return;
         }
 
-        setLoading(packId);
         try {
-            const res = await fetch(
-                `${process.env.NEXT_PUBLIC_API_URL}/payments/stripe/create-intent`,
-                {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: `Bearer ${(session.user as any).accessToken || ""}`,
-                    },
-                    body: JSON.stringify({
-                        coinPackId: packId,
-                    }),
-                }
-            );
+            const token = localStorage.getItem('accessToken');
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/payment/create-checkout`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ tier }),
+            });
 
-            if (!res.ok) {
-                throw new Error("Failed to create payment intent");
+            const data = await response.json();
+
+            if (data.url) {
+                window.location.href = data.url;
             }
-
-            const { url } = await res.json();
-            window.location.href = url;
         } catch (error) {
-            console.error("Payment error:", error);
-            toast.error("Failed to start payment. Please try again.");
-        } finally {
-            setLoading(null);
+            console.error('Failed to create checkout:', error);
+            alert('Failed to start checkout. Please try again.');
         }
     };
 
-    const handleSubscribe = async () => {
-        if (!session) {
-            toast.error("Please sign in to subscribe");
-            router.push("/auth/signin");
-            return;
-        }
-
-        setLoading("subscription");
-        try {
-            // TODO: Implement subscription checkout
-            toast.error("Subscription coming soon!");
-        } catch (error) {
-            console.error("Subscription error:", error);
-            toast.error("Failed to start subscription. Please try again.");
-        } finally {
-            setLoading(null);
-        }
+    const calculateSavings = (monthly: number, yearly: number) => {
+        const monthlyCost = monthly * 12;
+        const savings = monthlyCost - yearly;
+        const percentage = Math.round((savings / monthlyCost) * 100);
+        return { amount: savings.toFixed(2), percentage };
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-background to-background/80">
-            <div className="container mx-auto px-4 py-16 max-w-6xl">
+        <div className="min-h-screen bg-gradient-to-br from-gray-900 via-violet-950 to-gray-900 py-12 px-4">
+            <div className="max-w-7xl mx-auto">
                 {/* Header */}
                 <div className="text-center mb-12">
-                    <h1 className="text-4xl md:text-5xl font-bold mb-4">
+                    <h1 className="text-5xl font-bold text-white mb-4">
                         Choose Your Plan
                     </h1>
-                    <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-                        Chat unlimited or pay as you go. No commitment required.
+                    <p className="text-xl text-gray-300 mb-8">
+                        Unlock premium features and enhanced AI conversations
                     </p>
-                </div>
 
-                {/* Toggle */}
-                <div className="flex justify-center mb-12">
-                    <div className="inline-flex bg-muted p-1 rounded-lg">
+                    {/* Billing Toggle */}
+                    <div className="inline-flex items-center gap-4 bg-gray-800/50 backdrop-blur-md border border-gray-700 rounded-full p-2">
                         <button
-                            onClick={() => setSelectedTab("coins")}
-                            className={`px-6 py-2 rounded-md transition-all ${selectedTab === "coins"
-                                ? "bg-background shadow-sm"
-                                : "text-muted-foreground hover:text-foreground"
+                            onClick={() => setBillingCycle('monthly')}
+                            className={`px-6 py-2 rounded-full font-semibold transition-all ${billingCycle === 'monthly'
+                                    ? 'bg-violet-600 text-white'
+                                    : 'text-gray-400 hover:text-white'
                                 }`}
                         >
-                            Coins
+                            Monthly
                         </button>
                         <button
-                            onClick={() => setSelectedTab("subscription")}
-                            className={`px-6 py-2 rounded-md transition-all ${selectedTab === "subscription"
-                                ? "bg-background shadow-sm"
-                                : "text-muted-foreground hover:text-foreground"
+                            onClick={() => setBillingCycle('yearly')}
+                            className={`px-6 py-2 rounded-full font-semibold transition-all ${billingCycle === 'yearly'
+                                    ? 'bg-violet-600 text-white'
+                                    : 'text-gray-400 hover:text-white'
                                 }`}
                         >
-                            Subscription
+                            Yearly
+                            <span className="ml-2 text-xs bg-green-500 text-white px-2 py-1 rounded-full">
+                                Save up to 17%
+                            </span>
                         </button>
                     </div>
                 </div>
 
-                {/* Coins Tab */}
-                {selectedTab === "coins" && (
-                    <div className="grid md:grid-cols-3 gap-6">
-                        {coinPacks.map((pack) => (
-                            <Card
-                                key={pack.id}
-                                className={`p-6 relative ${pack.popular
-                                    ? "border-primary shadow-lg shadow-primary/20"
-                                    : ""
+                {/* Pricing Cards */}
+                <div className="grid md:grid-cols-4 gap-6 mb-20">
+                    {tiers.map((tier, index) => {
+                        const price = billingCycle === 'monthly' ? tier.priceMonthly : tier.priceYearly;
+                        const savings = tier.priceYearly > 0 ? calculateSavings(tier.priceMonthly, tier.priceYearly) : null;
+                        const isPremium = tier.tier !== 'FREE';
+
+                        return (
+                            <div
+                                key={tier.tier}
+                                className={`relative rounded-2xl p-6 ${tier.popular
+                                        ? 'bg-gradient-to-br from-violet-600 to-purple-700 shadow-2xl transform scale-105 border-2 border-yellow-400'
+                                        : isPremium
+                                            ? 'bg-gray-800/50 backdrop-blur-md border border-gray-700'
+                                            : 'bg-gray-800/30 backdrop-blur-md border border-gray-600'
                                     }`}
                             >
-                                {pack.popular && (
-                                    <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                                        <span className="bg-primary text-primary-foreground px-3 py-1 rounded-full text-xs font-semibold">
-                                            MOST POPULAR
+                                {/* Popular Badge */}
+                                {tier.popular && (
+                                    <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
+                                        <span className="bg-yellow-400 text-black px-4 py-1 rounded-full text-sm font-bold flex items-center gap-1">
+                                            <Sparkles className="w-4 h-4" />
+                                            Most Popular
                                         </span>
                                     </div>
                                 )}
 
+                                {/* Icon */}
+                                <div className="flex justify-center mb-4">
+                                    {tier.icon}
+                                </div>
+
+                                {/* Tier Name */}
+                                <h3 className={`text-2xl font-bold text-center mb-2 ${tier.popular ? 'text-white' : 'text-white'}`}>
+                                    {tier.name}
+                                </h3>
+
+                                {/* Price */}
                                 <div className="text-center mb-6">
-                                    <h3 className="text-xl font-semibold mb-2">{pack.name}</h3>
-                                    <div className="flex items-baseline justify-center gap-1">
-                                        <span className="text-4xl font-bold">${pack.price}</span>
-                                        {pack.savings && (
-                                            <span className="text-sm text-primary font-medium">
-                                                {pack.savings}
+                                    <div className="text-4xl font-bold text-white">
+                                        ${price}
+                                        {tier.priceMonthly > 0 && (
+                                            <span className="text-lg font-normal text-gray-300">
+                                                /{billingCycle === 'monthly' ? 'mo' : 'yr'}
                                             </span>
                                         )}
                                     </div>
-                                    <p className="text-muted-foreground text-sm mt-1">
-                                        ₹{pack.priceINR} in India
-                                    </p>
-                                </div>
-
-                                <div className="mb-6">
-                                    <div className="flex items-center justify-center gap-2 text-2xl font-bold text-yellow-500 mb-2">
-                                        <Sparkles className="w-6 h-6" />
-                                        {pack.coins + (pack.bonusCoins || 0)} coins
-                                    </div>
-                                    {pack.bonusCoins && (
-                                        <p className="text-center text-sm text-muted-foreground">
-                                            {pack.coins} + {pack.bonusCoins} bonus
+                                    {billingCycle === 'yearly' && savings && (
+                                        <p className="text-green-300 text-sm mt-2">
+                                            Save ${savings.amount} ({savings.percentage}%)
                                         </p>
                                     )}
-                                    <p className="text-center text-xs text-muted-foreground mt-2">
-                                        ~{Math.floor((pack.coins + (pack.bonusCoins || 0)) / 2)}{" "}
-                                        messages
-                                    </p>
                                 </div>
 
-                                <Button
-                                    onClick={() => handleBuyCoins(pack.id)}
-                                    disabled={loading === pack.id}
-                                    className={`w-full ${pack.popular ? "bg-primary hover:bg-primary/90" : ""
-                                        }`}
-                                    variant={pack.popular ? "default" : "outline"}
-                                >
-                                    {loading === pack.id ? "Processing..." : "Buy Coins"}
-                                </Button>
-                            </Card>
-                        ))}
-                    </div>
-                )}
+                                {/* Bonus Coins */}
+                                {tier.bonusCoins && (
+                                    <div className="mb-4 text-center">
+                                        <span className="inline-block bg-yellow-500/20 text-yellow-300 px-3 py-1 rounded-full text-sm font-semibold">
+                                            +{tier.bonusCoins} Bonus Coins
+                                        </span>
+                                    </div>
+                                )}
 
-                {/* Subscription Tab */}
-                {selectedTab === "subscription" && (
-                    <div className="max-w-md mx-auto">
-                        <Card className="p-8 border-primary shadow-xl shadow-primary/20">
-                            <div className="text-center mb-6">
-                                <div className="inline-flex items-center gap-2 mb-4">
-                                    <Zap className="w-8 h-8 text-primary" />
-                                    <h3 className="text-2xl font-bold">
-                                        {subscriptionPlan.name}
-                                    </h3>
+                                {/* Features */}
+                                <div className="space-y-3 mb-6">
+                                    {tier.features.map((feature, idx) => (
+                                        <div key={idx} className="flex items-start gap-2">
+                                            <Check className={`w-5 h-5 mt-0.5 flex-shrink-0 ${tier.popular ? 'text-green-300' : 'text-violet-400'}`} />
+                                            <span className={tier.popular ? 'text-white' : 'text-gray-300'}>{feature}</span>
+                                        </div>
+                                    ))}
                                 </div>
-                                <div className="flex items-baseline justify-center gap-1">
-                                    <span className="text-5xl font-bold">
-                                        ${subscriptionPlan.price}
-                                    </span>
-                                    <span className="text-muted-foreground">/month</span>
-                                </div>
-                                <p className="text-muted-foreground text-sm mt-1">
-                                    ₹{subscriptionPlan.priceINR}/month in India
-                                </p>
-                            </div>
 
-                            <ul className="space-y-3 mb-8">
-                                {subscriptionPlan.features.map((feature, index) => (
-                                    <li key={index} className="flex items-start gap-3">
-                                        <Check className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
-                                        <span className="text-sm">{feature}</span>
-                                    </li>
-                                ))}
-                            </ul>
-
-                            <Button
-                                onClick={handleSubscribe}
-                                disabled={loading === "subscription"}
-                                className="w-full bg-primary hover:bg-primary/90"
-                                size="lg"
-                            >
-                                {loading === "subscription"
-                                    ? "Processing..."
-                                    : "Go Premium"}
-                            </Button>
-
-                            <p className="text-center text-xs text-muted-foreground mt-4">
-                                Cancel anytime. No questions asked.
-                            </p>
-                        </Card>
-
-                        <div className="text-center mt-8 text-sm text-muted-foreground">
-                            <p>
-                                Prefer pay-as-you-go?{" "}
+                                {/* CTA Button */}
                                 <button
-                                    onClick={() => setSelectedTab("coins")}
-                                    className="text-primary hover:underline"
+                                    onClick={() => !tier.buttonDisabled && handleUpgrade(tier.tier)}
+                                    disabled={tier.buttonDisabled}
+                                    className={`w-full py-3 rounded-lg font-semibold transition-all ${tier.buttonDisabled
+                                            ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                                            : tier.popular
+                                                ? 'bg-white text-violet-600 hover:bg-gray-100'
+                                                : 'bg-violet-600 text-white hover:bg-violet-700'
+                                        }`}
                                 >
-                                    Buy coins instead
+                                    {tier.buttonText}
                                 </button>
+                            </div>
+                        );
+                    })}
+                </div>
+
+                {/* FAQ Section */}
+                <div className="max-w-3xl mx-auto">
+                    <h2 className="text-3xl font-bold text-white text-center mb-8">
+                        Frequently Asked Questions
+                    </h2>
+
+                    <div className="space-y-6">
+                        <div className="bg-gray-800/50 backdrop-blur-md border border-gray-700 rounded-lg p-6">
+                            <h3 className="text-xl font-semibold text-white mb-2">
+                                Can I cancel anytime?
+                            </h3>
+                            <p className="text-gray-300">
+                                Yes! You can cancel your subscription at any time. Your premium benefits will continue until the end of your billing period.
+                            </p>
+                        </div>
+
+                        <div className="bg-gray-800/50 backdrop-blur-md border border-gray-700 rounded-lg p-6">
+                            <h3 className="text-xl font-semibold text-white mb-2">
+                                What payment methods do you accept?
+                            </h3>
+                            <p className="text-gray-300">
+                                We accept all major credit cards, debit cards, and digital wallets through Stripe's secure payment processing.
+                            </p>
+                        </div>
+
+                        <div className="bg-gray-800/50 backdrop-blur-md border border-gray-700 rounded-lg p-6">
+                            <h3 className="text-xl font-semibold text-white mb-2">
+                                What happens to my coins if I upgrade?
+                            </h3>
+                            <p className="text-gray-300">
+                                Your coin balance is preserved when you upgrade. Plus, you'll receive bonus coins immediately and get daily free coins with your premium plan!
+                            </p>
+                        </div>
+
+                        <div className="bg-gray-800/50 backdrop-blur-md border border-gray-700 rounded-lg p-6">
+                            <h3 className="text-xl font-semibold text-white mb-2">
+                                Can I switch between plans?
+                            </h3>
+                            <p className="text-gray-300">
+                                Absolutely! You can upgrade or downgrade your plan at any time. Changes take effect at the start of your next billing cycle.
                             </p>
                         </div>
                     </div>
-                )}
-
-                {/* FAQ or Info Section */}
-                <div className="mt-16 text-center text-sm text-muted-foreground">
-                    <p>
-                        All prices in USD. Payments secured by Stripe.{" "}
-                        <a href="/refund-policy" className="text-primary hover:underline">
-                            7-day money-back guarantee
-                        </a>
-                    </p>
                 </div>
             </div>
-        </div >
+        </div>
     );
 }

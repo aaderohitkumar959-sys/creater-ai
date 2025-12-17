@@ -20,9 +20,13 @@ model User {
   dailyMessageCount Int      @default(0)
   lastMessageDate   DateTime @default(now())
 
+  // Gamification
   loginStreak            Int       @default(0)
   lastLoginDate          DateTime  @default(now())
   lastDailyRewardClaimed DateTime?
+
+  // Subscription
+  stripeCustomerId String?
 
   accounts      Account[]
   sessions      Session[]
@@ -52,6 +56,8 @@ model User {
   Creator           Creator?
   CoinWallet        CoinWallet?
   Payment           Payment[]
+  Memory            Memory[]
+  AIRequest         AIRequest[]
 }
 
 model PushSubscription {
@@ -163,9 +169,11 @@ model Message {
   sender         Role // USER or CREATOR (AI)
   content        String       @db.Text
   coinCost       Int          @default(2)
+  isDeleted      Boolean      @default(false)
   createdAt      DateTime     @default(now())
   User           User?        @relation(fields: [userId], references: [id])
   userId         String?
+  Report         Report[]
 }
 
 model CoinWallet {
@@ -238,25 +246,26 @@ enum PaymentStatus {
 }
 
 model Report {
-  id         String       @id @default(uuid())
-  reporterId String
-  reportedId String? // User or null for content
-  messageId  String? // Message being reported
-  type       ReportType
-  category   String
-  reason     String
-  status     ReportStatus @default(PENDING)
-  reviewedBy String?
-  reviewNote String?
-  createdAt  DateTime     @default(now())
-  reviewedAt DateTime?
-
-  reporter User  @relation("ReportsMade", fields: [reporterId], references: [id])
-  reported User? @relation("ReportsReceived", fields: [reportedId], references: [id])
-  reviewer User? @relation("ReportsReviewed", fields: [reviewedBy], references: [id])
+  id             String    @id @default(uuid())
+  reporterId     String
+  reporter       User      @relation("ReportsMade", fields: [reporterId], references: [id])
+  reportedUserId String?
+  reported       User?     @relation("ReportsReceived", fields: [reportedUserId], references: [id])
+  messageId      String?
+  message        Message?  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  conversationId String?
+  reason         String // HARASSMENT, SPAM, INAPPROPRIATE, ILLEGAL, OTHER
+  details        String?   @db.Text
+  status         String    @default("PENDING") // PENDING, UNDER_REVIEW, APPROVED, REJECTED
+  reviewedBy     String?
+  reviewer       User?     @relation("ReportsReviewed", fields: [reviewedBy], references: [id])
+  reviewedAt     DateTime?
+  actionTaken    String? // BAN_USER, DELETE_MESSAGE, WARNING
+  createdAt      DateTime  @default(now())
 
   @@index([status, createdAt])
-  @@index([reportedId])
+  @@index([reportedUserId])
+  @@index([reviewedBy])
 }
 
 model Violation {
@@ -405,13 +414,59 @@ model AnalyticsEvent {
 }
 
 model Subscription {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  plan      String // PREMIUM_MONTHLY, PREMIUM_YEARLY
-  status    String // ACTIVE, CANCELED, EXPIRED
-  startDate DateTime @default(now())
-  endDate   DateTime
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                   String    @id @default(cuid())
+  userId               String    @unique
+  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tier                 String    @default("FREE") // FREE, PREMIUM_MONTHLY, PREMIUM_YEARLY
+  status               String    @default("ACTIVE") // ACTIVE, CANCELED, PAST_DUE, EXPIRED
+  plan                 String // PREMIUM_MONTHLY, PREMIUM_YEARLY (kept for backwards compat)
+  stripeSubscriptionId String?
+  stripeCustomerId     String?
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean   @default(false)
+  canceledAt           DateTime?
+  startDate            DateTime  @default(now())
+  endDate              DateTime
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@index([status, currentPeriodEnd])
 }
+
+// AI Memory (Phase 2)
+model Memory {
+  id             String   @id @default(uuid())
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  personaId      String
+  type           String // FACT, PREFERENCE, EVENT
+  content        String   @db.Text
+  importance     Int      @default(5) // 1-10 scale
+  createdAt      DateTime @default(now())
+  lastAccessedAt DateTime @default(now())
+  metadata       Json?
+
+  @@index([userId, personaId])
+  @@index([importance])
+  @@index([lastAccessedAt])
+}
+
+// AI Cost Tracking (Phase 2)
+model AIRequest {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  personaId  String
+  provider   String // openrouter, openai
+  tokensUsed Int
+  costUSD    Decimal  @db.Decimal(10, 6)
+  latencyMs  Int
+  success    Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([provider])
+  @@index([success])
+}
+

@@ -78,12 +78,13 @@ export function MessageActions({ messageId, content, onRegenerate }: MessageActi
                 </Button>
             </div>
 
-            <ReportModal
-                isOpen={showReportModal}
-                onClose={() => setShowReportModal(false)}
-                targetType="MESSAGE"
-                targetId={messageId}
-            />
+            {showReportModal && (
+                <ReportModal
+                    messageId={messageId}
+                    messageContent={content}
+                    onClose={() => setShowReportModal(false)}
+                />
+            )}
         </>
     );
 }

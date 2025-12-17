@@ -3,14 +3,25 @@
 import { MessageCircle, Search, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { LucideIcon } from "lucide-react";
 
 interface EmptyStateProps {
     type: "no-conversations" | "no-results" | "out-of-messages";
     searchQuery?: string;
 }
 
+interface StateConfig {
+    icon: LucideIcon;
+    title: string;
+    description: string;
+    actionLabel: string;
+    actionHref: string;
+    secondaryLabel?: string;
+    secondaryHref?: string;
+}
+
 export function EmptyState({ type, searchQuery }: EmptyStateProps) {
-    const states = {
+    const states: Record<EmptyStateProps["type"], StateConfig> = {
         "no-conversations": {
             icon: MessageCircle,
             title: "No conversations yet",

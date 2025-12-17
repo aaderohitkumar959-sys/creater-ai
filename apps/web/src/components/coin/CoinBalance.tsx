@@ -29,14 +29,14 @@ export function CoinBalance() {
 
                 if (res.ok) {
                     const data = await res.json();
-                    setBalance(data.balance || session.user.coins || 50);
+                    setBalance(data.balance || 50);
                 } else {
-                    // Fallback to session coins
-                    setBalance(session.user.coins || 50);
+                    // Fallback to default
+                    setBalance(50);
                 }
             } catch (error) {
                 console.error("Failed to fetch coin balance:", error);
-                setBalance(session.user.coins || 50);
+                setBalance(50);
             } finally {
                 setLoading(false);
             }

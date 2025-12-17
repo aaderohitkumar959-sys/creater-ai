@@ -11,10 +11,12 @@ import { Server, Socket } from 'socket.io';
 import { ChatService } from './chat.service';
 import { LLMService } from '../llm/llm.service';
 import { CoinService } from '../coin/coin.service';
+import { ModerationService } from '../moderation/moderation.service';
 
 @WebSocketGateway({
   cors: {
-    origin: '*',
+    origin: process.env.FRONTEND_URL || 'http://localhost:3000', // FIXED: No wildcard
+    credentials: true,
   },
 })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
@@ -25,14 +27,15 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     private chatService: ChatService,
     private llmService: LLMService,
     private coinService: CoinService,
+    private moderationService: ModerationService, // NEW: Content moderation
   ) { }
 
   handleConnection(client: Socket) {
-    console.log(`Client connected: ${client.id}`);
+    console.log(`[WS] Client connected: ${client.id}`);
   }
 
   handleDisconnect(client: Socket) {
-    console.log(`Client disconnected: ${client.id}`);
+    console.log(`[WS] Client disconnected: ${client.id}`);
   }
 
   @SubscribeMessage('sendMessage')
@@ -48,116 +51,197 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     },
     @ConnectedSocket() client: Socket,
   ) {
-    console.log('Received message:', data);
+    console.log('[CHAT] Received message:', {
+      conversationId: data.conversationId,
+      sender: data.sender,
+      contentLength: data.content?.length || 0,
+    });
 
-    // If user message, check and deduct coins
+    // PHASE 1: Handle user messages
     if (data.sender === 'USER' && data.userId) {
       const coinCost = 2; // Cost per message
-      const success = await this.coinService.deductCoins(
-        data.userId,
-        coinCost,
-        'Message sent to AI persona',
-        { conversationId: data.conversationId, personaId: data.personaId },
+
+      // Step 1: Moderate user message BEFORE processing
+      const moderationResult = await this.moderationService.moderateContent(
+        data.content,
       );
 
-      if (!success) {
-        // Insufficient balance
-        client.emit('error', {
-          message: 'Insufficient coins. Please purchase more.',
+      if (moderationResult.blocked) {
+        console.warn('[MODERATION] User message blocked:', {
+          userId: data.userId,
+          reason: moderationResult.reason,
+          severity: moderationResult.severity,
+        });
+
+        client.emit('messageBlocked', {
+          message: this.moderationService.getUserMessage(moderationResult),
+          reason: moderationResult.reason,
         });
         return;
       }
 
-      // Add coins to creator's earnings
-      if (data.creatorUserId) {
-        await this.coinService.addCreatorEarnings(
-          data.creatorUserId,
-          coinCost,
-          { conversationId: data.conversationId },
-        );
+      // Step 2: Check balance (READ ONLY - don't deduct yet)
+      const balance = await this.coinService.getBalance(data.userId);
+
+      if (balance < coinCost) {
+        client.emit('error', {
+          message: 'Insufficient coins. Please purchase more.',
+          balance,
+          required: coinCost,
+        });
+        return;
       }
-    }
 
-    // Save user message
-    await this.chatService.saveMessage(
-      data.conversationId,
-      data.content,
-      data.sender,
-    );
+      // Step 3: Save user message (approved by moderation)
+      await this.chatService.saveMessage(
+        data.conversationId,
+        data.content,
+        data.sender,
+      );
 
-    // Broadcast user message
-    this.server.to(data.conversationId).emit('newMessage', {
-      ...data,
-      timestamp: new Date(),
-    });
+      // Step 4: Broadcast user message
+      this.server.to(data.conversationId).emit('newMessage', {
+        ...data,
+        timestamp: new Date(),
+      });
 
-    // If user message, generate AI response
-    if (data.sender === 'USER' && data.personaId) {
-      try {
-        // Get conversation history
-        const history = await this.chatService.getMessages(data.conversationId);
-        const conversationHistory = history.slice(-5).map((msg) => ({
-          sender: msg.sender,
-          content: msg.content,
-        }));
+      // Step 5: Generate AI response
+      if (data.personaId) {
+        try {
+          // Get conversation history
+          const history = await this.chatService.getMessages(
+            data.conversationId,
+          );
+          const conversationHistory = history.slice(-5).map((msg) => ({
+            sender: msg.sender,
+            content: msg.content,
+          }));
 
-        console.log('[CHAT] Generating AI response for persona:', data.personaId);
+          console.log('[AI] Generating response for persona:', data.personaId);
 
-        // Generate AI response with timeout
-        const { content: aiResponse } =
-          await this.llmService.generatePersonaResponse(
-            data.personaId,
-            data.content,
-            conversationHistory,
+          // Generate AI response
+          const { content: aiResponse } =
+            await this.llmService.generatePersonaResponse(
+              data.personaId,
+              data.content,
+              conversationHistory,
+            );
+
+          console.log('[AI] Response generated:', {
+            personaId: data.personaId,
+            responseLength: aiResponse.length,
+          });
+
+          // Step 6: Moderate AI response
+          const aiModeration = await this.moderationService.moderateContent(
+            aiResponse,
           );
 
-        console.log('[CHAT SUCCESS] AI response generated:', {
-          personaId: data.personaId,
-          responseLength: aiResponse.length,
-        });
+          if (aiModeration.blocked) {
+            console.error('[MODERATION] AI response blocked:', {
+              personaId: data.personaId,
+              reason: aiModeration.reason,
+              severity: aiModeration.severity,
+            });
 
-        // Save AI response
-        await this.chatService.saveMessage(
-          data.conversationId,
-          aiResponse,
-          'CREATOR',
-        );
+            // Use safe fallback message
+            const fallbackResponse =
+              "I need to rephrase that. Let's talk about something else! ✨";
 
-        // Broadcast AI response
-        this.server.to(data.conversationId).emit('newMessage', {
-          conversationId: data.conversationId,
-          content: aiResponse,
-          sender: 'CREATOR',
-          timestamp: new Date(),
-        });
-      } catch (error) {
-        console.error('[CHAT ERROR] Failed to generate AI response:', {
-          error: error.message,
-          stack: error.stack,
-          personaId: data.personaId,
-          userId: data.userId,
-          conversationId: data.conversationId,
-          messageLength: data.content.length,
-        });
+            await this.chatService.saveMessage(
+              data.conversationId,
+              fallbackResponse,
+              'CREATOR',
+            );
 
-        // Send friendly error message to user
-        this.server.to(data.conversationId).emit('newMessage', {
-          conversationId: data.conversationId,
-          content: "I'm having trouble responding right now. Please try again in a moment! 🔄",
-          sender: 'CREATOR',
-          timestamp: new Date(),
-          isError: true,
-        });
+            this.server.to(data.conversationId).emit('newMessage', {
+              conversationId: data.conversationId,
+              content: fallbackResponse,
+              sender: 'CREATOR',
+              timestamp: new Date(),
+            });
 
-        // Also emit an error event for frontend to handle
-        client.emit('chatError', {
-          message: 'AI response failed',
-          canRetry: true,
-        });
+            // CRITICAL: Deduct coins even for fallback (AI was called)
+            await this.coinService.deductCoins(
+              data.userId,
+              coinCost,
+              'Message sent to AI persona',
+              {
+                conversationId: data.conversationId,
+                personaId: data.personaId,
+                moderationBlocked: true,
+              },
+            );
+
+            return;
+          }
+
+          // Step 7: AI response is safe → Save it
+          await this.chatService.saveMessage(
+            data.conversationId,
+            aiResponse,
+            'CREATOR',
+          );
+
+          // Step 8: Broadcast AI response
+          this.server.to(data.conversationId).emit('newMessage', {
+            conversationId: data.conversationId,
+            content: aiResponse,
+            sender: 'CREATOR',
+            timestamp: new Date(),
+          });
+
+          // Step 9: ONLY NOW deduct coins (AI succeeded)
+          const deducted = await this.coinService.deductCoins(
+            data.userId,
+            coinCost,
+            'Message sent to AI persona',
+            { conversationId: data.conversationId, personaId: data.personaId },
+          );
+
+          if (!deducted) {
+            console.error('[COIN] Failed to deduct coins after AI response', {
+              userId: data.userId,
+              balance,
+            });
+            // This shouldn't happen (we checked balance), but log it
+          }
+
+          // Step 10: Remove creator earnings (user-only platform)
+          // DEPRECATED: No longer needed since all personas are platform-owned
+          // if (data.creatorUserId) { ... }
+
+          console.log('[CHAT] Message flow completed successfully');
+        } catch (error) {
+          console.error('[AI ERROR] Failed to generate AI response:', {
+            error: error.message,
+            stack: error.stack,
+            personaId: data.personaId,
+            userId: data.userId,
+          });
+
+          // Send friendly error message
+          this.server.to(data.conversationId).emit('newMessage', {
+            conversationId: data.conversationId,
+            content:
+              "I'm having trouble responding right now. Please try again in a moment! 🔄",
+            sender: 'CREATOR',
+            timestamp: new Date(),
+            isError: true,
+          });
+
+          client.emit('chatError', {
+            message: 'AI service unavailable',
+            canRetry: true,
+          });
+
+          // CRITICAL: Do NOT deduct coins if AI failed
+          console.log('[COIN] No coins deducted due to AI failure');
+        }
       }
     }
 
-    return data;
+    return { success: true };
   }
 
   @SubscribeMessage('joinRoom')
@@ -166,7 +250,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @ConnectedSocket() client: Socket,
   ) {
     client.join(room);
-    console.log(`Client ${client.id} joined room ${room}`);
+    console.log(`[WS] Client ${client.id} joined room ${room}`);
     client.emit('joinedRoom', room);
   }
 }

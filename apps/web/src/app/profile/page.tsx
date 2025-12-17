@@ -1,8 +1,3 @@
-/**
- * Profile Page - Minimal & Clean
- * User settings and account management
- */
-
 'use client';
 
 import React, { useState } from 'react';
@@ -21,6 +16,7 @@ import {
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { useTheme } from '@/contexts/theme-context';
+import { signOut } from 'next-auth/react';
 
 export default function ProfilePage() {
     const router = useRouter();
@@ -34,10 +30,12 @@ export default function ProfilePage() {
         isPremium: false,
     });
 
-    const handleLogout = () => {
-        // TODO: Implement logout
+    const handleLogout = async () => {
         if (confirm('Are you sure you want to logout?')) {
-            alert('Logout functionality coming soon!');
+            await signOut({
+                callbackUrl: '/',
+                redirect: true
+            });
         }
     };
 

@@ -18,6 +18,9 @@ import { PersonaModule } from './persona/persona.module';
 import { MeterModule } from './meter/meter.module';
 import { NotificationModule } from './notification/notification.module';
 import { QuestModule } from './quest/quest.module';
+import { GamificationModule } from './gamification/gamification.module';
+import { SubscriptionModule } from './subscription/subscription.module';
+import { UserModule } from './user/user.module';
 
 @Module({
   imports: [
@@ -42,6 +45,9 @@ import { QuestModule } from './quest/quest.module';
     MeterModule,
     NotificationModule,
     QuestModule,
+    GamificationModule,
+    SubscriptionModule,
+    UserModule,
   ],
   controllers: [AppController],
   providers: [
@@ -52,4 +58,4 @@ import { QuestModule } from './quest/quest.module';
     },
   ],
 })
-export class AppModule {}
+export class AppModule { }

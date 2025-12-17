@@ -3,12 +3,13 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   transpilePackages: ["@creator-ai/database"],
   reactStrictMode: true,
+
+  // Security: Enable TypeScript strict checking
   typescript: {
-    ignoreBuildErrors: true,
+    ignoreBuildErrors: false, // FIXED: Now catches type errors at build time
   },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
+
+  // Image optimization settings
   images: {
     remotePatterns: [
       {
@@ -17,14 +18,58 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
-        hostname: '**',
+        hostname: 'lh3.googleusercontent.com', // Google Drive (to be migrated to CDN)
+      },
+      {
+        protocol: 'https',
+        hostname: '**.r2.dev', // Cloudflare R2 (future CDN)
       },
     ],
   },
+
+  // Environment variables
   env: {
-    // Production backend API URL
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'https://creater-ai.onrender.com',
-  }
+  },
+
+  // Security headers
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'X-DNS-Prefetch-Control',
+            value: 'on'
+          },
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=63072000; includeSubDomains; preload'
+          },
+          {
+            key: 'X-Frame-Options',
+            value: 'SAMEORIGIN'
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff'
+          },
+          {
+            key: 'X-XSS-Protection',
+            value: '1; mode=block'
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'origin-when-cross-origin'
+          },
+          {
+            key: 'Permissions-Policy',
+            value: 'camera=(), microphone=(), geolocation=()'
+          },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;
