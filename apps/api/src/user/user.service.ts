@@ -15,16 +15,27 @@ export class UserService {
         token: string;
         expiresAt: Date;
     }> {
+        // Fetch user first
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+        });
+
+        if (!user) {
+            throw new Error('User not found');
+        }
+
         // Generate unique deletion token
         const token = crypto.randomBytes(32).toString('hex');
         const expiresAt = new Date();
         expiresAt.setDate(expiresAt.getDate() + 30); // 30-day grace period
 
-        // Store deletion request
+        // Store deletion request in metadata
+        const currentMetadata = (user.metadata as any) || {};
         await this.prisma.user.update({
             where: { id: userId },
             data: {
                 metadata: {
+                    ...currentMetadata,
                     deletionRequested: true,
                     deletionToken: token,
                     deletionExpiresAt: expiresAt.toISOString(),
@@ -52,14 +63,15 @@ export class UserService {
      * Permanent deletion after confirmation
      */
     async confirmDeletion(token: string): Promise<boolean> {
-        // Find user by deletion token
-        const user = await this.prisma.user.findFirst({
-            where: {
-                metadata: {
-                    path: ['deletionToken'],
-                    equals: token,
-                },
-            },
+        // Find all users and check metadata (Json field requires client-side filtering)
+        const users = await this.prisma.user.findMany({
+            where: { metadata: { not: null } },
+        });
+
+        // Filter for matching token in metadata
+        const user = users.find((u) => {
+            const meta = u.metadata as any;
+            return meta?.deletionToken === token;
         });
 
         if (!user) {
@@ -219,10 +231,20 @@ export class UserService {
      * Cancel deletion request
      */
     async cancelDeletion(userId: string): Promise<boolean> {
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+        });
+
+        if (!user) {
+            throw new Error('User not found');
+        }
+
+        const currentMetadata = (user.metadata as any) || {};
         await this.prisma.user.update({
             where: { id: userId },
             data: {
                 metadata: {
+                    ...currentMetadata,
                     deletionRequested: false,
                     deletionToken: null,
                     deletionExpiresAt: null,

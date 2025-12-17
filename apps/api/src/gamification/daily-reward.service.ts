@@ -196,7 +196,7 @@ export class DailyRewardService {
         const currentStreak = user.loginStreak || 0;
         const lastClaim = user.lastDailyRewardClaimed;
 
-        const calendar = [];
+        const calendar: Array<{ date: string; claimed: boolean; dayNumber: number }> = []; // Explicitly type
         for (let i = 6; i >= 0; i--) {
             const date = new Date(now);
             date.setDate(date.getDate() - i);

@@ -83,7 +83,11 @@ export class AIMemoryService {
             });
         }
 
-        return memories;
+        // Cast Prisma's string type to MemoryType enum
+        return memories.map(m => ({
+            ...m,
+            type: m.type as MemoryType,
+        }));
     }
 
     /**
@@ -203,13 +207,19 @@ export class AIMemoryService {
             where.personaId = personaId;
         }
 
-        return await this.prisma.memory.findMany({
+        const memories = await this.prisma.memory.findMany({
             where,
             orderBy: [
                 { importance: 'desc' },
                 { createdAt: 'desc' },
             ],
         });
+
+        // Cast Prisma's string type to MemoryType enum
+        return memories.map(m => ({
+            ...m,
+            type: m.type as MemoryType,
+        }));
     }
 
     /**

@@ -53,7 +53,7 @@ Rules:
     private formatPersonality(personality: any): string {
         if (!personality) return 'friendly, helpful';
 
-        const traits = [];
+        const traits: string[] = []; // Explicitly type as string array
 
         // Extract key traits
         if (personality.tone) traits.push(personality.tone);

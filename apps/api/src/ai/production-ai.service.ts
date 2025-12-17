@@ -84,7 +84,7 @@ export class ProductionAIService {
         maxRetries: number,
         startTime: number,
     ): Promise<AIResponse> {
-        let lastError: Error;
+        let lastError: Error = new Error('No attempts made'); // Initialize with default
 
         for (let attempt = 1; attempt <= maxRetries; attempt++) {
             try {

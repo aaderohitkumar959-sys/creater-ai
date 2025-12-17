@@ -125,6 +125,10 @@ export class MessageLimitService {
             where: { id: userId },
         });
 
+        if (!user) {
+            throw new Error('User not found');
+        }
+
         const today = this.getDateString(new Date());
         const lastMessageDate = user.lastMessageDate
             ? this.getDateString(user.lastMessageDate)

@@ -259,27 +259,31 @@ export class SubscriptionService {
             create: {
                 userId,
                 tier,
+                plan: tier, // Required by Prisma schema
                 status: stripeSubscription.status.toUpperCase(),
                 stripeSubscriptionId: stripeSubscription.id,
                 stripeCustomerId: stripeSubscription.customer as string,
                 currentPeriodStart: new Date(
-                    stripeSubscription.current_period_start * 1000,
+                    (stripeSubscription as any).current_period_start * 1000,
                 ),
                 currentPeriodEnd: new Date(
-                    stripeSubscription.current_period_end * 1000,
+                    (stripeSubscription as any).current_period_end * 1000,
                 ),
-                cancelAtPeriodEnd: stripeSubscription.cancel_at_period_end,
+                endDate: new Date(
+                    (stripeSubscription as any).current_period_end * 1000,
+                ), // Required by Prisma schema
+                cancelAtPeriodEnd: (stripeSubscription as any).cancel_at_period_end,
             },
             update: {
                 tier,
                 status: stripeSubscription.status.toUpperCase(),
                 currentPeriodStart: new Date(
-                    stripeSubscription.current_period_start * 1000,
+                    (stripeSubscription as any).current_period_start * 1000,
                 ),
                 currentPeriodEnd: new Date(
-                    stripeSubscription.current_period_end * 1000,
+                    (stripeSubscription as any).current_period_end * 1000,
                 ),
-                cancelAtPeriodEnd: stripeSubscription.cancel_at_period_end,
+                cancelAtPeriodEnd: (stripeSubscription as any).cancel_at_period_end,
             },
         });
 

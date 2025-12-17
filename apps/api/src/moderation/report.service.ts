@@ -96,7 +96,7 @@ export class ReportService {
                         email: true,
                     },
                 },
-                reportedUser: {
+                reported: { // Fixed: was reportedUser, but schema uses 'reported'
                     select: {
                         id: true,
                         name: true,

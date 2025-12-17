@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { PrismaService } from '../prisma/prisma.service';
 
 interface ModerationResult {
   blocked: boolean;
@@ -12,8 +13,62 @@ interface ModerationResult {
 export class ModerationService {
   private openaiApiKey: string;
 
-  constructor(private config: ConfigService) {
+  constructor(
+    private config: ConfigService,
+    private prisma: PrismaService,
+  ) {
     this.openaiApiKey = this.config.get('OPENAI_API_KEY') || '';
+  }
+
+  /**
+   * Check content (wrapper for moderateContent)
+   * Used by chat service
+   */
+  async checkContent(text: string): Promise<ModerationResult> {
+    return this.moderateContent(text);
+  }
+
+  /**
+   * Validate AI response (same moderation logic)
+   * Used by chat service
+   */
+  async validateResponse(text: string): Promise<ModerationResult> {
+    return this.moderateContent(text);
+  }
+
+  /**
+   * Log moderation violation to database
+   * Used by chat service
+   */
+  async logViolation(
+    userId: string,
+    reason: string,
+    content: string,
+  ): Promise<void> {
+    try {      // Map reason string to ViolationType enum
+      const violationTypeMap: Record<string, any> = {
+        'ILLEGAL_CONTENT': 'ILLEGAL',
+        'HATE_SPEECH': 'HATE_SPEECH',
+        'VIOLENCE': 'VIOLENCE',
+        'SEXUAL_CONTENT': 'SEXUAL_CONTENT',
+        'SELF_HARM': 'SELF_HARM',
+      };
+
+      const violationType = violationTypeMap[reason] || 'OTHER';
+
+      await this.prisma.violation.create({
+        data: {
+          userId,
+          type: violationType,
+          severity: 'MEDIUM', // Severity enum: LOW, MEDIUM, HIGH, CRITICAL
+          note: `Content moderation: ${reason}`,
+        },
+      });
+      console.log(`[MODERATION] Logged violation for user ${userId}: ${reason}`);
+    } catch (error) {
+      console.error('[MODERATION] Failed to log violation:', error);
+      // Don't throw - moderation should not block on DB errors
+    }
   }
 
   /**
