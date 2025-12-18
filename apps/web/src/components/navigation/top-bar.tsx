@@ -7,8 +7,9 @@
 
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, Bell } from 'lucide-react';
+import { Search, Bell, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useSession } from 'next-auth/react';
 
 interface TopBarProps {
     showSearch?: boolean;
@@ -22,6 +23,7 @@ export const TopBar: React.FC<TopBarProps> = ({
     className,
 }) => {
     const router = useRouter();
+    const { data: session, status } = useSession();
     const [scrolled, setScrolled] = useState(false);
     const [notificationCount, setNotificationCount] = useState(0);
 
@@ -110,19 +112,42 @@ export const TopBar: React.FC<TopBarProps> = ({
                         </button>
                     )}
 
-                    {/* Login Button */}
-                    <button
-                        onClick={() => router.push('/login')}
-                        className={cn(
-                            'px-4 py-2 rounded-lg font-semibold',
-                            'bg-gradient-accent text-white',
-                            'transition-all duration-250',
-                            'hover:opacity-90 active:scale-95',
-                            'shadow-lg shadow-blue-500/20'
-                        )}
-                    >
-                        Login
-                    </button>
+                    {/* Auth Status / Action */}
+                    {status === 'authenticated' ? (
+                        <button
+                            onClick={() => router.push('/profile')}
+                            className={cn(
+                                'w-10 h-10 rounded-full bg-gradient-accent flex items-center justify-center',
+                                'transition-all duration-250 hover:scale-105 active:scale-95',
+                                'border-2 border-[var(--border-medium)] overflow-hidden shadow-lg'
+                            )}
+                        >
+                            {session.user?.image ? (
+                                <img
+                                    src={session.user.image}
+                                    alt={session.user.name || 'User'}
+                                    className="w-full h-full object-cover"
+                                />
+                            ) : (
+                                <span className="text-white font-bold">
+                                    {session.user?.name?.[0] || <User size={20} />}
+                                </span>
+                            )}
+                        </button>
+                    ) : (
+                        <button
+                            onClick={() => router.push('/login')}
+                            className={cn(
+                                'px-4 py-2 rounded-lg font-semibold',
+                                'bg-gradient-accent text-white',
+                                'transition-all duration-250',
+                                'hover:opacity-90 active:scale-95',
+                                'shadow-lg shadow-blue-500/20'
+                            )}
+                        >
+                            Login
+                        </button>
+                    )}
                 </div>
             </div>
         </header>

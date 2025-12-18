@@ -16,19 +16,22 @@ import {
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { useTheme } from '@/contexts/theme-context';
-import { signOut } from 'next-auth/react';
+import { signOut, useSession } from 'next-auth/react';
 
 export default function ProfilePage() {
     const router = useRouter();
     const { theme, toggleTheme } = useTheme();
-    const [user, setUser] = useState({
-        name: 'User',
-        email: 'user@example.com',
-        avatar: '',
+    const { data: session } = useSession();
+
+    // Fallback data if session is loading or missing
+    const user = {
+        name: session?.user?.name || 'User',
+        email: session?.user?.email || 'Guest',
+        avatar: session?.user?.image || '',
         plan: 'Free',
         coinBalance: 240,
         isPremium: false,
-    });
+    };
 
     const handleLogout = async () => {
         if (confirm('Are you sure you want to logout?')) {

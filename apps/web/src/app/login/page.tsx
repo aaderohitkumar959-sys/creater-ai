@@ -26,7 +26,7 @@ export default function LoginPage() {
 
                 <div className="mt-8 space-y-6">
                     <Button
-                        onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
+                        onClick={() => signIn("google", { callbackUrl: "/" })}
                         className="w-full"
                         variant="outline"
                     >

@@ -9,6 +9,7 @@ import React from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Home, Search, MessageCircle, Wallet, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useSession } from 'next-auth/react';
 
 interface NavItem {
     id: string;
@@ -59,6 +60,7 @@ const navItems: NavItem[] = [
 export const BottomNav: React.FC = () => {
     const pathname = usePathname();
     const router = useRouter();
+    const { data: session } = useSession();
 
     const handleNavClick = (href: string) => {
         router.push(href);
@@ -81,6 +83,12 @@ export const BottomNav: React.FC = () => {
                 {navItems.map((item) => {
                     const active = isActive(item);
 
+                    // Customize label for Profile
+                    let displayLabel = item.label;
+                    if (item.id === 'profile' && session?.user?.name) {
+                        displayLabel = session.user.name.split(' ')[0];
+                    }
+
                     return (
                         <button
                             key={item.id}
@@ -94,7 +102,7 @@ export const BottomNav: React.FC = () => {
                                 active && 'text-[var(--accent-blue)]',
                                 !active && 'text-[var(--text-secondary)]'
                             )}
-                            aria-label={item.label}
+                            aria-label={displayLabel}
                         >
                             {/* Icon with glow effect when active */}
                             <div
@@ -107,10 +115,19 @@ export const BottomNav: React.FC = () => {
                                 }}
                             >
                                 <div style={{ width: 24, height: 24 }}>
-                                    {React.cloneElement(item.icon as React.ReactElement, {
-                                        size: 24,
-                                        strokeWidth: active ? 2.5 : 2,
-                                    } as any)}
+                                    {item.id === 'profile' && session?.user?.image ? (
+                                        <div className={cn(
+                                            "w-6 h-6 rounded-full overflow-hidden border",
+                                            active ? "border-[var(--accent-blue)]" : "border-[var(--border-medium)]"
+                                        )}>
+                                            <img src={session.user.image} alt="U" className="w-full h-full object-cover" />
+                                        </div>
+                                    ) : (
+                                        React.cloneElement(item.icon as React.ReactElement, {
+                                            size: 24,
+                                            strokeWidth: active ? 2.5 : 2,
+                                        } as any)
+                                    )}
                                 </div>
 
                                 {/* Active indicator dot */}
@@ -127,11 +144,11 @@ export const BottomNav: React.FC = () => {
                             {/* Label */}
                             <span
                                 className={cn(
-                                    'text-xs font-medium transition-all duration-250',
+                                    'text-[10px] font-medium transition-all duration-250 truncate w-full text-center px-1',
                                     active && 'font-semibold'
                                 )}
                             >
-                                {item.label}
+                                {displayLabel}
                             </span>
                         </button>
                     );
