@@ -3,7 +3,7 @@ services:
     name: creator-ai-api
     env: node
     plan: free
-    buildCommand: npm install && npx turbo run build --filter=api...
+    buildCommand: npm install --omit=dev
     startCommand: node apps/api/dist/main.js
     envVars:
       - key: NODE_ENV
