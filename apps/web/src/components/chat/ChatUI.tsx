@@ -95,7 +95,7 @@ export const ChatUI: React.FC<ChatUIProps> = ({ persona }) => {
             }
 
             // Call real backend API
-            const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://creator-ai-api.onrender.com';
+            const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://creater-ai-backend.onrender.com';
             const headers: Record<string, string> = {
                 'Content-Type': 'application/json',
             };
