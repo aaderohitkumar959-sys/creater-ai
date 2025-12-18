@@ -255,4 +255,26 @@ export class UserService {
         console.log('[GDPR] Deletion cancelled for user:', userId);
         return true;
     }
+
+    async getUserProfile(userId: string) {
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+            include: {
+                CoinWallet: true,
+            },
+        });
+
+        if (!user) {
+            throw new Error('User not found');
+        }
+
+        return {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            image: user.image,
+            role: user.role,
+            coinBalance: user.CoinWallet?.balance || 0,
+        };
+    }
 }

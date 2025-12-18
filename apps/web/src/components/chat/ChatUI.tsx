@@ -40,40 +40,8 @@ export const ChatUI: React.FC<ChatUIProps> = ({ persona }) => {
     const [isTyping, setIsTyping] = useState(false);
     const [isPinned, setIsPinned] = useState(false);
     const { data: session, status: authStatus } = useSession();
-    const [backendToken, setBackendToken] = useState<string | null>(null);
     const [isSyncing, setIsSyncing] = useState(false);
-
-    // Sync with backend to get a valid JWT
-    useEffect(() => {
-        const syncAuth = async () => {
-            if (session?.user && !backendToken && !isSyncing) {
-                setIsSyncing(true);
-                try {
-                    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://creator-ai-api.onrender.com';
-                    const response = await fetch(`${baseUrl}/auth/login`, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            id: session.user.id,
-                            email: session.user.email,
-                            name: session.user.name,
-                            image: session.user?.image,
-                        }),
-                    });
-                    if (response.ok) {
-                        const data = await response.json();
-                        setBackendToken(data.accessToken);
-                        console.log('Backend auth synced successfully');
-                    }
-                } catch (err) {
-                    console.error('Failed to sync with backend auth:', err);
-                } finally {
-                    setIsSyncing(false);
-                }
-            }
-        };
-        syncAuth();
-    }, [session, backendToken, isSyncing]);
+    const backendToken = (session as any)?.accessToken;
 
     // Initialize with welcome message
     useEffect(() => {
@@ -118,16 +86,11 @@ export const ChatUI: React.FC<ChatUIProps> = ({ persona }) => {
         setIsTyping(true);
 
         try {
-            // Wait for token if syncing
-            let currentToken = backendToken;
-            if (!currentToken && isSyncing) {
-                // Poll for token or just wait a bit
-                for (let i = 0; i < 10; i++) {
+            // Wait for token if just signed in
+            if (!backendToken && authStatus === 'loading') {
+                for (let i = 0; i < 5; i++) {
                     await new Promise(r => setTimeout(r, 500));
-                    if (backendToken) {
-                        currentToken = backendToken;
-                        break;
-                    }
+                    if ((session as any)?.accessToken) break;
                 }
             }
 
@@ -138,8 +101,8 @@ export const ChatUI: React.FC<ChatUIProps> = ({ persona }) => {
             };
 
             // Add Authorization header if we have a token
-            if (currentToken) {
-                headers['Authorization'] = `Bearer ${currentToken}`;
+            if (backendToken) {
+                headers['Authorization'] = `Bearer ${backendToken}`;
             }
 
             const response = await fetch(`${baseUrl}/chat/send`, {
@@ -151,9 +114,9 @@ export const ChatUI: React.FC<ChatUIProps> = ({ persona }) => {
                 }),
             });
 
-            if (!response.ok) {
-                throw new Error('Failed to send message');
-            }
+            if (response.status === 401) throw new Error('Unauthorized');
+            if (response.status === 403) throw new Error('Forbidden');
+            if (!response.ok) throw new Error('Failed to send message');
 
             const data = await response.json();
 
@@ -164,16 +127,26 @@ export const ChatUI: React.FC<ChatUIProps> = ({ persona }) => {
                 timestamp: new Date(data.aiMessage?.createdAt || Date.now()),
             };
             setMessages(prev => [...prev, aiMessage]);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Chat error:', error);
-            // Show error message to user
-            const errorMessage: Message = {
+            // Show logical error message to user
+            let errorMessage = "Sorry, I couldn't process your message. ";
+
+            if (error.message === 'Unauthorized') {
+                errorMessage += "Your session has expired. Please refresh the page.";
+            } else if (error.message === 'Forbidden') {
+                errorMessage += "You have reached your daily limit. Upgrade to continue.";
+            } else {
+                errorMessage += "Please make sure you're connected and try again.";
+            }
+
+            const errorMsgObj: Message = {
                 id: (Date.now() + 1).toString(),
-                content: "Sorry, I couldn't process your message. Please make sure you're logged in and try again.",
+                content: errorMessage,
                 sender: 'ai',
                 timestamp: new Date(),
             };
-            setMessages(prev => [...prev, errorMessage]);
+            setMessages(prev => [...prev, errorMsgObj]);
         } finally {
             setIsTyping(false);
         }

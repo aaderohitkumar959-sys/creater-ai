@@ -9,8 +9,12 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { TopBar } from '@/components/navigation/top-bar';
 import { GlassmorphismCard } from '@/components/ui/glassmorphism-card';
-import { Search, Star } from 'lucide-react';
+import { Search, Star, MessageSquare } from 'lucide-react';
+
 import { cn } from '@/lib/utils';
+import { api } from '@/lib/api';
+import { useSession } from 'next-auth/react';
+
 
 interface Conversation {
     id: string;
@@ -29,35 +33,37 @@ export default function MessagesPage() {
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
 
+    const { status: authStatus } = useSession();
+
     useEffect(() => {
-        // TODO: Fetch conversations from API
-        // Mock data for now
-        setTimeout(() => {
-            setConversations([
-                {
-                    id: '1',
-                    personaId: 'p1',
-                    personaName: 'Sarah',
-                    personaAvatar: '/personas/sarah.jpg',
-                    lastMessage: "That's really interesting! Tell me more about it.",
-                    lastMessageTime: new Date(Date.now() - 1000 * 60 * 30),
-                    unreadCount: 2,
-                    isPinned: true,
-                },
-                {
-                    id: '2',
-                    personaId: 'p2',
-                    personaName: 'Alex',
-                    personaAvatar: '/personas/alex.jpg',
-                    lastMessage: 'Hey! How was your day?',
-                    lastMessageTime: new Date(Date.now() - 1000 * 60 * 60 * 2),
-                    unreadCount: 0,
+        const fetchConversations = async () => {
+            if (authStatus === 'unauthenticated') {
+                setLoading(false);
+                return;
+            }
+
+            try {
+                const data = await api.getConversations();
+                const mapped = data.map((c: any) => ({
+                    id: c.id,
+                    personaId: c.personaId,
+                    personaName: c.persona?.name || 'Unknown',
+                    personaAvatar: c.persona?.avatarUrl || '',
+                    lastMessage: c.messages?.[0]?.content || 'No messages yet',
+                    lastMessageTime: new Date(c.updatedAt),
+                    unreadCount: 0, // Not implemented in backend yet
                     isPinned: false,
-                },
-            ]);
-            setLoading(false);
-        }, 500);
-    }, []);
+                }));
+                setConversations(mapped);
+            } catch (error) {
+                console.error('Failed to fetch conversations:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchConversations();
+    }, [authStatus]);
 
     const handleConversationClick = (id: string) => {
         router.push(`/chat/${id}`);
@@ -118,13 +124,23 @@ export default function MessagesPage() {
                         ))}
                     </div>
                 ) : filteredConversations.length === 0 ? (
-                    <div className="text-center py-12">
-                        <p className="text-[var(--text-secondary)] mb-4">No conversations yet</p>
+                    <div className="text-center py-20 flex flex-col items-center justify-center">
+                        <div className="w-20 h-20 rounded-full bg-white/5 flex items-center justify-center mb-6">
+                            <MessageSquare className="text-[var(--text-muted)]" size={32} />
+                        </div>
+                        <h3 className="text-lg font-bold text-white mb-2">
+                            {authStatus === 'unauthenticated' ? 'Log in to see messages' : 'No conversations yet'}
+                        </h3>
+                        <p className="text-[var(--text-secondary)] mb-8 max-w-xs mx-auto">
+                            {authStatus === 'unauthenticated'
+                                ? 'Sign in to start chatting with your favorite AI personalities.'
+                                : 'Start a conversation with an AI character from the explore page.'}
+                        </p>
                         <button
-                            onClick={() => router.push('/explore')}
-                            className="btn-primary"
+                            onClick={() => router.push(authStatus === 'unauthenticated' ? '/login' : '/explore')}
+                            className="px-8 py-3 rounded-xl bg-gradient-accent text-white font-bold shadow-lg shadow-blue-500/20"
                         >
-                            Start Chatting
+                            {authStatus === 'unauthenticated' ? 'Sign In' : 'Explore AI'}
                         </button>
                     </div>
                 ) : (

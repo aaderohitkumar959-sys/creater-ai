@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { TopBar } from '@/components/navigation/top-bar';
 import {
     User,
@@ -17,11 +17,34 @@ import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { useTheme } from '@/contexts/theme-context';
 import { signOut, useSession } from 'next-auth/react';
+import { api } from '@/lib/api';
+
 
 export default function ProfilePage() {
     const router = useRouter();
     const { theme, toggleTheme } = useTheme();
     const { data: session } = useSession();
+
+    const [coinBalance, setCoinBalance] = useState(240);
+    const [loadingBalance, setLoadingBalance] = useState(true);
+
+    useEffect(() => {
+        const fetchBalance = async () => {
+            if (session?.user?.id) {
+                try {
+                    const balance = await api.getWalletBalance();
+                    setCoinBalance(balance);
+                } catch (error) {
+                    console.error('Failed to fetch balance:', error);
+                } finally {
+                    setLoadingBalance(false);
+                }
+            } else {
+                setLoadingBalance(false);
+            }
+        };
+        fetchBalance();
+    }, [session]);
 
     // Fallback data if session is loading or missing
     const user = {
@@ -29,7 +52,7 @@ export default function ProfilePage() {
         email: session?.user?.email || 'Guest',
         avatar: session?.user?.image || '',
         plan: 'Free',
-        coinBalance: 240,
+        coinBalance: coinBalance,
         isPremium: false,
     };
 
@@ -52,8 +75,8 @@ export default function ProfilePage() {
         {
             icon: Settings,
             label: 'Settings',
-            description: 'Manage your preferences',
-            onClick: () => alert('Settings coming soon!'),
+            description: 'Manage your profile and privacy',
+            onClick: () => alert('Settings menu will be available in the next update! You can currently manage your profile via the Dashboard.'),
         },
         {
             icon: HelpCircle,

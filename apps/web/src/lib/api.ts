@@ -104,5 +104,20 @@ export const api = {
     getAdminCreatorStats: async () => {
         return fetchWithAuth('/admin/creators/stats');
     },
+
+    getPersonas: async (search?: string, category?: string) => {
+        const params = new URLSearchParams();
+        if (search) params.append('search', search);
+        if (category && category !== 'All') params.append('category', category);
+        return fetchWithAuth(`/personas?${params.toString()}`);
+    },
+
+    getCreatorDashboard: async () => {
+        return fetchWithAuth('/creator/dashboard');
+    },
+
+    getConversations: async () => {
+        return fetchWithAuth('/chat/conversations');
+    },
 };
 

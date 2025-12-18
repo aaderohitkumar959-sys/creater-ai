@@ -4,17 +4,17 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('quests')
 export class QuestController {
-  constructor(private readonly questService: QuestService) {}
+  constructor(private readonly questService: QuestService) { }
 
   @UseGuards(JwtAuthGuard)
   @Get('daily')
   async getDailyStatus(@Request() req) {
-    return this.questService.getDailyStatus(req.user.userId);
+    return this.questService.getDailyStatus(req.user.id);
   }
 
   @UseGuards(JwtAuthGuard)
   @Post('daily/claim')
   async claimDailyReward(@Request() req) {
-    return this.questService.claimDailyReward(req.user.userId);
+    return this.questService.claimDailyReward(req.user.id);
   }
 }

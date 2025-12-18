@@ -15,7 +15,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('chat')
 export class ChatStreamController {
-  constructor(private readonly chatService: ChatService) {}
+  constructor(private readonly chatService: ChatService) { }
 
   @Post('send')
   @UseGuards(JwtAuthGuard)
@@ -23,7 +23,7 @@ export class ChatStreamController {
     @Req() req,
     @Body() body: { personaId: string; message: string },
   ) {
-    const userId = req.user.userId;
+    const userId = req.user.id;
     const result = await this.chatService.sendMessage(
       userId,
       body.personaId,

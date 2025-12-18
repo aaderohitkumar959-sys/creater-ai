@@ -67,8 +67,7 @@ export class UserController {
     @Get('profile')
     @UseGuards(JwtAuthGuard)
     async getProfile(@Req() req: any) {
-        const userId = req.user.id;
-        // Implementation here
-        return { userId };
+        const userId = req.user.id; // User object returned by JwtStrategy has 'id'
+        return this.userService.getUserProfile(userId);
     }
 }

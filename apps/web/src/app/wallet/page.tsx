@@ -12,6 +12,10 @@ import { CoinPacks } from '@/components/wallet/coin-packs';
 import { Coins, TrendingUp, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { api } from '@/lib/api';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+
 
 interface Transaction {
     id: string;
@@ -52,13 +56,40 @@ export default function WalletPage() {
     const [isPremium, setIsPremium] = useState(false);
     const [loading, setLoading] = useState(true);
 
+    const { data: session, status: authStatus } = useSession();
+    const router = useRouter();
+
     useEffect(() => {
-        // TODO: Fetch from API
-        const timer = setTimeout(() => {
-            setLoading(false);
-        }, 500);
-        return () => clearTimeout(timer);
-    }, []);
+        const fetchWalletData = async () => {
+            if (authStatus === 'unauthenticated') {
+                setLoading(false);
+                return;
+            }
+
+            if (session?.user?.id) {
+                try {
+                    const [walletBalance, history] = await Promise.all([
+                        api.getWalletBalance(),
+                        api.getTransactionHistory()
+                    ]);
+                    setBalance(walletBalance);
+                    setTransactions(history.map((tx: any) => ({
+                        id: tx.id,
+                        type: tx.type,
+                        amount: tx.amount,
+                        description: tx.description,
+                        createdAt: new Date(tx.createdAt),
+                    })));
+                } catch (error) {
+                    console.error('Failed to fetch wallet data:', error);
+                } finally {
+                    setLoading(false);
+                }
+            }
+        };
+
+        fetchWalletData();
+    }, [session, authStatus]);
 
     const handleUpgrade = () => {
         // TODO: Navigate to premium purchase flow

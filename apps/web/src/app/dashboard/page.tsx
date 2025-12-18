@@ -4,6 +4,8 @@ import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 import { DollarSign, MessageSquare, Users, Coins } from "lucide-react"
+import { api } from "@/lib/api"
+
 
 interface DashboardData {
     overview: {
@@ -26,43 +28,19 @@ export default function DashboardPage() {
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        // Mock data - replace with actual API calls when backend proxy is configured
-        async function loadMockData() {
+        async function loadData() {
             try {
-                // Simulate API delay
-                await new Promise(resolve => setTimeout(resolve, 500))
-
-                const mockData: DashboardData = {
-                    overview: {
-                        totalEarnings: 1234.56,
-                        totalMessages: 5678,
-                        activePersonas: 3,
-                        coinBalance: 2500
-                    },
-                    earnings: [
-                        { date: '2024-01-01', earnings: 100 },
-                        { date: '2024-01-08', earnings: 150 },
-                        { date: '2024-01-15', earnings: 200 },
-                        { date: '2024-01-22', earnings: 180 },
-                        { date: '2024-01-29', earnings: 250 },
-                    ],
-                    personas: [
-                        { id: '1', name: 'AI Assistant Pro', messages: 1234, uniqueUsers: 567 },
-                        { id: '2', name: 'Creative Helper', messages: 890, uniqueUsers: 234 },
-                        { id: '3', name: 'Code Mentor', messages: 456, uniqueUsers: 123 },
-                    ]
-                }
-
-                setData(mockData)
+                const dashboardData = await api.getCreatorDashboard();
+                setData(dashboardData);
             } catch (error) {
-                console.error('Failed to load data:', error)
+                console.error('Failed to load dashboard data:', error);
             } finally {
-                setLoading(false)
+                setLoading(false);
             }
         }
 
-        loadMockData()
-    }, [])
+        loadData();
+    }, []);
 
     if (loading) {
         return <div className="p-8">Loading...</div>

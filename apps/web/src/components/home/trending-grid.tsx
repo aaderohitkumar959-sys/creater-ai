@@ -18,8 +18,10 @@ interface TrendingAI {
     vibe: string; // Short description line
     category: string;
     messageCount: number;
+    description?: string;
     isNew?: boolean;
     isTrending?: boolean;
+    isFeatured?: boolean;
 }
 
 interface TrendingGridProps {
@@ -45,7 +47,7 @@ export const TrendingGrid: React.FC<TrendingGridProps> = ({
                     <TrendingCard
                         key={ai.id}
                         ai={ai}
-                        onClick={() => router.push(`/chat/${ai.id}?personaId=${ai.id}&name=${encodeURIComponent(ai.name)}`)}
+                        onClick={() => router.push(`/chat/${ai.id}`)}
                     />
                 ))}
             </div>

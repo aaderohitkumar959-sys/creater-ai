@@ -12,12 +12,12 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('chat')
 export class ChatController {
-  constructor(private readonly chatService: ChatService) {}
+  constructor(private readonly chatService: ChatService) { }
 
   @UseGuards(JwtAuthGuard)
   @Post('conversation')
   async startConversation(@Request() req, @Body() body: { personaId: string }) {
-    return this.chatService.createConversation(req.user.userId, body.personaId);
+    return this.chatService.createConversation(req.user.id, body.personaId);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -27,7 +27,7 @@ export class ChatController {
     @Body() body: { personaId: string; message: string },
   ) {
     return this.chatService.sendMessage(
-      req.user.userId,
+      req.user.id,
       body.personaId,
       body.message,
     );
@@ -40,7 +40,7 @@ export class ChatController {
     @Body() body: { personaId: string; giftId: string; amount: number },
   ) {
     return this.chatService.sendGift(
-      req.user.userId,
+      req.user.id,
       body.personaId,
       body.giftId,
       body.amount,

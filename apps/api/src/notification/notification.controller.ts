@@ -4,18 +4,18 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('notifications')
 export class NotificationController {
-  constructor(private readonly notificationService: NotificationService) {}
+  constructor(private readonly notificationService: NotificationService) { }
 
   @UseGuards(JwtAuthGuard)
   @Post('subscribe')
   async subscribe(@Request() req, @Body() subscription: any) {
-    return this.notificationService.subscribe(req.user.userId, subscription);
+    return this.notificationService.subscribe(req.user.id, subscription);
   }
 
   @UseGuards(JwtAuthGuard)
   @Post('test')
   async testNotification(@Request() req) {
-    return this.notificationService.sendNotification(req.user.userId, {
+    return this.notificationService.sendNotification(req.user.id, {
       title: 'Test Notification',
       body: 'This is a test notification from CreatorAI!',
       url: '/dashboard',

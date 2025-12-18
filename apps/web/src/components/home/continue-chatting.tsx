@@ -43,7 +43,7 @@ export const ContinueChatting: React.FC<ContinueChattingProps> = ({ recentChats 
                         <RecentChatCard
                             key={chat.id}
                             chat={chat}
-                            onClick={() => router.push(`/chat/${chat.id}`)}
+                            onClick={() => router.push(`/chat/${chat.personaId}`)}
                         />
                     ))}
                 </div>

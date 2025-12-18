@@ -11,12 +11,12 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('creator')
 export class CreatorController {
-  constructor(private readonly creatorService: CreatorService) {}
+  constructor(private readonly creatorService: CreatorService) { }
 
   @UseGuards(JwtAuthGuard)
   @Post('profile')
   async createProfile(@Request() req, @Body() body: { bio: string }) {
-    return this.creatorService.createCreatorProfile(req.user.userId, body.bio);
+    return this.creatorService.createCreatorProfile(req.user.id, body.bio);
   }
 
   @UseGuards(JwtAuthGuard)
@@ -33,7 +33,7 @@ export class CreatorController {
   ) {
     // First get creator ID
     const creator = await this.creatorService.getCreatorProfile(
-      req.user.userId,
+      req.user.id,
     );
     if (!creator) {
       throw new Error('Creator profile not found');
@@ -49,6 +49,6 @@ export class CreatorController {
   @UseGuards(JwtAuthGuard)
   @Get('dashboard')
   async getDashboard(@Request() req) {
-    return this.creatorService.getDashboardStats(req.user.userId);
+    return this.creatorService.getDashboardStats(req.user.id);
   }
 }

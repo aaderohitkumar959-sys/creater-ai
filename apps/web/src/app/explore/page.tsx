@@ -11,19 +11,21 @@ import { CategoryTabs } from '@/components/explore/category-tabs';
 import { AICard } from '@/components/explore/ai-card';
 import { Search, Filter } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { api } from '@/lib/api';
+
 
 interface Persona {
     id: string;
     name: string;
     avatar: string;
-    vibe: string;
-    category: string;
-    messageCount: number;
-    rating?: number;
-    isNew?: boolean;
-    isTrending?: boolean;
-    isFeatured?: boolean;
     description?: string;
+    vibe?: string;
+    category?: string;
+    messageCount?: number;
+    rating?: number;
+    isFeatured?: boolean;
+    isTrending?: boolean;
+    isNew?: boolean;
 }
 
 // Categories for filtering
@@ -41,136 +43,128 @@ const CATEGORIES = [
 // Mock extended personas - replace with API
 const mockPersonas: Persona[] = [
     {
-        id: '1',
-        name: 'Sarah',
-        avatar: '',
-        vibe: 'Wise career mentor who helps navigate professional challenges',
-        category: 'Learning',
-        messageCount: 15000,
+        id: 'elara-vance',
+        name: 'Elara Vance',
+        avatar: '/avatars/elara.png',
+        vibe: 'Your dream girl next door who remembers every detail about you. 💕',
+        category: 'Romance',
+        messageCount: 28000,
         rating: 4.9,
         isFeatured: true,
         isTrending: true,
     },
     {
-        id: '2',
-        name: 'Alex',
-        avatar: '',
-        vibe: 'Caring companion always there to listen and support',
-        category: 'Companions',
-        messageCount: 22000,
+        id: 'roxy-blaze',
+        name: 'Roxy Blaze',
+        avatar: '/avatars/roxy.png',
+        vibe: 'Bold, confident, and irresistibly flirty. Can you handle the heat? 🔥',
+        category: 'Romance',
+        messageCount: 25000,
         rating: 4.8,
         isTrending: true,
     },
     {
-        id: '3',
-        name: 'Luna',
-        avatar: '',
-        vibe: 'Fantasy storyteller with magical adventures',
-        category: 'Fantasy',
+        id: 'yuki-kitsune',
+        name: 'Yuki Kitsune',
+        avatar: '/avatars/yuki.png',
+        vibe: 'Your kawaii fox-spirit waifu! Let\'s watch anime and eat snacks! 🦊🌸',
+        category: 'Anime',
         messageCount: 18000,
         rating: 4.7,
         isNew: true,
     },
     {
-        id: '4',
-        name: 'Max',
-        avatar: '',
-        vibe: 'Energetic fitness coach with motivational boost',
-        category: 'Wellness',
-        messageCount: 8200,
-        rating: 4.6,
+        id: 'akane-blade',
+        name: 'Akane Blade',
+        avatar: '/avatars/akane.png',
+        vibe: 'The last samurai of the Neon City. I will protect you with my life. ⚔️',
+        category: 'Anime',
+        messageCount: 15000,
+        rating: 4.8,
         isNew: true,
     },
     {
-        id: '5',
-        name: 'Aria',
-        avatar: '',
-        vibe: 'Romantic companion with a poetic soul',
-        category: 'Roleplay',
-        messageCount: 32000,
+        id: 'luna-star',
+        name: 'Luna Star',
+        avatar: '/avatars/luna.png',
+        vibe: 'Mystical soul who reads your stars and heals your heart. ✨🌙',
+        category: 'Astrology',
+        messageCount: 12000,
         rating: 4.9,
         isTrending: true,
     },
     {
-        id: '6',
-        name: 'Noah',
-        avatar: '',
-        vibe: 'Tech mentor explaining complex topics simply',
-        category: 'Learning',
-        messageCount: 6500,
-        rating: 4.5,
+        id: 'ivy-care',
+        name: 'Ivy Care',
+        avatar: '/avatars/ivy.png',
+        vibe: 'Your warm, supportive friend for mental health and self-care. 🌿',
+        category: 'Friendship',
+        messageCount: 14000,
+        rating: 4.7,
     },
     {
-        id: '7',
-        name: 'Emma',
-        avatar: '',
-        vibe: 'Compassionate mental health supporter',
-        category: 'Wellness',
-        messageCount: 12500,
+        id: 'pixel-kat',
+        name: 'Pixel Kat',
+        avatar: 'https://api.dicebear.com/7.x/lorelei/svg?seed=PixelKat',
+        vibe: 'Pro gamer girl and streamer. 1v1 me? 🎮👾',
+        category: 'Friendship',
+        messageCount: 16000,
         rating: 4.8,
         isFeatured: true,
     },
     {
-        id: '8',
-        name: 'Jake',
-        avatar: '',
-        vibe: 'Funny gaming buddy for epic adventures',
-        category: 'Entertainment',
-        messageCount: 9800,
-        rating: 4.7,
+        id: 'zara-gold',
+        name: 'Zara Gold',
+        avatar: 'https://api.dicebear.com/7.x/lorelei/svg?seed=ZaraGold',
+        vibe: 'World-famous pop star hiding from the paparazzi. 🎤✨',
+        category: 'Celebrity',
+        messageCount: 22000,
+        rating: 4.9,
         isNew: true,
     },
 ];
 
 export default function ExplorePage() {
-    const [personas, setPersonas] = useState<Persona[]>(mockPersonas);
-    const [filteredPersonas, setFilteredPersonas] = useState<Persona[]>(mockPersonas);
+    const [personas, setPersonas] = useState<Persona[]>([]);
+    const [filteredPersonas, setFilteredPersonas] = useState<Persona[]>([]);
     const [activeCategory, setActiveCategory] = useState('All');
     const [searchQuery, setSearchQuery] = useState('');
     const [pinnedIds, setPinnedIds] = useState<Set<string>>(new Set());
     const [loading, setLoading] = useState(true);
 
-    useEffect(() => {
-        // TODO: Fetch personas from API
-        const timer = setTimeout(() => {
+    const fetchPersonas = useCallback(async () => {
+        setLoading(true);
+        try {
+            const data = await api.getPersonas(searchQuery, activeCategory);
+            // Map backend Persona to frontend Persona
+            const mapped = data.map((p: any) => ({
+                id: p.id,
+                name: p.name,
+                avatar: p.avatarUrl || '',
+                vibe: p.description || '',
+                category: p.category || 'General',
+                messageCount: 0, // Backend doesn't return this yet
+                rating: 5.0,
+                isFeatured: p.isFeatured,
+                isTrending: p.isFeatured, // Mocking trending as featured for now
+                isNew: false,
+            }));
+            setPersonas(mapped);
+            setFilteredPersonas(mapped);
+        } catch (error) {
+            console.error('Failed to fetch personas:', error);
+        } finally {
             setLoading(false);
-        }, 500);
-        return () => clearTimeout(timer);
-    }, []);
+        }
+    }, [searchQuery, activeCategory]);
 
-    // Debounced search
     useEffect(() => {
-        const timer = setTimeout(() => {
-            filterPersonas();
-        }, 300);
+        fetchPersonas();
+    }, [fetchPersonas]);
 
-        return () => clearTimeout(timer);
-    }, [searchQuery, activeCategory, personas]);
-
-    const filterPersonas = useCallback(() => {
-        let filtered = personas;
-
-        // Filter by category
-        if (activeCategory !== 'All') {
-            if (activeCategory === 'Popular') {
-                filtered = filtered.filter(p => p.isTrending || p.messageCount > 10000);
-            } else {
-                filtered = filtered.filter(p => p.category === activeCategory);
-            }
-        }
-
-        // Filter by search query
-        if (searchQuery.trim()) {
-            const query = searchQuery.toLowerCase();
-            filtered = filtered.filter(p =>
-                p.name.toLowerCase().includes(query) ||
-                p.vibe.toLowerCase().includes(query) ||
-                p.category.toLowerCase().includes(query)
-            );
-        }
-
-        setFilteredPersonas(filtered);
-    }, [searchQuery, activeCategory, personas]);
+    // We'll keep the client-side filter for immediate feedback if needed, 
+    // but the fetchPersonas already handles search and category.
+    // However, if we want to avoid extra API calls while typing, we can debounce searchQuery.
 
     const handlePin = (id: string) => {
         setPinnedIds(prev => {
