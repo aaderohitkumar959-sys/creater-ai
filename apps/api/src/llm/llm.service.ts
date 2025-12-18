@@ -134,17 +134,24 @@ export class LLMService {
     ];
 
     // Stream response
-    if (
-      'streamResponse' in this.provider &&
-      typeof this.provider.streamResponse === 'function'
-    ) {
-      yield* this.provider.streamResponse(messages, {
-        temperature: 0.8,
-        maxTokens: 500,
-      });
-    } else {
-      // Fallback to non-streaming
-      const response = await this.provider.generateResponse(messages, {
+    let streamSucceeded = false;
+
+    // Try Groq first
+    try {
+      if (this.groqProvider) {
+        yield* this.groqProvider.streamResponse(messages, {
+          temperature: 0.8,
+          maxTokens: 500,
+        });
+        streamSucceeded = true;
+      }
+    } catch (error) {
+      console.error('Groq streaming failure, falling back to OpenRouter:', error);
+    }
+
+    // Fallback to OpenRouter (non-streaming for simplicity in fallback, or yield* if supported)
+    if (!streamSucceeded) {
+      const response = await this.openRouterProvider.generateResponse(messages, {
         temperature: 0.8,
         maxTokens: 500,
       });
