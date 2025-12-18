@@ -14,9 +14,10 @@ interface AICardProps {
     id: string;
     name: string;
     avatar: string;
-    vibe: string;
-    category: string;
-    messageCount: number;
+    vibe?: string;
+    category?: string;
+    messageCount?: number;
+    description?: string;
     rating?: number;
     isNew?: boolean;
     isTrending?: boolean;
