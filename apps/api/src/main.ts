@@ -5,7 +5,9 @@ import { ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
 
 async function bootstrap() {
+  console.log('[Bootstrap] Starting NestJS application...');
   const app = await NestFactory.create(AppModule);
+  console.log('[Bootstrap] NestJS application created.');
 
   // 1. Enable Helmet with CSP
   app.use(
@@ -71,7 +73,9 @@ async function bootstrap() {
     }),
   );
 
-  await app.listen(process.env.PORT ?? 3001, '0.0.0.0');
-  console.log(`Application is running on: ${await app.getUrl()}`);
+  const port = process.env.PORT ?? 3001;
+  console.log(`[Bootstrap] Attempting to listen on port ${port}...`);
+  await app.listen(port, '0.0.0.0');
+  console.log(`[Bootstrap] Application is running on: ${await app.getUrl()}`);
 }
 bootstrap();
