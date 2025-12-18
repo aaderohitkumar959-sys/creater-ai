@@ -275,7 +275,16 @@ export default function ExplorePage() {
                             {filteredPersonas.map((persona) => (
                                 <AICard
                                     key={persona.id}
-                                    {...persona}
+                                    id={persona.id}
+                                    name={persona.name}
+                                    avatar={persona.avatar}
+                                    vibe={persona.vibe}
+                                    category={persona.category}
+                                    messageCount={persona.messageCount}
+                                    rating={persona.rating}
+                                    isNew={persona.isNew}
+                                    isTrending={persona.isTrending}
+                                    isFeatured={persona.isFeatured}
                                     isPinned={pinnedIds.has(persona.id)}
                                     onPin={handlePin}
                                 />

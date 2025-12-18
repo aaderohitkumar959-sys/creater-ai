@@ -15,7 +15,7 @@ interface TrendingAI {
     id: string;
     name: string;
     avatar: string;
-    vibe: string; // Short description line
+    vibe?: string; // Short description line
     category: string;
     messageCount: number;
     description?: string;
