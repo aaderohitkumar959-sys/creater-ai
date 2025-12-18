@@ -3,7 +3,7 @@ services:
     name: creator-ai-api
     env: node
     plan: free
-    buildCommand: npm install && npx turbo run build --filter=@creator-ai/api...
+    buildCommand: npm install && npx turbo run build --filter=api...
     startCommand: node apps/api/dist/main.js
     envVars:
       - key: NODE_ENV
@@ -16,6 +16,12 @@ services:
         sync: false
       - key: FRONTEND_URL
         sync: false
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: LLM_PRIMARY_PROVIDER
+        value: openrouter
+      - key: LLM_MODEL
+        value: meta-llama/llama-3.1-8b-instruct:free
 
 jobs:
   - name: migrate-db
