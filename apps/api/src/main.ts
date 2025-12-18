@@ -31,7 +31,8 @@ async function bootstrap() {
 
   // 2. Strict CORS - Allow production Vercel and localhost
   const allowedOrigins = [
-    'https://creater-ai-web.vercel.app',  // Production
+    'https://syelope-web.vercel.app',  // New Production Domain
+    'https://creater-ai-web.vercel.app',  // Legacy Production Domain
     'http://localhost:3000',               // Local dev
     'http://localhost:3001',               // Local backend dev
   ];

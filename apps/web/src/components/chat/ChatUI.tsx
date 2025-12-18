@@ -12,6 +12,7 @@ import { TypingIndicator } from '@/components/chat/typing-indicator';
 import { FloatingInput } from '@/components/chat/floating-input';
 import { ArrowLeft, MoreVertical, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useSession } from 'next-auth/react';
 
 interface Message {
     id: string;
@@ -38,6 +39,36 @@ export const ChatUI: React.FC<ChatUIProps> = ({ persona }) => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [isTyping, setIsTyping] = useState(false);
     const [isPinned, setIsPinned] = useState(false);
+    const { data: session } = useSession();
+    const [backendToken, setBackendToken] = useState<string | null>(null);
+
+    // Sync with backend to get a valid JWT
+    useEffect(() => {
+        const syncAuth = async () => {
+            if (session?.user) {
+                try {
+                    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://creator-ai-api.onrender.com';
+                    const response = await fetch(`${baseUrl}/auth/login`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            id: session.user.id,
+                            email: session.user.email,
+                            name: session.user.name,
+                        }),
+                    });
+                    if (response.ok) {
+                        const data = await response.json();
+                        setBackendToken(data.accessToken);
+                        console.log('Backend auth synced successfully');
+                    }
+                } catch (err) {
+                    console.error('Failed to sync with backend auth:', err);
+                }
+            }
+        };
+        syncAuth();
+    }, [session]);
 
     // Initialize with welcome message
     useEffect(() => {
@@ -69,16 +100,23 @@ export const ChatUI: React.FC<ChatUIProps> = ({ persona }) => {
 
         try {
             // Call real backend API
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/chat/send`, {
+            const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://creator-ai-api.onrender.com';
+            const headers: Record<string, string> = {
+                'Content-Type': 'application/json',
+            };
+
+            // Add Authorization header if we have a token
+            if (backendToken) {
+                headers['Authorization'] = `Bearer ${backendToken}`;
+            }
+
+            const response = await fetch(`${baseUrl}/chat/send`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers,
                 body: JSON.stringify({
                     personaId: persona.id,
                     message: content,
                 }),
-                credentials: 'include', // Include cookies for auth
             });
 
             if (!response.ok) {

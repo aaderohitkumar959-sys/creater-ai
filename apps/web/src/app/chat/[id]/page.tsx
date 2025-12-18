@@ -9,45 +9,45 @@ import { notFound } from 'next/navigation';
 // Mock function to get persona details by ID
 async function getPersona(id: string) {
     const personas: Record<string, any> = {
-        't1': {
-            id: 't1',
-            name: 'Levi Ackerman',
+        'captain-blackheart': {
+            id: 'captain-blackheart',
+            name: 'Captain Blackheart',
             avatar: 'https://lh3.googleusercontent.com/d/1_zjNiswAGxTbleMPxbR1KUsnAjtElVQQ',
             isPremium: false,
         },
-        't2': {
-            id: 't2',
-            name: 'Gojo Satoru',
+        'luna-starweaver': {
+            id: 'luna-starweaver',
+            name: 'Luna Starweaver',
             avatar: 'https://lh3.googleusercontent.com/d/1WYUgmmSGrbiN2xx7tYK2mqZnr6_8FjpI',
             isPremium: false,
         },
-        't3': {
-            id: 't3',
-            name: 'Queen Medusa',
+        'ryuko-firestorm': {
+            id: 'ryuko-firestorm',
+            name: 'Ryuko Firestorm',
             avatar: 'https://lh3.googleusercontent.com/d/1e5i1htBgZ2ef6DlPQG6P1_RNBZ1dWhON',
             isPremium: false,
         },
-        't4': {
-            id: 't4',
-            name: 'Yuri Forger',
+        'kenji-shadowblade': {
+            id: 'kenji-shadowblade',
+            name: 'Kenji Shadowblade',
             avatar: 'https://lh3.googleusercontent.com/d/1NjzDmT-NoQka2c4-aCjBMdj-aIZBoSeF',
             isPremium: false,
         },
-        't5': {
-            id: 't5',
-            name: 'Boa Hancock',
+        'aiko-moonlight': {
+            id: 'aiko-moonlight',
+            name: 'Aiko Moonlight',
             avatar: 'https://lh3.googleusercontent.com/d/1L559UR3NA144sUlODryF-_qNpWIiR-O9',
             isPremium: false,
         },
-        't6': {
-            id: 't6',
-            name: 'Kimi',
+        'sakura-dreamwalker': {
+            id: 'sakura-dreamwalker',
+            name: 'Sakura Dreamwalker',
             avatar: 'https://lh3.googleusercontent.com/d/1PTsCoZtNIze7gXSMOu-ulBG2SRZfFADu',
             isPremium: false,
         },
-        't7': {
-            id: 't7',
-            name: 'Makima',
+        'dr-maya-chen': {
+            id: 'dr-maya-chen',
+            name: 'Dr. Maya Chen',
             avatar: 'https://lh3.googleusercontent.com/d/1KlMIPKYWBZEwpkmK7KythAFoaJ7Et9kF',
             isPremium: false,
         },
