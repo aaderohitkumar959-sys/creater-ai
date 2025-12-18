@@ -105,7 +105,8 @@ export class ChatService {
     }
 
     // Get or create conversation
-    const conversation = await this.createConversation(userId, personaId);
+    const resolvedPersonaId = await this.resolvePersonaId(personaId);
+    const conversation = await this.createConversation(userId, resolvedPersonaId);
 
     // Save user message
     const userMessage = await this.saveMessage(
@@ -132,7 +133,7 @@ export class ChatService {
       tokensUsed,
       model,
     } = await this.llm.generatePersonaResponse(
-      personaId,
+      resolvedPersonaId,
       message,
       historyForLLM,
     );
@@ -209,7 +210,8 @@ export class ChatService {
     }
 
     // Get or create conversation
-    const conversation = await this.createConversation(userId, personaId);
+    const resolvedPersonaId = await this.resolvePersonaId(personaId);
+    const conversation = await this.createConversation(userId, resolvedPersonaId);
 
     // Save user message
     await this.saveMessage(conversation.id, message, 'USER');
@@ -229,7 +231,7 @@ export class ChatService {
 
     try {
       for await (const chunk of this.llm.streamPersonaResponse(
-        personaId,
+        resolvedPersonaId,
         message,
         historyForLLM,
       )) {
@@ -310,5 +312,25 @@ export class ChatService {
         sender: 'USER',
       },
     });
+  }
+
+  private async resolvePersonaId(idOrSlug: string): Promise<string> {
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    if (uuidRegex.test(idOrSlug)) return idOrSlug;
+
+    const slugifiedName = idOrSlug.replace(/-/g, ' ');
+    const persona = await this.prisma.persona.findFirst({
+      where: {
+        name: { contains: slugifiedName, mode: 'insensitive' },
+      },
+      select: { id: true },
+    });
+
+    if (!persona) {
+      throw new Error(`Persona not found for identifier: ${idOrSlug}`);
+    }
+
+    return persona.id;
   }
 }

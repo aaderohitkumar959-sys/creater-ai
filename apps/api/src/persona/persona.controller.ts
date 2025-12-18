@@ -3,7 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 
 @Controller('personas')
 export class PersonaController {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   @Get()
   async getAllPersonas(
@@ -62,11 +62,28 @@ export class PersonaController {
 
   @Get(':id')
   async getPersona(@Param('id') id: string) {
-    return this.prisma.persona.findUnique({
-      where: { id },
-      include: {
-        creator: true,
+    // Check if ID is a valid UUID
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    const isUuid = uuidRegex.test(id);
+
+    if (isUuid) {
+      return this.prisma.persona.findUnique({
+        where: { id },
+        include: { creator: true },
+      });
+    }
+
+    // Fallback: Search by name (slugified)
+    const slugifiedId = id.replace(/-/g, ' ');
+    return this.prisma.persona.findFirst({
+      where: {
+        name: {
+          contains: slugifiedId,
+          mode: 'insensitive',
+        },
       },
+      include: { creator: true },
     });
   }
 

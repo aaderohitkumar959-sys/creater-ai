@@ -1,77 +1,38 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-generator client {
-  provider = "prisma-client-js"
-}
-
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
-  role          Role      @default(USER) // Changed from Role to UserRole
-  coins         Int       @default(50) // Starting bonus
-
-  // Metered Messaging
-  dailyMessageCount Int      @default(0)
-  lastMessageDate   DateTime @default(now())
-
-  // Gamification
-  loginStreak            Int       @default(0)
-  lastLoginDate          DateTime  @default(now())
-  lastDailyRewardClaimed DateTime?
-
-  // Subscription
-  stripeCustomerId String?
-  
-  // Additional metadata for extensibility
-  metadata Json?
-
-  accounts      Account[]
-  sessions      Session[]
-  messages      Message[] // Added
-  conversations Conversation[]
-
-  subscription Subscription? // Added
-
-  // Moderation relations
-  reportsMade     Report[]    @relation("ReportsMade")
-  reportsReceived Report[]    @relation("ReportsReceived")
-  reportsReviewed Report[]    @relation("ReportsReviewed")
-  violations      Violation[]
-  bans            UserBan[]   @relation("UserBans")
-  bansIssued      UserBan[]   @relation("BansIssued")
-  appeals         Appeal[]
-  appealsReviewed Appeal[]    @relation("AppealsReviewed")
-  auditLogs       AuditLog[]
-
-  isBanned    Boolean   @default(false)
-  bannedUntil DateTime?
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  pushSubscriptions PushSubscription[] // Added
-  Creator           Creator?
-  CoinWallet        CoinWallet?
-  Payment           Payment[]
-  Memory            Memory[]
-  AIRequest         AIRequest[]
-}
-
-model PushSubscription {
-  id        String   @id @default(uuid())
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  endpoint  String   @unique
-  p256dh    String
-  auth      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                             String         @id @default(cuid())
+  name                           String?
+  email                          String         @unique
+  emailVerified                  DateTime?
+  image                          String?
+  role                           Role           @default(USER)
+  isBanned                       Boolean        @default(false)
+  bannedUntil                    DateTime?
+  createdAt                      DateTime       @default(now())
+  updatedAt                      DateTime       @updatedAt
+  accounts                       Account[]
+  appealsReviewed                Appeal[]       @relation("AppealsReviewed")
+  appeals                        Appeal[]
+  auditLogs                      AuditLog[]
+  CoinWallet                     CoinWallet?
+  conversations                  Conversation[]
+  Creator                        Creator?
+  Payment                        Payment[]
+  Report_Report_reportedIdToUser Report[]       @relation("Report_reportedIdToUser")
+  reportsMade                    Report[]       @relation("ReportsMade")
+  reportsReviewed                Report[]       @relation("ReportsReviewed")
+  sessions                       Session[]
+  bansIssued                     UserBan[]      @relation("BansIssued")
+  bans                           UserBan[]      @relation("UserBans")
+  violations                     Violation[]
 }
 
 model Account {
@@ -80,15 +41,14 @@ model Account {
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
+  refresh_token     String?
+  access_token      String?
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String? @db.Text
+  id_token          String?
   session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
@@ -98,7 +58,6 @@ model Session {
   sessionToken String   @unique
   userId       String
   expires      DateTime
-  createdAt    DateTime @default(now())
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
@@ -113,55 +72,49 @@ model VerificationToken {
 model Creator {
   id        String    @id @default(uuid())
   userId    String    @unique
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   bio       String?
-  personas  Persona[]
   earnings  Int       @default(0)
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  personas  Persona[]
 }
 
 model Persona {
-  id              String         @id @default(uuid())
-  creatorId       String
-  creator         Creator        @relation(fields: [creatorId], references: [id], onDelete: Cascade)
-  name            String
-  avatarUrl       String?
-  description     String?
-  category        String? // Romance, Friendship, Mentor, etc.
-  isFeatured      Boolean        @default(false) // Show on homepage
-  defaultCoinCost Int            @default(2) // Cost per message
-  personality     Json? // Stores slider values { "friendliness": 80, "humor": 50 }
-  trainingData    TrainingData[]
-  conversations   Conversation[]
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  id            String         @id @default(uuid())
+  creatorId     String
+  name          String
+  avatarUrl     String?
+  description   String?
+  personality   Json?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  category      String?
+  isFeatured    Boolean        @default(false)
+  conversations Conversation[]
+  creator       Creator        @relation(fields: [creatorId], references: [id], onDelete: Cascade)
+  trainingData  TrainingData[]
 }
 
 model TrainingData {
   id        String       @id @default(uuid())
   personaId String
-  persona   Persona      @relation(fields: [personaId], references: [id], onDelete: Cascade)
   type      TrainingType
-  content   String       @db.Text // Text content or file URL
+  content   String
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
-}
-
-enum TrainingType {
-  TEXT
-  FILE
+  persona   Persona      @relation(fields: [personaId], references: [id], onDelete: Cascade)
 }
 
 model Conversation {
   id        String    @id @default(uuid())
   userId    String
-  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   personaId String
-  persona   Persona   @relation(fields: [personaId], references: [id], onDelete: Cascade)
-  messages  Message[]
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+  persona   Persona   @relation(fields: [personaId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages  Message[]
 
   @@unique([userId, personaId])
 }
@@ -169,36 +122,32 @@ model Conversation {
 model Message {
   id             String       @id @default(uuid())
   conversationId String
-  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
-  sender         Role // USER or CREATOR (AI)
-  content        String       @db.Text
+  sender         Role
+  content        String
   coinCost       Int          @default(2)
-  isDeleted      Boolean      @default(false)
   createdAt      DateTime     @default(now())
-  User           User?        @relation(fields: [userId], references: [id])
-  userId         String?
-  Report         Report[]
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
 }
 
 model CoinWallet {
   id           String            @id @default(uuid())
   userId       String            @unique
-  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   balance      Int               @default(0)
-  transactions CoinTransaction[]
   createdAt    DateTime          @default(now())
   updatedAt    DateTime          @updatedAt
+  transactions CoinTransaction[]
+  user         User              @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model CoinTransaction {
   id          String          @id @default(uuid())
   walletId    String
-  wallet      CoinWallet      @relation(fields: [walletId], references: [id], onDelete: Cascade)
   type        TransactionType
   amount      Int
   description String?
-  metadata    Json? // Store extra info like messageId, paymentId
+  metadata    Json?
   createdAt   DateTime        @default(now())
+  wallet      CoinWallet      @relation(fields: [walletId], references: [id], onDelete: Cascade)
 }
 
 model CoinPack {
@@ -216,17 +165,117 @@ model CoinPack {
 model Payment {
   id            String          @id @default(uuid())
   userId        String
-  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   provider      PaymentProvider
   amount        Float
   currency      String
   status        PaymentStatus   @default(PENDING)
-  providerTxnId String? // Stripe payment_intent_id or Razorpay order_id
+  providerTxnId String?
   coinPackId    String?
   coinsGranted  Int?
   metadata      Json?
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
+  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Report {
+  id                           String       @id @default(uuid())
+  reporterId                   String
+  reportedId                   String?
+  messageId                    String?
+  type                         ReportType
+  category                     String
+  reason                       String
+  status                       ReportStatus @default(PENDING)
+  reviewedBy                   String?
+  reviewNote                   String?
+  createdAt                    DateTime     @default(now())
+  reviewedAt                   DateTime?
+  User_Report_reportedIdToUser User?        @relation("Report_reportedIdToUser", fields: [reportedId], references: [id])
+  reporter                     User         @relation("ReportsMade", fields: [reporterId], references: [id])
+  reviewer                     User?        @relation("ReportsReviewed", fields: [reviewedBy], references: [id])
+
+  @@index([status, createdAt])
+  @@index([reportedId])
+}
+
+model Violation {
+  id         String            @id @default(uuid())
+  userId     String
+  type       ViolationType
+  severity   Severity
+  content    String?
+  categories String[]
+  action     ModerationAction?
+  note       String?
+  createdAt  DateTime          @default(now())
+  user       User              @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+}
+
+model UserBan {
+  id        String    @id @default(uuid())
+  userId    String
+  type      BanType
+  reason    String
+  bannedBy  String
+  expiresAt DateTime?
+  appealId  String?   @unique
+  createdAt DateTime  @default(now())
+  appeal    Appeal?   @relation(fields: [appealId], references: [id])
+  banner    User      @relation("BansIssued", fields: [bannedBy], references: [id])
+  user      User      @relation("UserBans", fields: [userId], references: [id])
+
+  @@index([userId, expiresAt])
+}
+
+model Appeal {
+  id         String       @id @default(uuid())
+  userId     String
+  banId      String       @unique
+  reason     String
+  status     AppealStatus @default(PENDING)
+  reviewedBy String?
+  reviewNote String?
+  createdAt  DateTime     @default(now())
+  reviewedAt DateTime?
+  reviewer   User?        @relation("AppealsReviewed", fields: [reviewedBy], references: [id])
+  user       User         @relation(fields: [userId], references: [id])
+  ban        UserBan?
+
+  @@index([status, createdAt])
+}
+
+model AuditLog {
+  id         String      @id @default(uuid())
+  userId     String
+  action     AuditAction
+  entityType String
+  entityId   String
+  metadata   Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime    @default(now())
+  user       User        @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+  @@index([entityType, entityId])
+}
+
+model AnalyticsEvent {
+  id        String   @id @default(uuid())
+  userId    String?
+  event     String
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([event, createdAt])
+}
+
+enum TrainingType {
+  TEXT
+  FILE
 }
 
 enum TransactionType {
@@ -247,97 +296,6 @@ enum PaymentStatus {
   COMPLETED
   FAILED
   REFUNDED
-}
-
-model Report {
-  id             String    @id @default(uuid())
-  reporterId     String
-  reporter       User      @relation("ReportsMade", fields: [reporterId], references: [id])
-  reportedUserId String?
-  reported       User?     @relation("ReportsReceived", fields: [reportedUserId], references: [id])
-  messageId      String?
-  message        Message?  @relation(fields: [messageId], references: [id], onDelete: Cascade)
-  conversationId String?
-  reason         String // HARASSMENT, SPAM, INAPPROPRIATE, ILLEGAL, OTHER
-  details        String?   @db.Text
-  status         String    @default("PENDING") // PENDING, UNDER_REVIEW, APPROVED, REJECTED
-  reviewedBy     String?
-  reviewer       User?     @relation("ReportsReviewed", fields: [reviewedBy], references: [id])
-  reviewedAt     DateTime?
-  actionTaken    String? // BAN_USER, DELETE_MESSAGE, WARNING
-  createdAt      DateTime  @default(now())
-
-  @@index([status, createdAt])
-  @@index([reportedUserId])
-  @@index([reviewedBy])
-}
-
-model Violation {
-  id         String            @id @default(uuid())
-  userId     String
-  type       ViolationType
-  severity   Severity
-  content    String? // Flagged content
-  categories String[] // Moderation categories
-  action     ModerationAction?
-  note       String?
-  createdAt  DateTime          @default(now())
-
-  user User @relation(fields: [userId], references: [id])
-
-  @@index([userId, createdAt])
-}
-
-model UserBan {
-  id        String    @id @default(uuid())
-  userId    String
-  type      BanType
-  reason    String
-  bannedBy  String
-  expiresAt DateTime? // null = permanent
-  appealId  String?   @unique
-  createdAt DateTime  @default(now())
-
-  user   User    @relation("UserBans", fields: [userId], references: [id])
-  banner User    @relation("BansIssued", fields: [bannedBy], references: [id])
-  appeal Appeal? @relation(fields: [appealId], references: [id])
-
-  @@index([userId, expiresAt])
-}
-
-model Appeal {
-  id         String       @id @default(uuid())
-  userId     String
-  banId      String       @unique
-  reason     String
-  status     AppealStatus @default(PENDING)
-  reviewedBy String?
-  reviewNote String?
-  createdAt  DateTime     @default(now())
-  reviewedAt DateTime?
-
-  user     User     @relation(fields: [userId], references: [id])
-  ban      UserBan?
-  reviewer User?    @relation("AppealsReviewed", fields: [reviewedBy], references: [id])
-
-  @@index([status, createdAt])
-}
-
-model AuditLog {
-  id         String      @id @default(uuid())
-  userId     String
-  action     AuditAction
-  entityType String // User, Message, Report, etc.
-  entityId   String
-  metadata   Json?
-  ipAddress  String?
-  userAgent  String?
-  createdAt  DateTime    @default(now())
-
-  user User @relation(fields: [userId], references: [id])
-
-  @@index([userId, createdAt])
-  @@index([entityType, entityId])
 }
 
 enum ReportType {
@@ -406,71 +364,3 @@ enum Role {
   CREATOR
   MODERATOR
 }
-
-model AnalyticsEvent {
-  id        String   @id @default(uuid())
-  userId    String?
-  event     String // 'SIGNUP', 'MESSAGE_SENT', 'PURCHASE'
-  metadata  Json?
-  createdAt DateTime @default(now())
-
-  @@index([event, createdAt])
-}
-
-model Subscription {
-  id                   String    @id @default(cuid())
-  userId               String    @unique
-  user                 User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  tier                 String    @default("FREE") // FREE, PREMIUM_MONTHLY, PREMIUM_YEARLY
-  status               String    @default("ACTIVE") // ACTIVE, CANCELED, PAST_DUE, EXPIRED
-  plan                 String // PREMIUM_MONTHLY, PREMIUM_YEARLY (kept for backwards compat)
-  stripeSubscriptionId String?
-  stripeCustomerId     String?
-  currentPeriodStart   DateTime?
-  currentPeriodEnd     DateTime?
-  cancelAtPeriodEnd    Boolean   @default(false)
-  canceledAt           DateTime?
-  startDate            DateTime  @default(now())
-  endDate              DateTime
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
-
-  @@index([status, currentPeriodEnd])
-}
-
-// AI Memory (Phase 2)
-model Memory {
-  id             String   @id @default(uuid())
-  userId         String
-  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  personaId      String
-  type           String // FACT, PREFERENCE, EVENT
-  content        String   @db.Text
-  importance     Int      @default(5) // 1-10 scale
-  createdAt      DateTime @default(now())
-  lastAccessedAt DateTime @default(now())
-  metadata       Json?
-
-  @@index([userId, personaId])
-  @@index([importance])
-  @@index([lastAccessedAt])
-}
-
-// AI Cost Tracking (Phase 2)
-model AIRequest {
-  id         String   @id @default(uuid())
-  userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  personaId  String
-  provider   String // openrouter, openai
-  tokensUsed Int
-  costUSD    Decimal  @db.Decimal(10, 6)
-  latencyMs  Int
-  success    Boolean  @default(true)
-  createdAt  DateTime @default(now())
-
-  @@index([userId, createdAt])
-  @@index([provider])
-  @@index([success])
-}
-

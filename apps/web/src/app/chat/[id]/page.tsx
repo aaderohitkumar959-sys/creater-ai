@@ -9,7 +9,7 @@ import { notFound } from 'next/navigation';
 // Function to get persona details by ID from API
 async function getPersona(id: string) {
     try {
-        const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://creator-ai-api.onrender.com';
+        const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://creater-ai-backend.onrender.com';
         const response = await fetch(`${baseUrl}/personas/${id}`, {
             next: { revalidate: 3600 } // Cache for 1 hour
         });
