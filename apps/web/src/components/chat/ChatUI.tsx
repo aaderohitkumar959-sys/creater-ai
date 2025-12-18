@@ -39,13 +39,15 @@ export const ChatUI: React.FC<ChatUIProps> = ({ persona }) => {
     const [messages, setMessages] = useState<Message[]>([]);
     const [isTyping, setIsTyping] = useState(false);
     const [isPinned, setIsPinned] = useState(false);
-    const { data: session } = useSession();
+    const { data: session, status: authStatus } = useSession();
     const [backendToken, setBackendToken] = useState<string | null>(null);
+    const [isSyncing, setIsSyncing] = useState(false);
 
     // Sync with backend to get a valid JWT
     useEffect(() => {
         const syncAuth = async () => {
-            if (session?.user) {
+            if (session?.user && !backendToken && !isSyncing) {
+                setIsSyncing(true);
                 try {
                     const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://creator-ai-api.onrender.com';
                     const response = await fetch(`${baseUrl}/auth/login`, {
@@ -55,6 +57,7 @@ export const ChatUI: React.FC<ChatUIProps> = ({ persona }) => {
                             id: session.user.id,
                             email: session.user.email,
                             name: session.user.name,
+                            image: session.user?.image,
                         }),
                     });
                     if (response.ok) {
@@ -64,11 +67,13 @@ export const ChatUI: React.FC<ChatUIProps> = ({ persona }) => {
                     }
                 } catch (err) {
                     console.error('Failed to sync with backend auth:', err);
+                } finally {
+                    setIsSyncing(false);
                 }
             }
         };
         syncAuth();
-    }, [session]);
+    }, [session, backendToken, isSyncing]);
 
     // Initialize with welcome message
     useEffect(() => {
@@ -88,17 +93,44 @@ export const ChatUI: React.FC<ChatUIProps> = ({ persona }) => {
     }, [messages, isTyping]);
 
     const handleSendMessage = async (content: string) => {
-        const userMessage: Message = {
+        if (!content.trim()) return;
+
+        // Check for session/token
+        if (authStatus === 'unauthenticated') {
+            const errorMessage: Message = {
+                id: Date.now().toString(),
+                content: "Please log in to chat with personalities.",
+                sender: 'ai',
+                timestamp: new Date(),
+            };
+            setMessages(prev => [...prev, errorMessage]);
+            return;
+        }
+
+        const userMsg: Message = {
             id: Date.now().toString(),
             content,
             sender: 'user',
             timestamp: new Date(),
         };
-        setMessages(prev => [...prev, userMessage]);
 
+        setMessages(prev => [...prev, userMsg]);
         setIsTyping(true);
 
         try {
+            // Wait for token if syncing
+            let currentToken = backendToken;
+            if (!currentToken && isSyncing) {
+                // Poll for token or just wait a bit
+                for (let i = 0; i < 10; i++) {
+                    await new Promise(r => setTimeout(r, 500));
+                    if (backendToken) {
+                        currentToken = backendToken;
+                        break;
+                    }
+                }
+            }
+
             // Call real backend API
             const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://creator-ai-api.onrender.com';
             const headers: Record<string, string> = {
@@ -106,8 +138,8 @@ export const ChatUI: React.FC<ChatUIProps> = ({ persona }) => {
             };
 
             // Add Authorization header if we have a token
-            if (backendToken) {
-                headers['Authorization'] = `Bearer ${backendToken}`;
+            if (currentToken) {
+                headers['Authorization'] = `Bearer ${currentToken}`;
             }
 
             const response = await fetch(`${baseUrl}/chat/send`, {

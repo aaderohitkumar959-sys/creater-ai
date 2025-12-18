@@ -24,8 +24,30 @@ export class AuthService {
   }
 
   async login(user: any) {
-    const tokens = await this.getTokens(user.id, user.email || '', user.role as any);
-    await this.updateRefreshToken(user.id, tokens.refreshToken);
+    // Ensure user exists in database since we are using a dual-auth system
+    // (NextAuth on frontend, JWT on backend)
+    const dbUser = await this.prisma.user.upsert({
+      where: { id: user.id },
+      update: {
+        email: user.email,
+        name: user.name,
+        image: user.image,
+      },
+      create: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        image: user.image,
+        role: user.role || 'USER',
+      },
+    });
+
+    const tokens = await this.getTokens(
+      dbUser.id,
+      dbUser.email || '',
+      dbUser.role as any,
+    );
+    await this.updateRefreshToken(dbUser.id, tokens.refreshToken);
     return tokens;
   }
 

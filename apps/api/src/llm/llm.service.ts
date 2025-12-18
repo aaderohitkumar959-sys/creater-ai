@@ -14,20 +14,19 @@ interface PersonaContext {
 
 @Injectable()
 export class LLMService {
-  private provider: BaseLLMProvider;
+  private groqProvider: GroqProvider | null = null;
+  private openRouterProvider: OpenRouterProvider;
 
   constructor(
     private prisma: PrismaService,
     private config: ConfigService,
   ) {
-    // Use Groq as primary provider
     const groqKey = this.config.get<string>('GROQ_API_KEY');
     if (groqKey) {
-      this.provider = new GroqProvider(groqKey);
-    } else {
-      // Fallback to OpenRouter if Groq not configured
-      this.provider = new OpenRouterProvider();
+      this.groqProvider = new GroqProvider(groqKey);
     }
+    // Always have OpenRouter as fallback
+    this.openRouterProvider = new OpenRouterProvider(this.config);
   }
 
   async generatePersonaResponse(
@@ -67,16 +66,28 @@ export class LLMService {
       { role: 'user', content: userMessage },
     ];
 
-    // Generate response
-    const response = await this.provider.generateResponse(messages, {
+    // Try Groq first, then OpenRouter
+    try {
+      if (this.groqProvider) {
+        const response = await this.groqProvider.generateResponse(messages, {
+          temperature: 0.8,
+          maxTokens: 500,
+        });
+        return {
+          content: response.content,
+          tokensUsed: response.tokensUsed,
+          model: response.model,
+        };
+      }
+    } catch (error) {
+      console.error('Groq failure, falling back to OpenRouter:', error);
+    }
+
+    // Fallback to OpenRouter
+    const response = await this.openRouterProvider.generateResponse(messages, {
       temperature: 0.8,
       maxTokens: 500,
     });
-
-    // Log usage for analytics
-    console.log(
-      `LLM Usage - Model: ${response.model}, Tokens: ${response.tokensUsed}, Cost: $${response.cost}`,
-    );
 
     return {
       content: response.content,

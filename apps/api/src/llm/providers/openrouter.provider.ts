@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { BaseLLMProvider, LLMMessage, LLMResponse } from './base.provider';
 
 @Injectable()
@@ -6,9 +7,9 @@ export class OpenRouterProvider extends BaseLLMProvider {
   private apiKey: string;
   private baseUrl = 'https://openrouter.ai/api/v1';
 
-  constructor() {
+  constructor(private config: ConfigService) {
     super();
-    this.apiKey = process.env.OPENROUTER_API_KEY || 'placeholder';
+    this.apiKey = this.config.get<string>('OPENROUTER_API_KEY') || 'placeholder';
   }
 
   async generateResponse(
