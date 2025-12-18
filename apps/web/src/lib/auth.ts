@@ -23,7 +23,7 @@ export const authOptions: NextAuthOptions = {
 
                 // Call backend to sync user and get JWT
                 try {
-                    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://creator-ai-api.onrender.com';
+                    const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://creater-ai-backend.onrender.com';
                     const response = await fetch(`${baseUrl}/auth/login`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
