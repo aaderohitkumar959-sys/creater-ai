@@ -22,6 +22,10 @@ services:
         value: openrouter
       - key: LLM_MODEL
         value: meta-llama/llama-3.1-8b-instruct:free
+      - key: NODE_OPTIONS
+        value: --max-old-space-size=460
+      - key: PRISMA_CLIENT_ENGINE_TYPE
+        value: binary
 
 jobs:
   - name: migrate-db
