@@ -20,7 +20,14 @@ export class CoinService {
   }
 
   async getBalance(userId: string): Promise<number> {
-    const wallet = await this.getOrCreateWallet(userId);
+    const wallet = await this.prisma.coinWallet.findUnique({
+      where: { userId },
+    });
+
+    if (!wallet) {
+      return 0; // Return 0 instead of creating/crashing if user doesn't exist
+    }
+
     return wallet.balance;
   }
 

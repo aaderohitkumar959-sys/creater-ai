@@ -22,4 +22,3 @@ exports.QuestModule = QuestModule = __decorate([
         providers: [quest_service_1.QuestService],
     })
 ], QuestModule);
-//# sourceMappingURL=quest.module.js.map

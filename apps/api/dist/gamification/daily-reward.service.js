@@ -194,4 +194,3 @@ exports.DailyRewardService = DailyRewardService = __decorate([
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
         coin_service_1.CoinService])
 ], DailyRewardService);
-//# sourceMappingURL=daily-reward.service.js.map

@@ -186,4 +186,3 @@ exports.ChatGateway = ChatGateway = __decorate([
         coin_service_1.CoinService,
         moderation_service_1.ModerationService])
 ], ChatGateway);
-//# sourceMappingURL=chat.gateway.js.map

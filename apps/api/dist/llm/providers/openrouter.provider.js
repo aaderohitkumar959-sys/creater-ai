@@ -11,13 +11,16 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.OpenRouterProvider = void 0;
 const common_1 = require("@nestjs/common");
+const config_1 = require("@nestjs/config");
 const base_provider_1 = require("./base.provider");
 let OpenRouterProvider = class OpenRouterProvider extends base_provider_1.BaseLLMProvider {
+    config;
     apiKey;
     baseUrl = 'https://openrouter.ai/api/v1';
-    constructor() {
+    constructor(config) {
         super();
-        this.apiKey = process.env.OPENROUTER_API_KEY || 'placeholder';
+        this.config = config;
+        this.apiKey = this.config.get('OPENROUTER_API_KEY') || 'placeholder';
     }
     async generateResponse(messages, options) {
         const model = options?.model ||
@@ -60,6 +63,5 @@ let OpenRouterProvider = class OpenRouterProvider extends base_provider_1.BaseLL
 exports.OpenRouterProvider = OpenRouterProvider;
 exports.OpenRouterProvider = OpenRouterProvider = __decorate([
     (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [])
+    __metadata("design:paramtypes", [config_1.ConfigService])
 ], OpenRouterProvider);
-//# sourceMappingURL=openrouter.provider.js.map

@@ -57,4 +57,3 @@ exports.CoinController = CoinController = __decorate([
     (0, common_1.Controller)('coin'),
     __metadata("design:paramtypes", [coin_service_1.CoinService])
 ], CoinController);
-//# sourceMappingURL=coin.controller.js.map

@@ -126,4 +126,3 @@ exports.MemoryController = MemoryController = __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     __metadata("design:paramtypes", [ai_memory_service_1.AIMemoryService])
 ], MemoryController);
-//# sourceMappingURL=memory.controller.js.map

@@ -231,4 +231,3 @@ exports.AIMemoryService = AIMemoryService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService])
 ], AIMemoryService);
-//# sourceMappingURL=ai-memory.service.js.map

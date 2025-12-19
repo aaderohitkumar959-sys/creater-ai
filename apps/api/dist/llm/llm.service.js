@@ -18,17 +18,16 @@ const openrouter_provider_1 = require("./providers/openrouter.provider");
 let LLMService = class LLMService {
     prisma;
     config;
-    provider;
+    groqProvider = null;
+    openRouterProvider;
     constructor(prisma, config) {
         this.prisma = prisma;
         this.config = config;
         const groqKey = this.config.get('GROQ_API_KEY');
         if (groqKey) {
-            this.provider = new groq_provider_1.GroqProvider(groqKey);
+            this.groqProvider = new groq_provider_1.GroqProvider(groqKey);
         }
-        else {
-            this.provider = new openrouter_provider_1.OpenRouterProvider();
-        }
+        this.openRouterProvider = new openrouter_provider_1.OpenRouterProvider(this.config);
     }
     async generatePersonaResponse(personaId, userMessage, conversationHistory = []) {
         const persona = await this.prisma.persona.findUnique({
@@ -53,11 +52,26 @@ let LLMService = class LLMService {
             })),
             { role: 'user', content: userMessage },
         ];
-        const response = await this.provider.generateResponse(messages, {
+        try {
+            if (this.groqProvider) {
+                const response = await this.groqProvider.generateResponse(messages, {
+                    temperature: 0.8,
+                    maxTokens: 500,
+                });
+                return {
+                    content: response.content,
+                    tokensUsed: response.tokensUsed,
+                    model: response.model,
+                };
+            }
+        }
+        catch (error) {
+            console.error('Groq failure, falling back to OpenRouter:', error);
+        }
+        const response = await this.openRouterProvider.generateResponse(messages, {
             temperature: 0.8,
             maxTokens: 500,
         });
-        console.log(`LLM Usage - Model: ${response.model}, Tokens: ${response.tokensUsed}, Cost: $${response.cost}`);
         return {
             content: response.content,
             tokensUsed: response.tokensUsed,
@@ -87,15 +101,21 @@ let LLMService = class LLMService {
             })),
             { role: 'user', content: userMessage },
         ];
-        if ('streamResponse' in this.provider &&
-            typeof this.provider.streamResponse === 'function') {
-            yield* this.provider.streamResponse(messages, {
-                temperature: 0.8,
-                maxTokens: 500,
-            });
+        let streamSucceeded = false;
+        try {
+            if (this.groqProvider) {
+                yield* this.groqProvider.streamResponse(messages, {
+                    temperature: 0.8,
+                    maxTokens: 500,
+                });
+                streamSucceeded = true;
+            }
         }
-        else {
-            const response = await this.provider.generateResponse(messages, {
+        catch (error) {
+            console.error('Groq streaming failure, falling back to OpenRouter:', error);
+        }
+        if (!streamSucceeded) {
+            const response = await this.openRouterProvider.generateResponse(messages, {
                 temperature: 0.8,
                 maxTokens: 500,
             });
@@ -185,4 +205,3 @@ exports.LLMService = LLMService = __decorate([
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
         config_1.ConfigService])
 ], LLMService);
-//# sourceMappingURL=llm.service.js.map

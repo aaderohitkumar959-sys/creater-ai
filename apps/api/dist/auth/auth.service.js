@@ -68,8 +68,23 @@ let AuthService = class AuthService {
         return null;
     }
     async login(user) {
-        const tokens = await this.getTokens(user.id, user.email || '', user.role);
-        await this.updateRefreshToken(user.id, tokens.refreshToken);
+        const dbUser = await this.prisma.user.upsert({
+            where: { id: user.id },
+            update: {
+                email: user.email,
+                name: user.name,
+                image: user.image,
+            },
+            create: {
+                id: user.id,
+                email: user.email,
+                name: user.name,
+                image: user.image,
+                role: user.role || 'USER',
+            },
+        });
+        const tokens = await this.getTokens(dbUser.id, dbUser.email || '', dbUser.role);
+        await this.updateRefreshToken(dbUser.id, tokens.refreshToken);
         return tokens;
     }
     async logout(userId) {
@@ -114,4 +129,3 @@ exports.AuthService = AuthService = __decorate([
         jwt_1.JwtService,
         config_1.ConfigService])
 ], AuthService);
-//# sourceMappingURL=auth.service.js.map

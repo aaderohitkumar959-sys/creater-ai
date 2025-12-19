@@ -54,7 +54,7 @@ let QuestService = class QuestService {
         if (!user)
             throw new common_1.BadRequestException('User not found');
         const now = new Date();
-        const lastLogin = new Date(user.lastLoginDate);
+        const lastLogin = user.lastLoginDate ? new Date(user.lastLoginDate) : new Date(0);
         let newStreak = user.loginStreak + 1;
         const lastClaim = user.lastDailyRewardClaimed
             ? new Date(user.lastDailyRewardClaimed)
@@ -101,4 +101,3 @@ exports.QuestService = QuestService = __decorate([
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
         coin_service_1.CoinService])
 ], QuestService);
-//# sourceMappingURL=quest.service.js.map

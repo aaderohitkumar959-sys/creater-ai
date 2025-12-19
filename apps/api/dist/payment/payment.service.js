@@ -244,4 +244,3 @@ exports.PaymentService = PaymentService = __decorate([
         coin_service_1.CoinService,
         analytics_service_1.AnalyticsService])
 ], PaymentService);
-//# sourceMappingURL=payment.service.js.map

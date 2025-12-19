@@ -47,7 +47,7 @@ export class QuestService {
     const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) throw new BadRequestException('User not found');
     const now = new Date();
-    const lastLogin = new Date(user.lastLoginDate);
+    const lastLogin = user.lastLoginDate ? new Date(user.lastLoginDate) : new Date(0);
 
     // Check if streak is broken (more than 48 hours since last login/claim logic)
     // For simplicity, let's assume if last claim was yesterday, streak continues.

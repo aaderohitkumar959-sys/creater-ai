@@ -27,4 +27,3 @@ exports.ChatModule = ChatModule = __decorate([
         exports: [chat_service_1.ChatService],
     })
 ], ChatModule);
-//# sourceMappingURL=chat.module.js.map

@@ -132,4 +132,3 @@ exports.AdminController = AdminController = __decorate([
     __metadata("design:paramtypes", [analytics_service_1.AnalyticsService,
         prisma_service_1.PrismaService])
 ], AdminController);
-//# sourceMappingURL=admin.controller.js.map

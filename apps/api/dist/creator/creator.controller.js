@@ -22,10 +22,10 @@ let CreatorController = class CreatorController {
         this.creatorService = creatorService;
     }
     async createProfile(req, body) {
-        return this.creatorService.createCreatorProfile(req.user.userId, body.bio);
+        return this.creatorService.createCreatorProfile(req.user.id, body.bio);
     }
     async createPersona(req, body) {
-        const creator = await this.creatorService.getCreatorProfile(req.user.userId);
+        const creator = await this.creatorService.getCreatorProfile(req.user.id);
         if (!creator) {
             throw new Error('Creator profile not found');
         }
@@ -35,7 +35,7 @@ let CreatorController = class CreatorController {
         return this.creatorService.addTrainingData(body.personaId, body.content);
     }
     async getDashboard(req) {
-        return this.creatorService.getDashboardStats(req.user.userId);
+        return this.creatorService.getDashboardStats(req.user.id);
     }
 };
 exports.CreatorController = CreatorController;
@@ -77,4 +77,3 @@ exports.CreatorController = CreatorController = __decorate([
     (0, common_1.Controller)('creator'),
     __metadata("design:paramtypes", [creator_service_1.CreatorService])
 ], CreatorController);
-//# sourceMappingURL=creator.controller.js.map

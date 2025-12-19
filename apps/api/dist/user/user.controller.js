@@ -49,7 +49,7 @@ let UserController = class UserController {
     }
     async getProfile(req) {
         const userId = req.user.id;
-        return { userId };
+        return this.userService.getUserProfile(userId);
     }
 };
 exports.UserController = UserController;
@@ -96,4 +96,3 @@ exports.UserController = UserController = __decorate([
     (0, common_1.Controller)('user'),
     __metadata("design:paramtypes", [user_service_1.UserService])
 ], UserController);
-//# sourceMappingURL=user.controller.js.map

@@ -39,4 +39,3 @@ exports.ModerationController = ModerationController = __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
     __metadata("design:paramtypes", [moderation_service_1.ModerationService])
 ], ModerationController);
-//# sourceMappingURL=moderation.controller.js.map

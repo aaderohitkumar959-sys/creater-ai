@@ -22,4 +22,3 @@ exports.CoinModule = CoinModule = __decorate([
         exports: [coin_service_1.CoinService],
     })
 ], CoinModule);
-//# sourceMappingURL=coin.module.js.map

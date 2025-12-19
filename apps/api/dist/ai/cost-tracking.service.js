@@ -112,4 +112,3 @@ exports.CostTrackingService = CostTrackingService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService])
 ], CostTrackingService);
-//# sourceMappingURL=cost-tracking.service.js.map

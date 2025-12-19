@@ -21,20 +21,31 @@ let ChatController = class ChatController {
     constructor(chatService) {
         this.chatService = chatService;
     }
+    async getConversations(req) {
+        return this.chatService.getUserConversations(req.user.id);
+    }
     async startConversation(req, body) {
-        return this.chatService.createConversation(req.user.userId, body.personaId);
+        return this.chatService.createConversation(req.user.id, body.personaId);
     }
     async sendMessage(req, body) {
-        return this.chatService.sendMessage(req.user.userId, body.personaId, body.message);
+        return this.chatService.sendMessage(req.user.id, body.personaId, body.message);
     }
     async sendGift(req, body) {
-        return this.chatService.sendGift(req.user.userId, body.personaId, body.giftId, body.amount);
+        return this.chatService.sendGift(req.user.id, body.personaId, body.giftId, body.amount);
     }
     async getMessages(conversationId) {
         return this.chatService.getMessages(conversationId);
     }
 };
 exports.ChatController = ChatController;
+__decorate([
+    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
+    (0, common_1.Get)('conversations'),
+    __param(0, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], ChatController.prototype, "getConversations", null);
 __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     (0, common_1.Post)('conversation'),
@@ -74,4 +85,3 @@ exports.ChatController = ChatController = __decorate([
     (0, common_1.Controller)('chat'),
     __metadata("design:paramtypes", [chat_service_1.ChatService])
 ], ChatController);
-//# sourceMappingURL=chat.controller.js.map

@@ -77,4 +77,3 @@ exports.GamificationController = GamificationController = __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     __metadata("design:paramtypes", [daily_reward_service_1.DailyRewardService])
 ], GamificationController);
-//# sourceMappingURL=gamification.controller.js.map

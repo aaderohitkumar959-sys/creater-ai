@@ -36,6 +36,20 @@ export class ChatService {
     });
   }
 
+  async getUserConversations(userId: string) {
+    return this.prisma.conversation.findMany({
+      where: { userId },
+      include: {
+        persona: true,
+        messages: {
+          take: 1,
+          orderBy: { createdAt: 'desc' },
+        },
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+  }
+
   async createConversation(userId: string, personaId: string) {
     // Ensure user exists (for guest users)
     const userExists = await this.prisma.user.findUnique({

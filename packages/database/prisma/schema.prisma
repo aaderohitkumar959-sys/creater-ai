@@ -16,6 +16,11 @@ model User {
   role                           Role           @default(USER)
   isBanned                       Boolean        @default(false)
   bannedUntil                    DateTime?
+  dailyMessageCount              Int            @default(0)
+  lastMessageDate                DateTime?
+  stripeCustomerId               String?        @unique
+  loginStreak                    Int            @default(0)
+  lastDailyRewardClaimed         DateTime?
   createdAt                      DateTime       @default(now())
   updatedAt                      DateTime       @updatedAt
   accounts                       Account[]
@@ -26,13 +31,20 @@ model User {
   conversations                  Conversation[]
   Creator                        Creator?
   Payment                        Payment[]
-  Report_Report_reportedIdToUser Report[]       @relation("Report_reportedIdToUser")
+  reports                      Report[]       @relation("Report_reportedUser")
   reportsMade                    Report[]       @relation("ReportsMade")
   reportsReviewed                Report[]       @relation("ReportsReviewed")
   sessions                       Session[]
+  subscription                   Subscription?
   bansIssued                     UserBan[]      @relation("BansIssued")
   bans                           UserBan[]      @relation("UserBans")
   violations                     Violation[]
+  memories                       Memory[]
+  AIRequest                      AIRequest[]
+  pushSubscriptions              PushSubscription[]
+  lastLoginDate                  DateTime?
+  metadata                       Json?
+  messages                       Message[]
 }
 
 model Account {
@@ -58,6 +70,7 @@ model Session {
   sessionToken String   @unique
   userId       String
   expires      DateTime
+  createdAt    DateTime @default(now())
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
@@ -94,6 +107,7 @@ model Persona {
   conversations Conversation[]
   creator       Creator        @relation(fields: [creatorId], references: [id], onDelete: Cascade)
   trainingData  TrainingData[]
+  memories      Memory[]
 }
 
 model TrainingData {
@@ -125,8 +139,12 @@ model Message {
   sender         Role
   content        String
   coinCost       Int          @default(2)
+  isDeleted      Boolean      @default(false)
+  userId         String?
   createdAt      DateTime     @default(now())
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User?         @relation(fields: [userId], references: [id])
+  reports        Report[]
 }
 
 model CoinWallet {
@@ -181,22 +199,26 @@ model Payment {
 model Report {
   id                           String       @id @default(uuid())
   reporterId                   String
-  reportedId                   String?
+  reportedUserId                   String?
   messageId                    String?
   type                         ReportType
   category                     String
   reason                       String
+  details                      String?
+  conversationId               String?
+  actionTaken                  String?
   status                       ReportStatus @default(PENDING)
   reviewedBy                   String?
   reviewNote                   String?
   createdAt                    DateTime     @default(now())
   reviewedAt                   DateTime?
-  User_Report_reportedIdToUser User?        @relation("Report_reportedIdToUser", fields: [reportedId], references: [id])
+  reported                         User?        @relation("Report_reportedUser", fields: [reportedUserId], references: [id])
+  message                          Message?     @relation(fields: [messageId], references: [id])
   reporter                     User         @relation("ReportsMade", fields: [reporterId], references: [id])
   reviewer                     User?        @relation("ReportsReviewed", fields: [reviewedBy], references: [id])
 
   @@index([status, createdAt])
-  @@index([reportedId])
+  @@index([reportedUserId])
 }
 
 model Violation {
@@ -309,6 +331,10 @@ enum ReportStatus {
   REVIEWING
   RESOLVED
   DISMISSED
+  APPROVED
+  REJECTED
+  UNDER_REVIEW
+  UNDER_INVESTIGATION
 }
 
 enum ViolationType {
@@ -363,4 +389,60 @@ enum Role {
   ADMIN
   CREATOR
   MODERATOR
+}
+
+model Subscription {
+  id                   String   @id @default(uuid())
+  userId               String   @unique
+  tier                 String   @default("FREE")
+  plan                 String   @default("FREE")
+  status               String   @default("INACTIVE")
+  stripeSubscriptionId String?  @unique
+  stripeCustomerId     String?
+  currentPeriodStart   DateTime @default(now())
+  currentPeriodEnd     DateTime @default(now())
+  endDate              DateTime @default(now())
+  cancelAtPeriodEnd    Boolean  @default(false)
+  canceledAt           DateTime?
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Memory {
+  id             String   @id @default(uuid())
+  userId         String
+  personaId      String
+  type           String
+  content        String
+  importance     Int      @default(1)
+  createdAt      DateTime @default(now())
+  lastAccessedAt DateTime @default(now())
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  persona        Persona  @relation(fields: [personaId], references: [id], onDelete: Cascade)
+
+  @@index([userId, personaId])
+}
+
+model AIRequest {
+  id         String   @id @default(uuid())
+  userId     String
+  personaId  String
+  provider   String
+  tokensUsed Int
+  costUSD    Decimal  @db.Decimal(10, 6)
+  latencyMs  Int
+  success    Boolean
+  createdAt  DateTime @default(now())
+  user       User     @relation(fields: [userId], references: [id])
+}
+
+model PushSubscription {
+  id        String   @id @default(uuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }

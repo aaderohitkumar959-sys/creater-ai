@@ -144,4 +144,3 @@ exports.SubscriptionController = SubscriptionController = __decorate([
     (0, common_1.Controller)('subscription'),
     __metadata("design:paramtypes", [subscription_service_1.SubscriptionService])
 ], SubscriptionController);
-//# sourceMappingURL=subscription.controller.js.map

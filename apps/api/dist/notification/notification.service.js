@@ -108,4 +108,3 @@ exports.NotificationService = NotificationService = __decorate([
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
         config_1.ConfigService])
 ], NotificationService);
-//# sourceMappingURL=notification.service.js.map

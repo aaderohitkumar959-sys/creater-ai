@@ -17,4 +17,3 @@ exports.PersonaModule = PersonaModule = __decorate([
         controllers: [persona_controller_1.PersonaController],
     })
 ], PersonaModule);
-//# sourceMappingURL=persona.module.js.map

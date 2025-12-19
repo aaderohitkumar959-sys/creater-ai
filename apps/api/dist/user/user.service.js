@@ -84,9 +84,7 @@ let UserService = class UserService {
         };
     }
     async confirmDeletion(token) {
-        const users = await this.prisma.user.findMany({
-            where: { metadata: { not: null } },
-        });
+        const users = await this.prisma.user.findMany({});
         const user = users.find((u) => {
             const meta = u.metadata;
             return meta?.deletionToken === token;
@@ -232,10 +230,28 @@ let UserService = class UserService {
         console.log('[GDPR] Deletion cancelled for user:', userId);
         return true;
     }
+    async getUserProfile(userId) {
+        const user = await this.prisma.user.findUnique({
+            where: { id: userId },
+            include: {
+                CoinWallet: true,
+            },
+        });
+        if (!user) {
+            throw new Error('User not found');
+        }
+        return {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            image: user.image,
+            role: user.role,
+            coinBalance: user.CoinWallet?.balance || 0,
+        };
+    }
 };
 exports.UserService = UserService;
 exports.UserService = UserService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService])
 ], UserService);
-//# sourceMappingURL=user.service.js.map

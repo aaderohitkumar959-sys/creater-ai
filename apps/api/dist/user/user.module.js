@@ -22,4 +22,3 @@ exports.UserModule = UserModule = __decorate([
         exports: [user_service_1.UserService],
     })
 ], UserModule);
-//# sourceMappingURL=user.module.js.map

@@ -44,6 +44,19 @@ let ChatService = class ChatService {
             orderBy: { createdAt: 'asc' },
         });
     }
+    async getUserConversations(userId) {
+        return this.prisma.conversation.findMany({
+            where: { userId },
+            include: {
+                persona: true,
+                messages: {
+                    take: 1,
+                    orderBy: { createdAt: 'desc' },
+                },
+            },
+            orderBy: { updatedAt: 'desc' },
+        });
+    }
     async createConversation(userId, personaId) {
         const userExists = await this.prisma.user.findUnique({
             where: { id: userId },
@@ -87,11 +100,12 @@ let ChatService = class ChatService {
             throw new common_1.ForbiddenException('Message exceeds maximum length of 2000 characters.');
         }
         const moderationResult = await this.moderation.checkContent(message);
-        if (!moderationResult.allowed) {
-            await this.moderation.logViolation(userId, message, moderationResult.categories);
+        if (moderationResult.blocked) {
+            await this.moderation.logViolation(userId, moderationResult.reason || 'CONTENT_VIOLATION', message);
             throw new common_1.ForbiddenException('Message blocked by moderation filters.');
         }
-        const conversation = await this.createConversation(userId, personaId);
+        const resolvedPersonaId = await this.resolvePersonaId(personaId);
+        const conversation = await this.createConversation(userId, resolvedPersonaId);
         const userMessage = await this.saveMessage(conversation.id, message, 'USER');
         await this.meteredService.incrementUsage(userId);
         const history = await this.getMessages(conversation.id);
@@ -101,10 +115,10 @@ let ChatService = class ChatService {
             sender: msg.sender,
             content: msg.content,
         }));
-        const { content: aiResponse, tokensUsed, model, } = await this.llm.generatePersonaResponse(personaId, message, historyForLLM);
+        const { content: aiResponse, tokensUsed, model, } = await this.llm.generatePersonaResponse(resolvedPersonaId, message, historyForLLM);
         const safetyCheck = await this.moderation.validateResponse(aiResponse);
         let finalResponse = aiResponse;
-        if (!safetyCheck.safe) {
+        if (safetyCheck.blocked) {
             finalResponse =
                 'I apologize, but I cannot continue this conversation topic as it violates our safety guidelines.';
         }
@@ -130,15 +144,16 @@ let ChatService = class ChatService {
             throw new common_1.ForbiddenException('Message exceeds maximum length of 2000 characters.');
         }
         const moderationResult = await this.moderation.checkContent(message);
-        if (!moderationResult.allowed) {
-            await this.moderation.logViolation(userId, message, moderationResult.categories);
+        if (moderationResult.blocked) {
+            await this.moderation.logViolation(userId, moderationResult.reason || 'CONTENT_VIOLATION', message);
             yield {
                 type: 'complete',
                 message: 'Message blocked by moderation filters.',
             };
             return;
         }
-        const conversation = await this.createConversation(userId, personaId);
+        const resolvedPersonaId = await this.resolvePersonaId(personaId);
+        const conversation = await this.createConversation(userId, resolvedPersonaId);
         await this.saveMessage(conversation.id, message, 'USER');
         await this.meteredService.incrementUsage(userId);
         const history = await this.getMessages(conversation.id);
@@ -148,7 +163,7 @@ let ChatService = class ChatService {
         }));
         let fullResponse = '';
         try {
-            for await (const chunk of this.llm.streamPersonaResponse(personaId, message, historyForLLM)) {
+            for await (const chunk of this.llm.streamPersonaResponse(resolvedPersonaId, message, historyForLLM)) {
                 fullResponse += chunk;
                 yield {
                     type: 'chunk',
@@ -165,7 +180,7 @@ let ChatService = class ChatService {
             return;
         }
         const safetyCheck = await this.moderation.validateResponse(fullResponse);
-        if (!safetyCheck.safe) {
+        if (safetyCheck.blocked) {
             fullResponse = '[Content Redacted by Safety Filter]';
         }
         const aiMessage = await this.saveMessage(conversation.id, fullResponse, 'CREATOR');
@@ -204,6 +219,22 @@ let ChatService = class ChatService {
             },
         });
     }
+    async resolvePersonaId(idOrSlug) {
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+        if (uuidRegex.test(idOrSlug))
+            return idOrSlug;
+        const slugifiedName = idOrSlug.replace(/-/g, ' ');
+        const persona = await this.prisma.persona.findFirst({
+            where: {
+                name: { contains: slugifiedName, mode: 'insensitive' },
+            },
+            select: { id: true },
+        });
+        if (!persona) {
+            throw new Error(`Persona not found for identifier: ${idOrSlug}`);
+        }
+        return persona.id;
+    }
 };
 exports.ChatService = ChatService;
 exports.ChatService = ChatService = __decorate([
@@ -214,4 +245,3 @@ exports.ChatService = ChatService = __decorate([
         analytics_service_1.AnalyticsService,
         meter_service_1.MeteredService])
 ], ChatService);
-//# sourceMappingURL=chat.service.js.map

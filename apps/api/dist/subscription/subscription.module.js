@@ -22,4 +22,3 @@ exports.SubscriptionModule = SubscriptionModule = __decorate([
         exports: [subscription_service_1.SubscriptionService],
     })
 ], SubscriptionModule);
-//# sourceMappingURL=subscription.module.js.map

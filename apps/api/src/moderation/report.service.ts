@@ -40,6 +40,8 @@ export class ReportService {
                 messageId: data.messageId,
                 conversationId: data.conversationId,
                 reportedUserId: data.reportedUserId,
+                type: data.messageId ? 'MESSAGE' : 'USER',
+                category: 'GENERAL',
                 reason: data.reason,
                 details: data.details,
                 status: ReportStatus.PENDING,

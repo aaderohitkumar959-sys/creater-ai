@@ -22,10 +22,10 @@ let QuestController = class QuestController {
         this.questService = questService;
     }
     async getDailyStatus(req) {
-        return this.questService.getDailyStatus(req.user.userId);
+        return this.questService.getDailyStatus(req.user.id);
     }
     async claimDailyReward(req) {
-        return this.questService.claimDailyReward(req.user.userId);
+        return this.questService.claimDailyReward(req.user.id);
     }
 };
 exports.QuestController = QuestController;
@@ -49,4 +49,3 @@ exports.QuestController = QuestController = __decorate([
     (0, common_1.Controller)('quests'),
     __metadata("design:paramtypes", [quest_service_1.QuestService])
 ], QuestController);
-//# sourceMappingURL=quest.controller.js.map

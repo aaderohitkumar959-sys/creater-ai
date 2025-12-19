@@ -156,4 +156,3 @@ exports.ModerationService = ModerationService = __decorate([
     __metadata("design:paramtypes", [config_1.ConfigService,
         prisma_service_1.PrismaService])
 ], ModerationService);
-//# sourceMappingURL=moderation.service.js.map

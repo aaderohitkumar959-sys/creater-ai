@@ -66,11 +66,23 @@ let PersonaController = class PersonaController {
         });
     }
     async getPersona(id) {
-        return this.prisma.persona.findUnique({
-            where: { id },
-            include: {
-                creator: true,
+        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+        const isUuid = uuidRegex.test(id);
+        if (isUuid) {
+            return this.prisma.persona.findUnique({
+                where: { id },
+                include: { creator: true },
+            });
+        }
+        const slugifiedId = id.replace(/-/g, ' ');
+        return this.prisma.persona.findFirst({
+            where: {
+                name: {
+                    contains: slugifiedId,
+                    mode: 'insensitive',
+                },
             },
+            include: { creator: true },
         });
     }
     async updatePersona(id, data) {
@@ -114,4 +126,3 @@ exports.PersonaController = PersonaController = __decorate([
     (0, common_1.Controller)('personas'),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService])
 ], PersonaController);
-//# sourceMappingURL=persona.controller.js.map

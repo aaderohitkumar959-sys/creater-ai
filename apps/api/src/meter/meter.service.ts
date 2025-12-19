@@ -5,7 +5,7 @@ import { PrismaService } from '../prisma/prisma.service';
 export class MeteredService {
   private readonly DAILY_LIMIT = 40;
 
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async checkLimit(
     userId: string,
@@ -28,7 +28,7 @@ export class MeteredService {
     }
 
     const today = new Date();
-    const lastDate = new Date(user.lastMessageDate);
+    const lastDate = user.lastMessageDate ? new Date(user.lastMessageDate) : new Date(0);
     const isSameDay =
       today.getDate() === lastDate.getDate() &&
       today.getMonth() === lastDate.getMonth() &&
@@ -52,7 +52,7 @@ export class MeteredService {
     if (!user) return;
 
     const today = new Date();
-    const lastDate = new Date(user.lastMessageDate);
+    const lastDate = user.lastMessageDate ? new Date(user.lastMessageDate) : new Date(0);
     const isSameDay =
       today.getDate() === lastDate.getDate() &&
       today.getMonth() === lastDate.getMonth() &&

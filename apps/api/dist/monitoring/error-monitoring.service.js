@@ -100,4 +100,3 @@ exports.ErrorMonitoringService = ErrorMonitoringService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [config_1.ConfigService])
 ], ErrorMonitoringService);
-//# sourceMappingURL=error-monitoring.service.js.map

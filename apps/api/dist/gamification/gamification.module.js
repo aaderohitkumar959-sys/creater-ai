@@ -23,4 +23,3 @@ exports.GamificationModule = GamificationModule = __decorate([
         exports: [daily_reward_service_1.DailyRewardService],
     })
 ], GamificationModule);
-//# sourceMappingURL=gamification.module.js.map

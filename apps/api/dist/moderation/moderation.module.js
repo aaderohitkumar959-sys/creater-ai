@@ -24,4 +24,3 @@ exports.ModerationModule = ModerationModule = __decorate([
         exports: [moderation_service_1.ModerationService, report_service_1.ReportService],
     })
 ], ModerationModule);
-//# sourceMappingURL=moderation.module.js.map

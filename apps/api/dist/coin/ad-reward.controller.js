@@ -77,4 +77,3 @@ exports.AdRewardController = AdRewardController = __decorate([
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     __metadata("design:paramtypes", [coin_service_1.CoinService])
 ], AdRewardController);
-//# sourceMappingURL=ad-reward.controller.js.map

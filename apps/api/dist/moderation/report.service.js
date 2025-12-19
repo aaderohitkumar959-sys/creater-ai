@@ -39,6 +39,8 @@ let ReportService = class ReportService {
                 messageId: data.messageId,
                 conversationId: data.conversationId,
                 reportedUserId: data.reportedUserId,
+                type: data.messageId ? 'MESSAGE' : 'USER',
+                category: 'GENERAL',
                 reason: data.reason,
                 details: data.details,
                 status: ReportStatus.PENDING,
@@ -198,4 +200,3 @@ exports.ReportService = ReportService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService])
 ], ReportService);
-//# sourceMappingURL=report.service.js.map

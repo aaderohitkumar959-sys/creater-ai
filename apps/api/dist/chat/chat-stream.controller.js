@@ -24,7 +24,7 @@ let ChatStreamController = class ChatStreamController {
         this.chatService = chatService;
     }
     async sendMessage(req, body) {
-        const userId = req.user.userId;
+        const userId = req.user.id;
         const result = await this.chatService.sendMessage(userId, body.personaId, body.message);
         return {
             message: result.aiMessage,
@@ -97,4 +97,3 @@ exports.ChatStreamController = ChatStreamController = __decorate([
     (0, common_1.Controller)('chat'),
     __metadata("design:paramtypes", [chat_service_1.ChatService])
 ], ChatStreamController);
-//# sourceMappingURL=chat-stream.controller.js.map

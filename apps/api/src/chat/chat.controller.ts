@@ -15,6 +15,12 @@ export class ChatController {
   constructor(private readonly chatService: ChatService) { }
 
   @UseGuards(JwtAuthGuard)
+  @Get('conversations')
+  async getConversations(@Request() req) {
+    return this.chatService.getUserConversations(req.user.id);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Post('conversation')
   async startConversation(@Request() req, @Body() body: { personaId: string }) {
     return this.chatService.createConversation(req.user.id, body.personaId);

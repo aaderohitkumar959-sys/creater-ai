@@ -34,7 +34,7 @@ let MeteredService = class MeteredService {
             return { allowed: true, remaining: -1 };
         }
         const today = new Date();
-        const lastDate = new Date(user.lastMessageDate);
+        const lastDate = user.lastMessageDate ? new Date(user.lastMessageDate) : new Date(0);
         const isSameDay = today.getDate() === lastDate.getDate() &&
             today.getMonth() === lastDate.getMonth() &&
             today.getFullYear() === lastDate.getFullYear();
@@ -52,7 +52,7 @@ let MeteredService = class MeteredService {
         if (!user)
             return;
         const today = new Date();
-        const lastDate = new Date(user.lastMessageDate);
+        const lastDate = user.lastMessageDate ? new Date(user.lastMessageDate) : new Date(0);
         const isSameDay = today.getDate() === lastDate.getDate() &&
             today.getMonth() === lastDate.getMonth() &&
             today.getFullYear() === lastDate.getFullYear();
@@ -85,4 +85,3 @@ exports.MeteredService = MeteredService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService])
 ], MeteredService);
-//# sourceMappingURL=meter.service.js.map

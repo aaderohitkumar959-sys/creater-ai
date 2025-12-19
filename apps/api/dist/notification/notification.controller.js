@@ -22,10 +22,10 @@ let NotificationController = class NotificationController {
         this.notificationService = notificationService;
     }
     async subscribe(req, subscription) {
-        return this.notificationService.subscribe(req.user.userId, subscription);
+        return this.notificationService.subscribe(req.user.id, subscription);
     }
     async testNotification(req) {
-        return this.notificationService.sendNotification(req.user.userId, {
+        return this.notificationService.sendNotification(req.user.id, {
             title: 'Test Notification',
             body: 'This is a test notification from CreatorAI!',
             url: '/dashboard',
@@ -54,4 +54,3 @@ exports.NotificationController = NotificationController = __decorate([
     (0, common_1.Controller)('notifications'),
     __metadata("design:paramtypes", [notification_service_1.NotificationService])
 ], NotificationController);
-//# sourceMappingURL=notification.controller.js.map

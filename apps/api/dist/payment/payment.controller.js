@@ -81,4 +81,3 @@ exports.PaymentController = PaymentController = __decorate([
     (0, common_1.Controller)('payment'),
     __metadata("design:paramtypes", [payment_service_1.PaymentService])
 ], PaymentController);
-//# sourceMappingURL=payment.controller.js.map

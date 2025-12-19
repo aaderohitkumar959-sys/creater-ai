@@ -8,7 +8,9 @@ const app_module_1 = require("./app.module");
 const common_1 = require("@nestjs/common");
 const helmet_1 = __importDefault(require("helmet"));
 async function bootstrap() {
+    console.log('[Bootstrap] Starting NestJS application...');
     const app = await core_1.NestFactory.create(app_module_1.AppModule);
+    console.log('[Bootstrap] NestJS application created.');
     app.use((0, helmet_1.default)({
         contentSecurityPolicy: {
             directives: {
@@ -28,6 +30,7 @@ async function bootstrap() {
         },
     }));
     const allowedOrigins = [
+        'https://syelope-web.vercel.app',
         'https://creater-ai-web.vercel.app',
         'http://localhost:3000',
         'http://localhost:3001',
@@ -59,8 +62,9 @@ async function bootstrap() {
         whitelist: true,
         transform: true,
     }));
-    await app.listen(process.env.PORT ?? 3001, '0.0.0.0');
-    console.log(`Application is running on: ${await app.getUrl()}`);
+    const port = process.env.PORT ?? 3001;
+    console.log(`[Bootstrap] Attempting to listen on port ${port}...`);
+    await app.listen(port, '0.0.0.0');
+    console.log(`[Bootstrap] Application is running on: ${await app.getUrl()}`);
 }
 bootstrap();
-//# sourceMappingURL=main.js.map

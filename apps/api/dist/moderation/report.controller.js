@@ -98,4 +98,3 @@ exports.ReportController = ReportController = __decorate([
     (0, common_1.Controller)('reports'),
     __metadata("design:paramtypes", [report_service_1.ReportService])
 ], ReportController);
-//# sourceMappingURL=report.controller.js.map

@@ -19,4 +19,3 @@ exports.AdminModule = AdminModule = __decorate([
         controllers: [admin_controller_1.AdminController],
     })
 ], AdminModule);
-//# sourceMappingURL=admin.module.js.map

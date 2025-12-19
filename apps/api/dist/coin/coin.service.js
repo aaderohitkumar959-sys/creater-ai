@@ -29,7 +29,12 @@ let CoinService = class CoinService {
         return wallet;
     }
     async getBalance(userId) {
-        const wallet = await this.getOrCreateWallet(userId);
+        const wallet = await this.prisma.coinWallet.findUnique({
+            where: { userId },
+        });
+        if (!wallet) {
+            return 0;
+        }
         return wallet.balance;
     }
     async addCoins(userId, amount, description, metadata) {
@@ -180,4 +185,3 @@ exports.CoinService = CoinService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService])
 ], CoinService);
-//# sourceMappingURL=coin.service.js.map
