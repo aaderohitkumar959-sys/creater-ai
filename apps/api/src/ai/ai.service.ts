@@ -67,15 +67,14 @@ export class AIService {
             throw new Error('No API Key configured');
         }
 
-        const model = 'openai/gpt-4o-mini'; // Known-good model
-        console.log(`[AI SERVICE] Sending request to OpenRouter using model: ${model}`);
+        const model = 'openai/gpt-4o-mini';
 
         const response = await fetch(endpoint, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${apiKey}`,
-                'HTTP-Referer': 'https://syelope-web.vercel.app', // Explicit
+                'HTTP-Referer': 'https://syelope-web.vercel.app',
                 'X-Title': 'Syelope AI'
             },
             body: JSON.stringify({
@@ -88,9 +87,7 @@ export class AIService {
         });
 
         if (!response.ok) {
-            const errorText = await response.text();
-            console.error("OPENROUTER ERROR (RAW):", errorText); // Strict debug logging
-            throw new Error(`Provider API Error: ${response.status} ${response.statusText} - ${errorText}`);
+            throw new Error(`Provider API Error: ${response.status} ${response.statusText}`);
         }
 
         const data = await response.json();
