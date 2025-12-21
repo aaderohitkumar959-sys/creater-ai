@@ -59,32 +59,38 @@ export class AIService {
 
     private async callLLM(messages: any[]): Promise<string> {
         const apiKey = this.configService.get('OPENROUTER_API_KEY') || this.configService.get('OPENAI_API_KEY');
-        const endpoint = 'https://openrouter.ai/api/v1/chat/completions'; // Default to OpenRouter for now
+        const endpoint = 'https://openrouter.ai/api/v1/chat/completions';
 
         // Fail fast if no key
         if (!apiKey) {
+            console.error('[AI SERVICE] Missing API Key');
             throw new Error('No API Key configured');
         }
+
+        const model = 'openai/gpt-4o-mini'; // Known-good model
+        console.log(`[AI SERVICE] Sending request to OpenRouter using model: ${model}`);
 
         const response = await fetch(endpoint, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${apiKey}`,
-                'HTTP-Referer': 'https://creator.ai',
-                'X-Title': 'CreatorAI'
+                'HTTP-Referer': 'https://syelope-web.vercel.app', // Explicit
+                'X-Title': 'Syelope AI'
             },
             body: JSON.stringify({
-                model: 'meta-llama/llama-3.1-8b-instruct:free', // Good, fast, cheap/free
+                model: model,
                 messages: messages,
-                temperature: 0.8, // Slightly creative
-                max_tokens: 150, // Short responses as requested
-                presence_penalty: 0.6, // Avoid repetition
+                temperature: 0.8,
+                max_tokens: 150,
+                presence_penalty: 0.6,
             })
         });
 
         if (!response.ok) {
-            throw new Error(`Provider API Error: ${response.statusText}`);
+            const errorText = await response.text();
+            console.error("OPENROUTER ERROR (RAW):", errorText); // Strict debug logging
+            throw new Error(`Provider API Error: ${response.status} ${response.statusText} - ${errorText}`);
         }
 
         const data = await response.json();
