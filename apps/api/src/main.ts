@@ -49,12 +49,18 @@ async function bootstrap() {
       // Allow requests with no origin (mobile apps, Postman, etc)
       if (!origin) return callback(null, true);
 
+      // Check explicit allow list
       if (allowedOrigins.includes(origin)) {
-        callback(null, true);
-      } else {
-        console.warn(`CORS blocked origin: ${origin}`);
-        callback(new Error('Not allowed by CORS'));
+        return callback(null, true);
       }
+
+      // Check Vercel deployments (preview/production)
+      if (origin.endsWith('.vercel.app')) {
+        return callback(null, true);
+      }
+
+      console.warn(`CORS blocked origin: ${origin}`);
+      callback(new Error('Not allowed by CORS'));
     },
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
