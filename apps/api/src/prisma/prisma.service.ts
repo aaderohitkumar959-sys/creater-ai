@@ -5,6 +5,27 @@ import { PrismaClient } from '@prisma/client';
 export class PrismaService
   extends PrismaClient
   implements OnModuleInit, OnModuleDestroy {
+  constructor() {
+    // 1. AUTO-FIX DATABASE URL
+    // Render/Neon often requires ?sslmode=require but users forget it.
+    // We fix it here in code so we don't need to access the dashboard.
+    let dbUrl = process.env.DATABASE_URL;
+
+    if (dbUrl && !dbUrl.includes('sslmode=require')) {
+      const separator = dbUrl.includes('?') ? '&' : '?';
+      dbUrl = `${dbUrl}${separator}sslmode=require`;
+      console.log('[Prisma] 🔧 Auto-fixed DATABASE_URL: Appended sslmode=require');
+    }
+
+    super({
+      datasources: {
+        db: {
+          url: dbUrl,
+        },
+      },
+    });
+  }
+
   async onModuleInit() {
     const dbUrl = process.env.DATABASE_URL;
     console.log('[Prisma] initializing...');
