@@ -9,7 +9,15 @@ import React from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Home, Search, MessageCircle, Wallet, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useSession } from 'next-auth/react';
+// import { useSession } from 'next-auth/react';
+
+// MOCK USE SESSION
+const useSession = () => {
+    return {
+        data: null,
+        status: 'unauthenticated'
+    };
+};
 
 interface NavItem {
     id: string;

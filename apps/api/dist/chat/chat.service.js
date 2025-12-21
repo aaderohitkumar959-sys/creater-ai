@@ -12,19 +12,19 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.ChatService = void 0;
 const common_1 = require("@nestjs/common");
 const prisma_service_1 = require("../prisma/prisma.service");
-const llm_service_1 = require("../llm/llm.service");
+const ai_service_1 = require("../ai/ai.service");
 const moderation_service_1 = require("../moderation/moderation.service");
 const analytics_service_1 = require("../analytics/analytics.service");
 const meter_service_1 = require("../meter/meter.service");
 let ChatService = class ChatService {
     prisma;
-    llm;
+    aiService;
     moderation;
     analytics;
     meteredService;
-    constructor(prisma, llm, moderation, analytics, meteredService) {
+    constructor(prisma, aiService, moderation, analytics, meteredService) {
         this.prisma = prisma;
-        this.llm = llm;
+        this.aiService = aiService;
         this.moderation = moderation;
         this.analytics = analytics;
         this.meteredService = meteredService;
@@ -88,111 +88,67 @@ let ChatService = class ChatService {
             },
             include: {
                 persona: true,
+                messages: {
+                    take: 15,
+                    orderBy: { createdAt: 'desc' }
+                }
             },
         });
     }
     async sendMessage(userId, personaId, message) {
         const { allowed, remaining } = await this.meteredService.checkLimit(userId);
         if (!allowed) {
-            throw new common_1.ForbiddenException('Daily message limit reached. Upgrade to Premium for unlimited chats.');
-        }
-        if (message.length > 2000) {
-            throw new common_1.ForbiddenException('Message exceeds maximum length of 2000 characters.');
+            throw new common_1.ForbiddenException('You ran out of messages! 🕒 Come back tomorrow!');
         }
         const moderationResult = await this.moderation.checkContent(message);
         if (moderationResult.blocked) {
             await this.moderation.logViolation(userId, moderationResult.reason || 'CONTENT_VIOLATION', message);
-            throw new common_1.ForbiddenException('Message blocked by moderation filters.');
+            return {
+                userMessage: { content: message, createdAt: new Date() },
+                aiMessage: { content: "I can't talk about that 🙅‍♀️", createdAt: new Date() },
+                remainingMessages: remaining
+            };
         }
         const resolvedPersonaId = await this.resolvePersonaId(personaId);
         const conversation = await this.createConversation(userId, resolvedPersonaId);
         const userMessage = await this.saveMessage(conversation.id, message, 'USER');
         await this.meteredService.incrementUsage(userId);
-        const history = await this.getMessages(conversation.id);
-        const historyForLLM = history
-            .slice(-10)
-            .map((msg) => ({
-            sender: msg.sender,
-            content: msg.content,
+        const rawHistory = await this.getMessages(conversation.id);
+        const history = rawHistory
+            .slice(-15)
+            .map(m => ({
+            role: m.sender === 'USER' ? 'user' : 'assistant',
+            content: m.content
         }));
-        const { content: aiResponse, tokensUsed, model, } = await this.llm.generatePersonaResponse(resolvedPersonaId, message, historyForLLM);
-        const safetyCheck = await this.moderation.validateResponse(aiResponse);
-        let finalResponse = aiResponse;
-        if (safetyCheck.blocked) {
-            finalResponse =
-                'I apologize, but I cannot continue this conversation topic as it violates our safety guidelines.';
-        }
-        const aiMessage = await this.saveMessage(conversation.id, finalResponse, 'CREATOR');
+        const aiResponse = await this.aiService.generateResponse(resolvedPersonaId, history, message);
+        const aiMessage = await this.saveMessage(conversation.id, aiResponse.text, 'CREATOR');
         return {
             userMessage,
             aiMessage,
-            tokensUsed,
-            model,
+            tokensUsed: 0,
+            model: 'llama-3.1',
             remainingMessages: remaining > 0 ? remaining - 1 : -1,
         };
     }
     async *streamMessage(userId, personaId, message) {
-        const { allowed, remaining } = await this.meteredService.checkLimit(userId);
-        if (!allowed) {
+        try {
+            const result = await this.sendMessage(userId, personaId, message);
             yield {
-                type: 'error',
-                message: 'Daily message limit reached. Upgrade to Premium for unlimited chats.',
+                type: 'chunk',
+                content: result.aiMessage.content
             };
-            return;
-        }
-        if (message.length > 2000) {
-            throw new common_1.ForbiddenException('Message exceeds maximum length of 2000 characters.');
-        }
-        const moderationResult = await this.moderation.checkContent(message);
-        if (moderationResult.blocked) {
-            await this.moderation.logViolation(userId, moderationResult.reason || 'CONTENT_VIOLATION', message);
             yield {
                 type: 'complete',
-                message: 'Message blocked by moderation filters.',
+                messageId: 'id' in result.aiMessage ? result.aiMessage.id : `blocked-${Date.now()}`,
+                remainingMessages: result.remainingMessages
             };
-            return;
-        }
-        const resolvedPersonaId = await this.resolvePersonaId(personaId);
-        const conversation = await this.createConversation(userId, resolvedPersonaId);
-        await this.saveMessage(conversation.id, message, 'USER');
-        await this.meteredService.incrementUsage(userId);
-        const history = await this.getMessages(conversation.id);
-        const historyForLLM = history.slice(-10).map((msg) => ({
-            sender: msg.sender,
-            content: msg.content,
-        }));
-        let fullResponse = '';
-        try {
-            for await (const chunk of this.llm.streamPersonaResponse(resolvedPersonaId, message, historyForLLM)) {
-                fullResponse += chunk;
-                yield {
-                    type: 'chunk',
-                    content: chunk,
-                };
-            }
         }
         catch (error) {
-            console.error('Error during LLM streaming:', error);
             yield {
                 type: 'error',
-                message: error?.message || 'Failed to generate response',
+                content: "My brain is buffering... try again? 🔄"
             };
-            return;
         }
-        const safetyCheck = await this.moderation.validateResponse(fullResponse);
-        if (safetyCheck.blocked) {
-            fullResponse = '[Content Redacted by Safety Filter]';
-        }
-        const aiMessage = await this.saveMessage(conversation.id, fullResponse, 'CREATOR');
-        await this.analytics.trackEvent(userId, 'MESSAGE_SENT', {
-            personaId,
-            tokensUsed: 0,
-        });
-        yield {
-            type: 'complete',
-            messageId: aiMessage.id,
-            remainingMessages: remaining > 0 ? remaining - 1 : -1,
-        };
     }
     async sendGift(userId, personaId, giftId, amount) {
         await this.prisma.coinWallet.update({
@@ -231,7 +187,7 @@ let ChatService = class ChatService {
             select: { id: true },
         });
         if (!persona) {
-            throw new Error(`Persona not found for identifier: ${idOrSlug}`);
+            throw new Error(`Persona not found: ${idOrSlug}`);
         }
         return persona.id;
     }
@@ -240,7 +196,7 @@ exports.ChatService = ChatService;
 exports.ChatService = ChatService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [prisma_service_1.PrismaService,
-        llm_service_1.LLMService,
+        ai_service_1.AIService,
         moderation_service_1.ModerationService,
         analytics_service_1.AnalyticsService,
         meter_service_1.MeteredService])

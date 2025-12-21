@@ -1,13 +1,10 @@
 import { Module } from '@nestjs/common';
-import { ProductionAIService } from './production-ai.service';
-import { AIMemoryService } from './ai-memory.service';
-import { MemoryController } from './memory.controller';
-import { PrismaModule } from '../prisma/prisma.module';
+import { AIService } from './ai.service';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
-    imports: [PrismaModule],
-    controllers: [MemoryController],
-    providers: [ProductionAIService, AIMemoryService],
-    exports: [ProductionAIService, AIMemoryService],
+    imports: [ConfigModule],
+    providers: [AIService],
+    exports: [AIService],
 })
 export class AIModule { }

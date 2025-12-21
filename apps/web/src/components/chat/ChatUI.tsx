@@ -12,7 +12,15 @@ import { TypingIndicator } from '@/components/chat/typing-indicator';
 import { FloatingInput } from '@/components/chat/floating-input';
 import { ArrowLeft, MoreVertical, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useSession } from 'next-auth/react';
+// import { useSession } from 'next-auth/react';
+
+// MOCK USE SESSION
+const useSession = () => {
+    return {
+        data: null,
+        status: 'unauthenticated'
+    };
+};
 
 interface Message {
     id: string;
@@ -63,18 +71,6 @@ export const ChatUI: React.FC<ChatUIProps> = ({ persona }) => {
     const handleSendMessage = async (content: string) => {
         if (!content.trim()) return;
 
-        // Check for session/token
-        if (authStatus === 'unauthenticated') {
-            const errorMessage: Message = {
-                id: Date.now().toString(),
-                content: "Please log in to chat with personalities.",
-                sender: 'ai',
-                timestamp: new Date(),
-            };
-            setMessages(prev => [...prev, errorMessage]);
-            return;
-        }
-
         const userMsg: Message = {
             id: Date.now().toString(),
             content,
@@ -95,7 +91,7 @@ export const ChatUI: React.FC<ChatUIProps> = ({ persona }) => {
             }
 
             // Call real backend API
-            const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://creater-ai-backend.onrender.com';
+            const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
             const headers: Record<string, string> = {
                 'Content-Type': 'application/json',
             };
@@ -129,20 +125,20 @@ export const ChatUI: React.FC<ChatUIProps> = ({ persona }) => {
             setMessages(prev => [...prev, aiMessage]);
         } catch (error: any) {
             console.error('Chat error:', error);
-            // Show logical error message to user
-            let errorMessage = "Sorry, I couldn't process your message. ";
 
-            if (error.message === 'Unauthorized') {
-                errorMessage += "Your session has expired. Please refresh the page.";
-            } else if (error.message === 'Forbidden') {
-                errorMessage += "You have reached your daily limit. Upgrade to continue.";
-            } else {
-                errorMessage += "Please make sure you're connected and try again.";
-            }
+            // In-character fallback for ALL errors (Network, 401, 500, etc.)
+            const fallbackMessages = [
+                "Hmm… I think my brain lagged for a second 😵‍💫 try again?",
+                "Oops—my thoughts ran away. Say that again? 💭",
+                "Wait, I zoned out! What did you say? 😅",
+                "Connection gremlins ate that message 👾 one more time?"
+            ];
+
+            const randomFallback = fallbackMessages[Math.floor(Math.random() * fallbackMessages.length)];
 
             const errorMsgObj: Message = {
                 id: (Date.now() + 1).toString(),
-                content: errorMessage,
+                content: `${randomFallback}`,
                 sender: 'ai',
                 timestamp: new Date(),
             };

@@ -28,9 +28,9 @@ const nextConfig: NextConfig = {
   },
 
   // Environment variables
-  env: {
-    NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'https://creator-ai-api.onrender.com',
-  },
+  // env: {
+  //   NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL,
+  // },
 
   // Security headers
   async headers() {

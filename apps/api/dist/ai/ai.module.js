@@ -8,18 +8,15 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AIModule = void 0;
 const common_1 = require("@nestjs/common");
-const production_ai_service_1 = require("./production-ai.service");
-const ai_memory_service_1 = require("./ai-memory.service");
-const memory_controller_1 = require("./memory.controller");
-const prisma_module_1 = require("../prisma/prisma.module");
+const ai_service_1 = require("./ai.service");
+const config_1 = require("@nestjs/config");
 let AIModule = class AIModule {
 };
 exports.AIModule = AIModule;
 exports.AIModule = AIModule = __decorate([
     (0, common_1.Module)({
-        imports: [prisma_module_1.PrismaModule],
-        controllers: [memory_controller_1.MemoryController],
-        providers: [production_ai_service_1.ProductionAIService, ai_memory_service_1.AIMemoryService],
-        exports: [production_ai_service_1.ProductionAIService, ai_memory_service_1.AIMemoryService],
+        imports: [config_1.ConfigModule],
+        providers: [ai_service_1.AIService],
+        exports: [ai_service_1.AIService],
     })
 ], AIModule);

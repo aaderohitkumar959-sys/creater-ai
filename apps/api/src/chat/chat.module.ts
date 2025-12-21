@@ -1,17 +1,17 @@
 import { Module } from '@nestjs/common';
 import { ChatService } from './chat.service';
 import { ChatController } from './chat.controller';
-import { ChatGateway } from './chat.gateway';
 import { ChatStreamController } from './chat-stream.controller';
-import { LLMModule } from '../llm/llm.module';
+import { AIModule } from '../ai/ai.module';
 import { ModerationModule } from '../moderation/moderation.module';
 import { AnalyticsModule } from '../analytics/analytics.module';
 import { MeterModule } from '../meter/meter.module';
+import { PrismaModule } from '../prisma/prisma.module';
 
 @Module({
-  imports: [LLMModule, ModerationModule, AnalyticsModule, MeterModule],
+  imports: [AIModule, ModerationModule, AnalyticsModule, MeterModule, PrismaModule],
   controllers: [ChatController, ChatStreamController],
-  providers: [ChatService, ChatGateway],
+  providers: [ChatService],
   exports: [ChatService],
 })
-export class ChatModule {}
+export class ChatModule { }

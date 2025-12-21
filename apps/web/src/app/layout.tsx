@@ -22,6 +22,7 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  console.log("ROOT LAYOUT LOADED", Date.now());
   return (
     <html lang="en" suppressHydrationWarning style={{ backgroundColor: '#0B0F14' }}>
       <head>

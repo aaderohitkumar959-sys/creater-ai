@@ -10,20 +10,20 @@ exports.ChatModule = void 0;
 const common_1 = require("@nestjs/common");
 const chat_service_1 = require("./chat.service");
 const chat_controller_1 = require("./chat.controller");
-const chat_gateway_1 = require("./chat.gateway");
 const chat_stream_controller_1 = require("./chat-stream.controller");
-const llm_module_1 = require("../llm/llm.module");
+const ai_module_1 = require("../ai/ai.module");
 const moderation_module_1 = require("../moderation/moderation.module");
 const analytics_module_1 = require("../analytics/analytics.module");
 const meter_module_1 = require("../meter/meter.module");
+const prisma_module_1 = require("../prisma/prisma.module");
 let ChatModule = class ChatModule {
 };
 exports.ChatModule = ChatModule;
 exports.ChatModule = ChatModule = __decorate([
     (0, common_1.Module)({
-        imports: [llm_module_1.LLMModule, moderation_module_1.ModerationModule, analytics_module_1.AnalyticsModule, meter_module_1.MeterModule],
+        imports: [ai_module_1.AIModule, moderation_module_1.ModerationModule, analytics_module_1.AnalyticsModule, meter_module_1.MeterModule, prisma_module_1.PrismaModule],
         controllers: [chat_controller_1.ChatController, chat_stream_controller_1.ChatStreamController],
-        providers: [chat_service_1.ChatService, chat_gateway_1.ChatGateway],
+        providers: [chat_service_1.ChatService],
         exports: [chat_service_1.ChatService],
     })
 ], ChatModule);

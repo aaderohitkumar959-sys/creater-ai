@@ -17,20 +17,10 @@ const common_1 = require("@nestjs/common");
 const throttler_1 = require("@nestjs/throttler");
 const rxjs_1 = require("rxjs");
 const chat_service_1 = require("./chat.service");
-const jwt_auth_guard_1 = require("../auth/jwt-auth.guard");
 let ChatStreamController = class ChatStreamController {
     chatService;
     constructor(chatService) {
         this.chatService = chatService;
-    }
-    async sendMessage(req, body) {
-        const userId = req.user.id;
-        const result = await this.chatService.sendMessage(userId, body.personaId, body.message);
-        return {
-            message: result.aiMessage,
-            tokensUsed: result.tokensUsed,
-            model: result.model,
-        };
     }
     streamMessage(req, personaId, message, userId) {
         console.log(`SSE Request received: personaId=${personaId}, userId=${userId}, message=${message}`);
@@ -73,15 +63,6 @@ let ChatStreamController = class ChatStreamController {
     }
 };
 exports.ChatStreamController = ChatStreamController;
-__decorate([
-    (0, common_1.Post)('send'),
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    __param(0, (0, common_1.Req)()),
-    __param(1, (0, common_1.Body)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object]),
-    __metadata("design:returntype", Promise)
-], ChatStreamController.prototype, "sendMessage", null);
 __decorate([
     (0, throttler_1.Throttle)({ default: { limit: 10, ttl: 60000 } }),
     (0, common_1.Sse)('stream'),

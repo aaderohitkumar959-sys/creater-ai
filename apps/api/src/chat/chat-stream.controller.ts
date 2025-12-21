@@ -17,25 +17,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 export class ChatStreamController {
   constructor(private readonly chatService: ChatService) { }
 
-  @Post('send')
-  @UseGuards(JwtAuthGuard)
-  async sendMessage(
-    @Req() req,
-    @Body() body: { personaId: string; message: string },
-  ) {
-    const userId = req.user.id;
-    const result = await this.chatService.sendMessage(
-      userId,
-      body.personaId,
-      body.message,
-    );
 
-    return {
-      message: result.aiMessage,
-      tokensUsed: result.tokensUsed,
-      model: result.model,
-    };
-  }
 
   @Throttle({ default: { limit: 10, ttl: 60000 } }) // 10 chats per minute
   @Sse('stream')
