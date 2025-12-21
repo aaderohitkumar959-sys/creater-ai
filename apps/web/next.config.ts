@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  transpilePackages: ["@creator-ai/database"],
+  transpilePackages: ["@creator-ai/database", "ai", "@ai-sdk/openai"],
   reactStrictMode: true,
 
   // Security: Enable TypeScript strict checking
