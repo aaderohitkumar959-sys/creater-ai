@@ -47,7 +47,7 @@ export class FailsafeFilter implements ExceptionFilter {
                 },
                 aiMessage: {
                     id: (Date.now() + 1).toString(),
-                    content: "[BACKEND_FAILSAFE] Hmm, my connections are fuzzy right now 🌫️ let's try that again? (Check Server Logs for Real Error)",
+                    content: "[FAILSAFE_GHOST_CHECK] System is restarting... (Version Trace: v3)",
                     createdAt: new Date(),
                     sender: 'CREATOR'
                 },
