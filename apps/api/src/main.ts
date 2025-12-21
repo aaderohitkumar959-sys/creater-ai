@@ -81,8 +81,8 @@ async function bootstrap() {
     }),
   );
 
-  // SMART FAILSAFE: DISABLED FOR DIAGNOSTICS (User Request: "Let the real error surface")
-  // app.useGlobalFilters(new FailsafeFilter());
+  // SMART FAILSAFE: ACTIVE (Production Mode)
+  app.useGlobalFilters(new FailsafeFilter());
 
   const port = process.env.PORT ?? 3001;
   console.log(`[Bootstrap] Attempting to listen on port ${port}...`);
