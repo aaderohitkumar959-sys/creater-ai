@@ -25,34 +25,33 @@ export class AIService {
     ): Promise<AIResponse> {
         const character = getCharacter(characterId);
 
-        // try { <--- REMOVED TRY/CATCH TO FORCE CRASH
-        const systemPrompt = this.buildSystemPrompt(character);
-        const messages = [
-            { role: 'system', content: systemPrompt },
-            ...history,
-            { role: 'user', content: userMessage }
-        ];
+        try {
+            const systemPrompt = this.buildSystemPrompt(character);
+            const messages = [
+                { role: 'system', content: systemPrompt },
+                ...history,
+                { role: 'user', content: userMessage }
+            ];
 
-        const safeMessages = [
-            messages[0],
-            ...messages.slice(-15)
-        ];
+            const safeMessages = [
+                messages[0],
+                ...messages.slice(-15)
+            ];
 
-        const response = await this.callLLM(safeMessages);
+            const response = await this.callLLM(safeMessages);
 
-        return {
-            text: `[BACKEND_AI_CORE] ${response}`,
-            error: false
-        };
+            return {
+                text: `[BACKEND_AI_CORE] ${response}`,
+                error: false
+            };
 
-        /* } catch (error) {
+        } catch (error) {
             this.logger.error(`AI Generation Failed for ${characterId}: ${error.message}`);
-             // REMOVED FALLBACK. WE WANT IT TO FAIL.
             return {
                 text: this.getFallbackResponse(character),
                 error: true
             };
-        } */
+        }
     }
 
     private async callLLM(messages: any[]): Promise<string> {
