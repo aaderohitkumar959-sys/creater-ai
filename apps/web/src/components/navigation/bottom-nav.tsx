@@ -47,7 +47,7 @@ const navItems: NavItem[] = [
         label: 'Messages',
         icon: <MessageCircle />,
         href: '/messages',
-        activePattern: /^\/(messages|chat)/,
+        activePattern: /^\/(messages|chat|public-chat)/,
     },
     {
         id: 'wallet',

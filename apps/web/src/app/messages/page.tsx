@@ -66,7 +66,7 @@ export default function MessagesPage() {
     }, [authStatus]);
 
     const handleConversationClick = (id: string) => {
-        router.push(`/chat/${id}`);
+        router.push(`/public-chat/${id}`);
     };
 
     const formatTime = (date: Date): string => {

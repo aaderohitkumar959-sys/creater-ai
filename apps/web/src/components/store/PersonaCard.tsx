@@ -29,7 +29,7 @@ export const PersonaCard: React.FC<PersonaCardProps> = ({
     index = 0,
 }) => {
     return (
-        <Link href={`/chat/${id}`}>
+        <Link href={`/public-chat/${id}`}>
             <div
                 className="persona-card group relative aspect-[3/4] overflow-hidden"
                 style={{ animationDelay: `${index * 50}ms` }}

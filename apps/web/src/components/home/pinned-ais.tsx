@@ -52,7 +52,7 @@ export const PinnedAIs: React.FC<PinnedAIsProps> = ({
                     <PinnedAICard
                         key={ai.id}
                         ai={ai}
-                        onClick={() => router.push(`/chat/${ai.id}`)}
+                        onClick={() => router.push(`/public-chat/${ai.id}`)}
                         onUnpin={onUnpin}
                     />
                 ))}

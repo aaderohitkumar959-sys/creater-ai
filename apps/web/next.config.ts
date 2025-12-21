@@ -70,6 +70,16 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+
+  async redirects() {
+    return [
+      {
+        source: '/chat/:slug*',
+        destination: '/public-chat/:slug*',
+        permanent: true,
+      },
+    ];
+  },
 };
 
 export default nextConfig;

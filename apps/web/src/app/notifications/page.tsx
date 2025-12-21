@@ -40,7 +40,7 @@ const mockNotifications: Notification[] = [
         body: 'Arr! The treasure map is finally ours, matey. When shall we set sail?',
         timestamp: '2m ago',
         isRead: false,
-        link: '/chat/captain-blackheart',
+        link: '/public-chat/captain-blackheart',
     },
     {
         id: '2',
@@ -74,7 +74,7 @@ const mockNotifications: Notification[] = [
         body: '✨ Hope your day is as bright as a supernova! ✨',
         timestamp: '2d ago',
         isRead: true,
-        link: '/chat/luna-starweaver',
+        link: '/public-chat/luna-starweaver',
     },
 ];
 

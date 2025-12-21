@@ -47,7 +47,7 @@ export const TrendingGrid: React.FC<TrendingGridProps> = ({
                     <TrendingCard
                         key={ai.id}
                         ai={ai}
-                        onClick={() => router.push(`/chat/${ai.id}`)}
+                        onClick={() => router.push(`/public-chat/${ai.id}`)}
                     />
                 ))}
             </div>

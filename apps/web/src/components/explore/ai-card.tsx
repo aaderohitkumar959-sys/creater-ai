@@ -43,7 +43,7 @@ export const AICard: React.FC<AICardProps> = ({
     const router = useRouter();
 
     const handleClick = () => {
-        router.push(`/chat/${id}`);
+        router.push(`/public-chat/${id}`);
     };
 
     const handlePin = (e: React.MouseEvent) => {

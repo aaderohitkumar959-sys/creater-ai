@@ -142,7 +142,7 @@ export default function FeaturedCharacters() {
 
                                         {/* Chat Button */}
                                         <Link
-                                            href={`/chat/${persona.id}`}
+                                            href={`/public-chat/${persona.id}`}
                                             className={`block w-full py-3 px-4 rounded-xl text-center font-semibold text-white
                         bg-gradient-to-r ${colors.gradient} 
                         hover:shadow-lg ${colors.glow} 
