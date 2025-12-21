@@ -29,7 +29,8 @@ export class ChatController {
   }
 
   // @UseGuards(JwtAuthGuard) -> DISABLED
-  @Post('send')
+  // @Post('send') -> RENAMED TO DEBUG STALENESS
+  @Post('send-debug')
   async sendMessage(
     @Request() req,
     @Body() body: { personaId: string; message: string; userId?: string },
