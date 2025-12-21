@@ -1,240 +1,144 @@
-/**
- * Chat UI Component (Client Side)
- * Handles interactive chat interface
- */
-
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useChat } from 'ai/react';
 import { MessageBubble } from '@/components/chat/message-bubble';
 import { TypingIndicator } from '@/components/chat/typing-indicator';
 import { FloatingInput } from '@/components/chat/floating-input';
-import { ArrowLeft, MoreVertical, Star } from 'lucide-react';
+import { ArrowLeft, Lock, Sparkles, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
-// import { useSession } from 'next-auth/react';
-
-// MOCK USE SESSION
-const useSession = () => {
-    return {
-        data: null,
-        status: 'unauthenticated'
-    };
-};
-
-interface Message {
-    id: string;
-    content: string;
-    sender: 'user' | 'ai';
-    timestamp: Date;
-}
-
-interface Persona {
-    id: string;
-    name: string;
-    avatar: string;
-    isPremium?: boolean;
-}
+import { PERSONAS } from '@/lib/personas';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import toast from 'react-hot-toast';
 
 interface ChatUIProps {
-    persona: Persona;
+    persona: { id: string; name: string; avatar: string };
 }
 
 export const ChatUI: React.FC<ChatUIProps> = ({ persona }) => {
     const router = useRouter();
     const messagesEndRef = useRef<HTMLDivElement>(null);
-
-    const [messages, setMessages] = useState<Message[]>([]);
-    const [isTyping, setIsTyping] = useState(false);
     const [isPinned, setIsPinned] = useState(false);
-    const { data: session, status: authStatus } = useSession();
-    const [isSyncing, setIsSyncing] = useState(false);
-    const backendToken = (session as any)?.accessToken;
 
-    // Initialize with welcome message
+    // Paywall State
+    const [isPremium, setIsPremium] = useState(false);
+    const [showPaywall, setShowPaywall] = useState(false);
+    const [unlockCode, setUnlockCode] = useState('');
+    const FREE_LIMIT = 5;
+
+    // Load premium status from local storage
     useEffect(() => {
-        setMessages([
+        const premiumStatus = localStorage.getItem('is_premium_user');
+        if (premiumStatus === 'true') setIsPremium(true);
+    }, []);
+
+    // Vercel AI SDK Hook
+    const { messages, input, handleInputChange, handleSubmit, isLoading, setMessages } = useChat({
+        api: '/api/chat',
+        body: { personaId: persona.id },
+        initialMessages: [
             {
-                id: '1',
-                content: `Hey! I'm ${persona.name}. How can I help you today?`,
-                sender: 'ai',
-                timestamp: new Date(),
-            },
-        ]);
-    }, [persona.name]);
-
-    // Auto-scroll to bottom
-    useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages, isTyping]);
-
-    const handleSendMessage = async (content: string) => {
-        if (!content.trim()) return;
-
-        const userMsg: Message = {
-            id: Date.now().toString(),
-            content,
-            sender: 'user',
-            timestamp: new Date(),
-        };
-
-        setMessages(prev => [...prev, userMsg]);
-        setIsTyping(true);
-
-        try {
-            // Wait for token if just signed in
-            if (!backendToken && authStatus === 'loading') {
-                for (let i = 0; i < 5; i++) {
-                    await new Promise(r => setTimeout(r, 500));
-                    if ((session as any)?.accessToken) break;
+                id: 'welcome',
+                role: 'assistant',
+                content: PERSONAS[persona.id]?.introMessage || `Hey! I'm ${persona.name}.`,
+                createdAt: new Date(),
+            }
+        ],
+        onFinish: () => {
+            // Check limit after AI finishes responding
+            if (!isPremium) {
+                // Count user messages. We divide by 2 roughly, or just check total length
+                // Better: check how many user messages are in the history
+                const userMsgCount = messages.filter(m => m.role === 'user').length + 1; // +1 includes the one just sent
+                if (userMsgCount >= FREE_LIMIT) {
+                    setShowPaywall(true);
                 }
             }
+        },
+        onError: (err) => {
+            console.error("Chat error:", err);
+            toast.error("Connection fuzzy... try again?");
+        }
+    });
 
-            // Call real backend API
-            const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-            const headers: Record<string, string> = {
-                'Content-Type': 'application/json',
-            };
+    // Auto-scroll
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [messages, isLoading]);
 
-            // Add Authorization header if we have a token
-            if (backendToken) {
-                headers['Authorization'] = `Bearer ${backendToken}`;
-            }
-
-            const response = await fetch(`${baseUrl}/chat/send`, {
-                method: 'POST',
-                headers,
-                body: JSON.stringify({
-                    personaId: persona.id,
-                    message: content,
-                }),
-            });
-
-            if (response.status === 401) throw new Error('Unauthorized');
-            if (response.status === 403) throw new Error('Forbidden');
-            if (!response.ok) throw new Error('Failed to send message');
-
-            const data = await response.json();
-
-            const aiMessage: Message = {
-                id: data.aiMessage?.id || (Date.now() + 1).toString(),
-                content: data.aiMessage?.content || "I'm having trouble responding right now. Please try again.",
-                sender: 'ai',
-                timestamp: new Date(data.aiMessage?.createdAt || Date.now()),
-            };
-            setMessages(prev => [...prev, aiMessage]);
-        } catch (error: any) {
-            console.error('Chat error:', error);
-
-            // In-character fallback for ALL errors (Network, 401, 500, etc.)
-            const fallbackMessages = [
-                "Hmm… I think my brain lagged for a second 😵‍💫 try again?",
-                "Oops—my thoughts ran away. Say that again? 💭",
-                "Wait, I zoned out! What did you say? 😅",
-                "Connection gremlins ate that message 👾 one more time?"
-            ];
-
-            const randomFallback = fallbackMessages[Math.floor(Math.random() * fallbackMessages.length)];
-
-            const errorMsgObj: Message = {
-                id: (Date.now() + 1).toString(),
-                content: `${randomFallback}`,
-                sender: 'ai',
-                timestamp: new Date(),
-            };
-            setMessages(prev => [...prev, errorMsgObj]);
-        } finally {
-            setIsTyping(false);
+    const handleUnlock = () => {
+        if (unlockCode.trim().toUpperCase() === 'LOVE2025') {
+            localStorage.setItem('is_premium_user', 'true');
+            setIsPremium(true);
+            setShowPaywall(false);
+            toast.success("Welcome to Unlimited Love! ❤️");
+        } else {
+            toast.error("Invalid code. Try again!");
         }
     };
 
-    const handlePin = () => {
-        setIsPinned(!isPinned);
+    const onSubmitWrapper = (e?: React.FormEvent, msg?: string) => {
+        if (e) e.preventDefault();
+
+        // Strict Paywall Check
+        const userMsgCount = messages.filter(m => m.role === 'user').length;
+        if (!isPremium && userMsgCount >= FREE_LIMIT) {
+            setShowPaywall(true);
+            return;
+        }
+
+        handleSubmit(e, { data: { message: msg || input } });
     };
 
     return (
-        <div className="h-screen flex flex-col bg-[var(--bg-primary)]">
+        <div className="h-screen flex flex-col bg-[var(--bg-primary)] relative">
             {/* Top Bar */}
             <div className="glass-medium border-b border-[var(--border-medium)] backdrop-blur-xl sticky top-0 z-10">
                 <div className="container-mobile h-16 flex items-center justify-between">
-                    {/* Left: Back + Avatar + Name */}
                     <div className="flex items-center gap-3">
-                        <button
-                            onClick={() => router.back()}
-                            className="p-2 rounded-lg hover:bg-white/5 transition-colors"
-                            aria-label="Go back"
-                        >
+                        <button onClick={() => router.back()} className="p-2 rounded-lg hover:bg-white/5 transition-colors">
                             <ArrowLeft size={20} className="text-[var(--text-secondary)]" />
                         </button>
 
-                        <div
-                            onClick={() => router.push(`/persona/${persona.id}`)}
-                            className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
-                        >
-                            <div className="w-10 h-10 rounded-full bg-gradient-accent flex items-center justify-center text-white font-semibold overflow-hidden">
-                                {persona.avatar ? (
-                                    <img src={persona.avatar} alt={persona.name} className="w-full h-full object-cover" />
-                                ) : (
-                                    persona.name[0]
-                                )}
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full overflow-hidden relative">
+                                <img src={persona.avatar} alt={persona.name} className="w-full h-full object-cover" />
                             </div>
                             <div>
-                                <h2 className="font-semibold text-[var(--text-primary)] text-sm">
-                                    {persona.name}
-                                </h2>
-                                <p className="text-xs text-[var(--text-muted)]">
-                                    {isTyping ? 'typing...' : 'online'}
+                                <h2 className="font-semibold text-[var(--text-primary)] text-sm">{persona.name}</h2>
+                                <p className="text-xs text-[var(--text-muted)] flex items-center gap-1">
+                                    {isLoading ? 'typing...' : 'online'}
+                                    {isPremium && <Sparkles size={10} className="text-yellow-400" />}
                                 </p>
                             </div>
                         </div>
                     </div>
 
-                    {/* Right: Pin + Options */}
-                    <div className="flex items-center gap-1">
-                        <button
-                            onClick={handlePin}
-                            className={cn(
-                                'p-2 rounded-lg transition-colors',
-                                isPinned ? 'text-[var(--accent-blue)]' : 'text-[var(--text-muted)]',
-                                'hover:bg-white/5'
-                            )}
-                            aria-label={isPinned ? 'Unpin' : 'Pin'}
-                        >
-                            <Star size={20} fill={isPinned ? 'currentColor' : 'none'} />
-                        </button>
-
-                        <button
-                            className="p-2 rounded-lg hover:bg-white/5 transition-colors text-[var(--text-muted)]"
-                            aria-label="Options"
-                        >
-                            <MoreVertical size={20} />
-                        </button>
-                    </div>
+                    <button onClick={() => setIsPinned(!isPinned)} className={cn("p-2 rounded-lg", isPinned ? "text-blue-400" : "text-gray-400")}>
+                        <Star size={20} fill={isPinned ? "currentColor" : "none"} />
+                    </button>
                 </div>
             </div>
 
-            {/* Messages Area */}
+            {/* Messages */}
             <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
-                {messages.map((message) => (
+                {messages.map(m => (
                     <MessageBubble
-                        key={message.id}
-                        content={message.content}
-                        sender={message.sender}
-                        timestamp={message.timestamp}
+                        key={m.id}
+                        content={m.content}
+                        sender={m.role === 'user' ? 'user' : 'ai'}
+                        timestamp={m.createdAt || new Date()}
                         aiName={persona.name}
                         aiAvatar={persona.avatar}
                     />
                 ))}
 
-                {/* Typing Indicator */}
-                {isTyping && (
+                {isLoading && (
                     <div className="flex gap-3 mb-4">
-                        <div className="w-8 h-8 rounded-full bg-gradient-accent flex items-center justify-center text-white text-sm font-semibold overflow-hidden">
-                            {persona.avatar ? (
-                                <img src={persona.avatar} alt={persona.name} className="w-full h-full object-cover" />
-                            ) : (
-                                persona.name[0]
-                            )}
+                        <div className="w-8 h-8 rounded-full overflow-hidden">
+                            <img src={persona.avatar} alt={persona.name} className="w-full h-full object-cover" />
                         </div>
                         <div className="glass-medium rounded-2xl px-4 py-3 border border-[var(--border-medium)]">
                             <TypingIndicator />
@@ -242,16 +146,67 @@ export const ChatUI: React.FC<ChatUIProps> = ({ persona }) => {
                     </div>
                 )}
 
-                {/* Auto-scroll anchor */}
                 <div ref={messagesEndRef} />
             </div>
 
-            {/* Input Area */}
+            {/* Input */}
             <FloatingInput
-                onSend={handleSendMessage}
-                placeholder={`Message ${persona.name}...`}
-                disabled={isTyping}
+                onSend={(msg) => onSubmitWrapper(undefined, msg)}
+                placeholder={showPaywall ? "Unlock to chat..." : `Message ${persona.name}...`}
+                disabled={isLoading || showPaywall}
             />
+
+            {/* PAYWALL MODAL */}
+            {showPaywall && (
+                <div className="absolute inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
+                    <div className="max-w-sm w-full bg-slate-900 border border-slate-700 rounded-2xl p-6 shadow-2xl space-y-6">
+                        <div className="text-center space-y-2">
+                            <div className="w-16 h-16 bg-pink-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <Lock className="w-8 h-8 text-pink-500" />
+                            </div>
+                            <h3 className="text-2xl font-bold text-white">Unlock Unlimited Love</h3>
+                            <p className="text-slate-400">
+                                You've reached the free limit with {persona.name}.
+                                Continue your private conversation forever.
+                            </p>
+                        </div>
+
+                        <div className="space-y-4 pt-2">
+                            <div className="bg-slate-800 p-4 rounded-xl text-center border border-slate-700">
+                                <p className="text-sm text-slate-400 mb-1">One-time payment</p>
+                                <p className="text-3xl font-bold text-white">$1.99</p>
+                            </div>
+
+                            <Button className="w-full bg-pink-600 hover:bg-pink-700 text-white h-12 rounded-xl text-lg font-medium" asChild>
+                                <a href="https://paypal.me/YOUR_LINK_HERE" target="_blank" rel="noopener noreferrer">
+                                    Unlock Now
+                                </a>
+                            </Button>
+
+                            <div className="relative">
+                                <div className="absolute inset-0 flex items-center">
+                                    <span className="w-full border-t border-slate-700" />
+                                </div>
+                                <div className="relative flex justify-center text-xs uppercase">
+                                    <span className="bg-slate-900 px-2 text-slate-500">I have a code</span>
+                                </div>
+                            </div>
+
+                            <div className="flex gap-2">
+                                <Input
+                                    placeholder="Enter unlock code"
+                                    className="bg-slate-800 border-slate-700 text-white"
+                                    value={unlockCode}
+                                    onChange={(e) => setUnlockCode(e.target.value)}
+                                />
+                                <Button variant="outline" onClick={handleUnlock}>
+                                    Apply
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };
