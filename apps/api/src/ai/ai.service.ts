@@ -63,11 +63,18 @@ export class AIService {
 
         // Fail fast if no key
         if (!apiKey) {
-            console.error('[AI SERVICE] Missing API Key');
+            console.error('[AI SERVICE] CRITICAL: OPENROUTER_API_KEY is missing/empty!');
             throw new Error('No API Key configured');
         }
 
         const model = 'openai/gpt-4o-mini';
+        console.log(`[AI SERVICE] DIAGNOSTICS:
+        - Key Present: ${!!apiKey}
+        - Key Length: ${apiKey.length}
+        - Endpoint: ${endpoint}
+        - Model: ${model}
+        - Headers: Referer=${'https://syelope-web.vercel.app'}, Title=${'Syelope AI'}
+        `);
 
         const response = await fetch(endpoint, {
             method: 'POST',
@@ -87,7 +94,10 @@ export class AIService {
         });
 
         if (!response.ok) {
-            throw new Error(`Provider API Error: ${response.status} ${response.statusText}`);
+            const errorText = await response.text();
+            console.error("OPENROUTER RAW ERROR:", errorText);
+            console.error("OPENROUTER STATUS:", response.status, response.statusText);
+            throw new Error(`OpenRouter Failed: ${response.status} - ${errorText}`);
         }
 
         const data = await response.json();
