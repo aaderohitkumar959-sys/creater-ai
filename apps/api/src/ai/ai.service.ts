@@ -25,36 +25,34 @@ export class AIService {
     ): Promise<AIResponse> {
         const character = getCharacter(characterId);
 
-        try {
-            const systemPrompt = this.buildSystemPrompt(character);
-            const messages = [
-                { role: 'system', content: systemPrompt },
-                ...history, // Client should send recent history
-                { role: 'user', content: userMessage }
-            ];
+        // try { <--- REMOVED TRY/CATCH TO FORCE CRASH
+        const systemPrompt = this.buildSystemPrompt(character);
+        const messages = [
+            { role: 'system', content: systemPrompt },
+            ...history,
+            { role: 'user', content: userMessage }
+        ];
 
-            // Safe limit for history to prevent context overflow if client sends too much
-            // We keep system prompt + last 15 messages max
-            const safeMessages = [
-                messages[0],
-                ...messages.slice(-15)
-            ];
+        const safeMessages = [
+            messages[0],
+            ...messages.slice(-15)
+        ];
 
-            const response = await this.callLLM(safeMessages);
+        const response = await this.callLLM(safeMessages);
 
-            return {
-                text: `[BACKEND_AI_CORE] ${response}`,
-                error: false
-            };
+        return {
+            text: `[BACKEND_AI_CORE] ${response}`,
+            error: false
+        };
 
-        } catch (error) {
+        /* } catch (error) {
             this.logger.error(`AI Generation Failed for ${characterId}: ${error.message}`);
-
+             // REMOVED FALLBACK. WE WANT IT TO FAIL.
             return {
                 text: this.getFallbackResponse(character),
                 error: true
             };
-        }
+        } */
     }
 
     private async callLLM(messages: any[]): Promise<string> {

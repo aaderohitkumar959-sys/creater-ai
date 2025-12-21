@@ -7,6 +7,7 @@ import { FailsafeFilter } from './common/filters/failsafe.filter';
 
 async function bootstrap() {
   console.log('[Bootstrap] Starting NestJS application...');
+  console.log('DEPLOYMENT VERSION: HARD fail check (v2)'); // Tracer log
   const app = await NestFactory.create(AppModule);
   console.log('[Bootstrap] NestJS application created.');
 
