@@ -34,37 +34,16 @@ export class ChatController {
     @Request() req,
     @Body() body: { personaId: string; message: string; userId?: string },
   ) {
-    try {
-      // Allow userId from body if not in req.user (for stateless/guest mode)
-      const userId = req.user?.id || body.userId || 'guest-user';
+    // try-catch removed to allow global exception filter to handle errors
+    // and provide actual logs in Render/CloudWatch.
+    // Allow userId from body if not in req.user (for stateless/guest mode)
+    const userId = req.user?.id || body.userId || 'guest-user';
 
-      return await this.chatService.sendMessage(
-        userId,
-        body.personaId,
-        body.message,
-      );
-    } catch (error) {
-      console.error('[CHAT_CONTROLLER_FAILSAFE]', error);
-
-      // CRITICAL: NEVER return non-200 status. ALWAYS return robust fallback.
-      return {
-        userMessage: {
-          id: Date.now().toString(),
-          content: body.message,
-          createdAt: new Date(),
-          sender: 'USER'
-        },
-        aiMessage: {
-          id: (Date.now() + 1).toString(),
-          content: "[BACKEND_FAILSAFE] Hmm, my connections are fuzzy right now 🌫️ let's try that again?",
-          createdAt: new Date(),
-          sender: 'CREATOR'
-        },
-        tokensUsed: 0,
-        model: 'failsafe',
-        remainingMessages: 5
-      };
-    }
+    return await this.chatService.sendMessage(
+      userId,
+      body.personaId,
+      body.message,
+    );
   }
 
   // @UseGuards(JwtAuthGuard) -> DISABLED

@@ -3,6 +3,7 @@ import { AppModule } from './app.module';
 
 import { ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
+import { FailsafeFilter } from './common/filters/failsafe.filter';
 
 async function bootstrap() {
   console.log('[Bootstrap] Starting NestJS application...');
@@ -72,6 +73,9 @@ async function bootstrap() {
       transform: true,
     }),
   );
+
+  // SMART FAILSAFE: Catch all errors, Log them, then return friendly UI if needed
+  app.useGlobalFilters(new FailsafeFilter());
 
   const port = process.env.PORT ?? 3001;
   console.log(`[Bootstrap] Attempting to listen on port ${port}...`);
