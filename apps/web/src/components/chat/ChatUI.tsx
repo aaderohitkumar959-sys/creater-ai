@@ -191,7 +191,7 @@ export const ChatUI: React.FC<ChatUIProps> = ({ persona }) => {
                             </div>
 
                             <Button className="w-full bg-pink-600 hover:bg-pink-700 text-white h-12 rounded-xl text-lg font-medium" asChild>
-                                <a href="https://paypal.me/YOUR_LINK_HERE" target="_blank" rel="noopener noreferrer">
+                                <a href="https://www.paypal.com/ncp/payment/Z3H9FFL8YRS9S" target="_blank" rel="noopener noreferrer">
                                     Unlock Now
                                 </a>
                             </Button>
