@@ -32,6 +32,7 @@ export async function POST(req: Request) {
         });
 
         // v3 Streaming
+        // @ts-ignore - Type mismatch between openai v4 and ai v3, but works at runtime
         const stream = OpenAIStream(response);
         return new StreamingTextResponse(stream);
     } catch (error: any) {
