@@ -13,11 +13,13 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-[var(--bg-primary)] text-white pb-20">
       {/* Header */}
-      <div className="p-6 pt-12 space-y-2">
-        <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">
-          Syelope
-        </h1>
-        <p className="text-gray-400">Choose your private companion.</p>
+      <div className="p-6 pt-12 space-y-2 flex flex-col items-center">
+        <img
+          src="/syelope-logo.jpg"
+          alt="Syelope"
+          className="w-32 h-32 object-contain mb-2"
+        />
+        <p className="text-gray-400 text-center">Choose your private companion.</p>
       </div>
 
       {/* Persona Grid */}
