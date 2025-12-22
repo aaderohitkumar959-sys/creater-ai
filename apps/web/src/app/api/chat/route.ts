@@ -23,6 +23,7 @@ export async function POST(req: Request) {
             stream: true,
             messages: [systemMessage, ...messages],
             temperature: 0.8,
+        }, {
             headers: {
                 'HTTP-Referer': 'https://syelope-web.vercel.app',
                 'X-Title': 'CreatorAI Companion',
