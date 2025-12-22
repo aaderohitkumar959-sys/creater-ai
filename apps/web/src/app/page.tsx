@@ -15,7 +15,7 @@ export default function Home() {
       {/* Header */}
       <div className="p-6 pt-12 space-y-2">
         <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-500">
-          CreatorAI
+          Syelope
         </h1>
         <p className="text-gray-400">Choose your private companion.</p>
       </div>
