@@ -18,6 +18,7 @@ export async function POST(req: Request) {
         const systemMessage = { role: 'system', content: persona.systemPrompt };
 
         // Standard OpenAI call (v3 SDK stye)
+        // @ts-ignore - OpenAI SDK types are strict about headers location for OpenRouter
         const response = await openai.chat.completions.create({
             model: 'openai/gpt-4o-mini',
             stream: true,
