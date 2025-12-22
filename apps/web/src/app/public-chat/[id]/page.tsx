@@ -1,26 +1,6 @@
-/**
- * NUCLEAR OPTION: Public Chat Page
- * Strictly for guest access. Bypasses all auth/session checks.
- */
-
 import { ChatUI } from '@/components/chat/ChatUI';
+import { PERSONAS } from '@/lib/personas';
 import { notFound } from 'next/navigation';
-
-// Hardcoded fallback data to guarantee UI loads even if backend is DEAD
-const FALLBACK_PERSONAS: Record<string, any> = {
-    'luna-starweaver': {
-        id: 'luna-starweaver',
-        name: 'Luna Starweaver',
-        avatar: '/placeholder.png', // Ensure this exists in public/
-        isPremium: false
-    },
-    'default': {
-        id: 'default',
-        name: 'AI Companion',
-        avatar: '/placeholder.png',
-        isPremium: false
-    }
-};
 
 export default async function PublicChatPage({
     params,
@@ -29,10 +9,21 @@ export default async function PublicChatPage({
 }) {
     const { id } = await params;
 
-    // 1. Try to get data from Backend (optional)
-    // 2. Fallback to hardcoded data (mandatory)
+    // Use our hardcoded MVP personas
+    // If ID doesn't exist, default to Aria (our star) or 404
+    const persona = PERSONAS[id];
 
-    let persona = FALLBACK_PERSONAS[id] || FALLBACK_PERSONAS['default'];
+    if (!persona) {
+        // Option 1: Redirect to default
+        // redirect('/public-chat/aria');
+
+        // Option 2: Show default
+        return (
+            <div className="h-screen w-full bg-black">
+                <ChatUI persona={PERSONAS['aria']} />
+            </div>
+        );
+    }
 
     return (
         <div className="h-screen w-full bg-black">
