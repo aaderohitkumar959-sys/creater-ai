@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { useChat } from 'ai/react';
 import { MessageBubble } from '@/components/chat/message-bubble';
 import { TypingIndicator } from '@/components/chat/typing-indicator';
-import { FloatingInput } from '@/components/chat/floating-input';
 import { ArrowLeft, Lock, Sparkles, Star } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PERSONAS } from '@/lib/personas';
@@ -150,11 +149,25 @@ export const ChatUI: React.FC<ChatUIProps> = ({ persona }) => {
             </div>
 
             {/* Input */}
-            <FloatingInput
-                onSend={(msg) => onSubmitWrapper(undefined, msg)}
-                placeholder={showPaywall ? "Unlock to chat..." : `Message ${persona.name}...`}
-                disabled={isLoading || showPaywall}
-            />
+            <form onSubmit={onSubmitWrapper} className="p-4 border-t border-[var(--border-medium)] bg-[var(--bg-secondary)]">
+                <div className="flex gap-2">
+                    <input
+                        type="text"
+                        value={input}
+                        onChange={handleInputChange}
+                        placeholder={showPaywall ? "Unlock to chat..." : `Message ${persona.name}...`}
+                        disabled={isLoading || showPaywall}
+                        className="flex-1 px-4 py-3 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-medium)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+                    />
+                    <button
+                        type="submit"
+                        disabled={isLoading || showPaywall || !input.trim()}
+                        className="px-6 py-3 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                        Send
+                    </button>
+                </div>
+            </form>
 
             {/* PAYWALL MODAL */}
             {showPaywall && (
