@@ -6,7 +6,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "build": "nest build",
+    "build": "node --max-old-space-size=460 ./node_modules/@nestjs/cli/bin/nest.js build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "dev": "nest start --watch",
@@ -45,9 +45,7 @@
     "rxjs": "^7.8.1",
     "socket.io": "^4.8.1",
     "stripe": "^20.0.0",
-    "web-push": "^3.6.7",
-    "@swc/cli": "^0.6.0",
-    "@swc/core": "^1.10.16"
+    "web-push": "^3.6.7"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
