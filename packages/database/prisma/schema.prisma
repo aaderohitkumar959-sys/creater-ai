@@ -41,10 +41,23 @@ model User {
   violations                     Violation[]
   memories                       Memory[]
   AIRequest                      AIRequest[]
+  paidMessageCredits             Int            @default(0)
   pushSubscriptions              PushSubscription[]
   lastLoginDate                  DateTime?
   metadata                       Json?
   messages                       Message[]
+}
+
+model RedemptionCode {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  amount    Int      @default(500)
+  isUsed    Boolean  @default(false)
+  userId    String?
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([code])
 }
 
 model Account {
@@ -311,6 +324,7 @@ enum TransactionType {
 enum PaymentProvider {
   STRIPE
   RAZORPAY
+  PAYPAL
 }
 
 enum PaymentStatus {

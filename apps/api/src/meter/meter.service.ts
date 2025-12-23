@@ -17,7 +17,8 @@ export class MeteredService {
         lastMessageDate: true,
         role: true,
         subscription: true,
-      },
+        paidMessageCredits: true,
+      } as any,
     });
 
     if (!user) return { allowed: false, remaining: 0 };
@@ -25,6 +26,11 @@ export class MeteredService {
     // Premium users have no limit
     if (user.subscription?.status === 'ACTIVE' || user.role === 'ADMIN') {
       return { allowed: true, remaining: -1 }; // -1 indicates unlimited
+    }
+
+    // Check paid message credits first
+    if ((user as any).paidMessageCredits > 0) {
+      return { allowed: true, remaining: (user as any).paidMessageCredits };
     }
 
     const today = new Date();
@@ -46,10 +52,21 @@ export class MeteredService {
   async incrementUsage(userId: string): Promise<void> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
-      select: { dailyMessageCount: true, lastMessageDate: true },
+      select: { dailyMessageCount: true, lastMessageDate: true, paidMessageCredits: true } as any,
     });
 
     if (!user) return;
+
+    // Priority: Use paid credits first if available
+    if ((user as any).paidMessageCredits > 0) {
+      await this.prisma.user.update({
+        where: { id: userId },
+        data: {
+          paidMessageCredits: { decrement: 1 },
+        },
+      });
+      return;
+    }
 
     const today = new Date();
     const lastDate = user.lastMessageDate ? new Date(user.lastMessageDate) : new Date(0);

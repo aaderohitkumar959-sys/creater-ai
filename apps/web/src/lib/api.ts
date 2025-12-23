@@ -119,5 +119,19 @@ export const api = {
     getConversations: async () => {
         return fetchWithAuth('/chat/conversations');
     },
+
+    redeemCode: async (userId: string, code: string) => {
+        return fetchWithAuth('/payment/redeem', {
+            method: 'POST',
+            body: JSON.stringify({ userId, code }),
+        });
+    },
+
+    verifyPayPalPayment: async (userId: string, paypalTxnId: string) => {
+        return fetchWithAuth('/payment/verify-paypal', {
+            method: 'POST',
+            body: JSON.stringify({ userId, paypalTxnId }),
+        });
+    },
 };
 

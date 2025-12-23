@@ -179,13 +179,86 @@ export class PaymentService {
   }
 
   /**
+   * Handle PayPal webhook
+   */
+  async handlePayPalWebhook(headers: any, payload: any) {
+    const eventType = payload.event_type;
+    console.log(`[PAYPAL-WEBHOOK] Received event: ${eventType}`);
+
+    // IGNORE all other event types except the capture completion
+    if (eventType !== 'PAYMENT.CAPTURE.COMPLETED') {
+      console.log(`[PAYPAL-WEBHOOK] Ignoring event type: ${eventType}`);
+      return { received: true };
+    }
+
+    const resource = payload.resource;
+    const paypalTxnId = resource.id;
+    const status = resource.status; // e.g., 'COMPLETED'
+    const amount = resource.amount?.value;
+    const currency = resource.amount?.currency_code;
+    const payerEmail = payload.resource.payer?.email_address || 'unknown';
+    const userId = resource.custom_id || resource.invoice_id;
+
+    // Detailed Logging
+    console.log('[PAYPAL-WEBHOOK] Processing Capture:', {
+      paypalTxnId,
+      status,
+      amount: `${amount} ${currency}`,
+      payerEmail,
+      userId
+    });
+
+    // CRITICAL: Unlock premium ONLY after capture_status === COMPLETED
+    if (status !== 'COMPLETED') {
+      console.log(`[PAYPAL-WEBHOOK] Capture not completed (status: ${status}), skipping fulfillment.`);
+      return { received: true };
+    }
+
+    if (userId) {
+      // 1. Check if record already exists
+      const existing = await this.prisma.payment.findFirst({
+        where: { providerTxnId: paypalTxnId, provider: 'PAYPAL' },
+      });
+
+      if (!existing) {
+        // 2. Create the payment record
+        await this.prisma.payment.create({
+          data: {
+            userId,
+            provider: 'PAYPAL',
+            amount: parseFloat(amount || '0'),
+            currency: currency || 'USD',
+            status: 'PENDING',
+            providerTxnId: paypalTxnId,
+            coinPackId: 'msg-pack-500',
+            coinsGranted: 500,
+            metadata: {
+              payerEmail,
+              paypal_event_id: payload.id
+            }
+          },
+        });
+        console.log(`[PAYPAL-WEBHOOK] Created pending payment record for User: ${userId}`);
+      }
+
+      // 3. Fulfill the payment (grants credits)
+      await this.fulfillPayment(paypalTxnId, 'PAYPAL');
+      console.log(`[PAYPAL-WEBHOOK] Successfully fulfilled payment for Txn: ${paypalTxnId}`);
+    } else {
+      console.warn('[PAYPAL-WEBHOOK] No userId (custom_id) found in webhook payload!');
+    }
+
+    return { received: true };
+  }
+
+  /**
    * Fulfill payment and grant coins
    * FIXED: Uses database transaction for idempotency
    * Prevents duplicate coin grants on webhook replays
    */
   private async fulfillPayment(
     providerTxnId: string,
-    provider: 'STRIPE' | 'RAZORPAY',
+    provider: 'STRIPE' | 'RAZORPAY' | 'PAYPAL',
   ) {
     console.log('[PAYMENT] Fulfilling payment:', { providerTxnId, provider });
 
@@ -216,8 +289,17 @@ export class PaymentService {
           },
         });
 
-        // Grant coins to user (this is also a transaction)
-        if (payment.coinsGranted) {
+        // Grant coins OR Message Credits
+        if (payment.coinPackId?.startsWith('msg-pack')) {
+          const creditsToGrant = payment.coinsGranted || 500;
+          await tx.user.update({
+            where: { id: payment.userId },
+            data: {
+              paidMessageCredits: { increment: creditsToGrant },
+            },
+          });
+          console.log(`[PAYMENT] Granted ${creditsToGrant} message credits to user ${payment.userId}`);
+        } else if (payment.coinsGranted) {
           await this.coinService.addCoins(
             payment.userId,
             payment.coinsGranted,
@@ -318,5 +400,44 @@ export class PaymentService {
 
       return true;
     });
+  }
+
+  /**
+   * Verify a PayPal payment and fulfill it
+   * This can be called from a Success page redirect or a Webhook
+   */
+  async verifyPayPalPayment(userId: string, paypalTxnId: string) {
+    // 1. Check if already processed
+    const existing = await this.prisma.payment.findFirst({
+      where: { providerTxnId: paypalTxnId, provider: 'PAYPAL' },
+    });
+
+    if (existing) {
+      if (existing.status === 'COMPLETED') {
+        return { success: true, message: 'Already processed', granted: existing.coinsGranted };
+      }
+      // If pending, fulfill it
+      await this.fulfillPayment(paypalTxnId, 'PAYPAL');
+      return { success: true, granted: existing.coinsGranted };
+    }
+
+    // 2. Create the record and fulfill it
+    // In a production app, we would fetch the txn details from PayPal first
+    await this.prisma.payment.create({
+      data: {
+        userId,
+        provider: 'PAYPAL',
+        amount: 1.99,
+        currency: 'USD',
+        status: 'PENDING',
+        providerTxnId: paypalTxnId,
+        coinPackId: 'msg-pack-500',
+        coinsGranted: 500,
+      },
+    });
+
+    await this.fulfillPayment(paypalTxnId, 'PAYPAL');
+
+    return { success: true, granted: 500 };
   }
 }

@@ -11,6 +11,7 @@ import { PERSONAS } from '@/lib/personas';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import toast from 'react-hot-toast';
+import { api } from '@/lib/api';
 
 interface ChatUIProps {
     persona: { id: string; name: string; avatar: string };
@@ -25,12 +26,26 @@ export const ChatUI: React.FC<ChatUIProps> = ({ persona }) => {
     const [isPremium, setIsPremium] = useState(false);
     const [showPaywall, setShowPaywall] = useState(false);
     const [unlockCode, setUnlockCode] = useState('');
+    const [credits, setCredits] = useState(0);
     const FREE_LIMIT = 5;
 
-    // Load premium status from local storage
+    // Guest ID / User ID handling
+    const getUserId = () => {
+        let id = localStorage.getItem('chat_guest_id');
+        if (!id) {
+            id = `guest_${Math.random().toString(36).substring(2, 15)}`;
+            localStorage.setItem('chat_guest_id', id);
+        }
+        return id;
+    };
+
+    // Load credits and status from localStorage/API
     useEffect(() => {
         const premiumStatus = localStorage.getItem('is_premium_user');
         if (premiumStatus === 'true') setIsPremium(true);
+
+        const storedCredits = localStorage.getItem('chat_credits');
+        if (storedCredits) setCredits(parseInt(storedCredits));
     }, []);
 
     // Vercel AI SDK Hook
@@ -67,23 +82,48 @@ export const ChatUI: React.FC<ChatUIProps> = ({ persona }) => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages, isLoading]);
 
-    const handleUnlock = () => {
-        if (unlockCode.trim().toUpperCase() === 'LOVE2025') {
-            localStorage.setItem('is_premium_user', 'true');
-            setIsPremium(true);
-            setShowPaywall(false);
-            toast.success("Welcome to Unlimited Love! ❤️");
-        } else {
-            toast.error("Invalid code. Try again!");
+    const handleUnlock = async () => {
+        if (!unlockCode.trim()) {
+            toast.error("Please enter a code");
+            return;
+        }
+
+        try {
+            const userId = getUserId();
+            const result = await api.redeemCode(userId, unlockCode);
+
+            if (result.success) {
+                const newCredits = result.totalCredits;
+                setCredits(newCredits);
+                localStorage.setItem('chat_credits', newCredits.toString());
+                localStorage.setItem('is_premium_user', 'true');
+                setIsPremium(true);
+                setShowPaywall(false);
+                setUnlockCode('');
+                toast.success(`Unlocked! You have ${newCredits} messages. ❤️`);
+            } else {
+                toast.error(result.message || "Invalid code. Try again!");
+            }
+        } catch (error: any) {
+            toast.error(error.message || "Invalid code. Try again!");
         }
     };
 
     const onSubmitWrapper = (e?: React.FormEvent, msg?: string) => {
         if (e) e.preventDefault();
 
-        // Strict Paywall Check
+        // Count user messages in current session
         const userMsgCount = messages.filter(m => m.role === 'user').length;
-        if (!isPremium && userMsgCount >= FREE_LIMIT) {
+
+        // If they have paid credits, they can always chat
+        if (credits > 0 || isPremium) {
+            // Deduct local credit for snappy UI (backend will sync)
+            if (credits > 0) {
+                const nextCredits = credits - 1;
+                setCredits(nextCredits);
+                localStorage.setItem('chat_credits', nextCredits.toString());
+            }
+        } else if (userMsgCount >= FREE_LIMIT) {
             setShowPaywall(true);
             return;
         }
@@ -109,7 +149,8 @@ export const ChatUI: React.FC<ChatUIProps> = ({ persona }) => {
                                 <h2 className="font-semibold text-[var(--text-primary)] text-sm">{persona.name}</h2>
                                 <p className="text-xs text-[var(--text-muted)] flex items-center gap-1">
                                     {isLoading ? 'typing...' : 'online'}
-                                    {isPremium && <Sparkles size={10} className="text-yellow-400" />}
+                                    {credits > 0 && <span className="text-pink-400 font-medium ml-2">{credits} msgs left</span>}
+                                    {isPremium && credits === 0 && <Sparkles size={10} className="text-yellow-400" />}
                                 </p>
                             </div>
                         </div>
@@ -177,10 +218,10 @@ export const ChatUI: React.FC<ChatUIProps> = ({ persona }) => {
                             <div className="w-16 h-16 bg-pink-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
                                 <Lock className="w-8 h-8 text-pink-500" />
                             </div>
-                            <h3 className="text-2xl font-bold text-white">Unlock Unlimited Love</h3>
+                            <h3 className="text-2xl font-bold text-white">Unlock {persona.name}</h3>
                             <p className="text-slate-400">
-                                You've reached the free limit with {persona.name}.
-                                Continue your private conversation forever.
+                                You've reached the free limit.
+                                Get **500 private messages** with {persona.name} for just $1.99.
                             </p>
                         </div>
 
@@ -213,7 +254,42 @@ export const ChatUI: React.FC<ChatUIProps> = ({ persona }) => {
                                     onChange={(e) => setUnlockCode(e.target.value)}
                                 />
                                 <Button variant="outline" onClick={handleUnlock}>
-                                    Apply
+                                    Apply Code
+                                </Button>
+                            </div>
+
+                            <div className="relative">
+                                <div className="absolute inset-0 flex items-center">
+                                    <span className="w-full border-t border-slate-700" />
+                                </div>
+                                <div className="relative flex justify-center text-xs uppercase">
+                                    <span className="bg-slate-900 px-2 text-slate-500">Or use Transaction ID</span>
+                                </div>
+                            </div>
+
+                            <div className="flex gap-2">
+                                <Input
+                                    placeholder="Enter PayPal Txn ID"
+                                    className="bg-slate-800 border-slate-700 text-white"
+                                    value={unlockCode.startsWith('PAY-') ? '' : unlockCode}
+                                    onChange={(e) => setUnlockCode(e.target.value)}
+                                />
+                                <Button variant="secondary" onClick={async () => {
+                                    if (!unlockCode) return toast.error("Enter Txn ID");
+                                    try {
+                                        const res = await api.verifyPayPalPayment(getUserId(), unlockCode);
+                                        if (res.success) {
+                                            const newCredits = res.granted;
+                                            setCredits(prev => prev + newCredits);
+                                            localStorage.setItem('chat_credits', (credits + newCredits).toString());
+                                            setShowPaywall(false);
+                                            toast.success("Transaction verified! Credits added. 🚀");
+                                        }
+                                    } catch (err: any) {
+                                        toast.error("Could not verify transaction.");
+                                    }
+                                }}>
+                                    Verify
                                 </Button>
                             </div>
                         </div>
