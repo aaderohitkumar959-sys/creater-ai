@@ -14,7 +14,6 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "react-hot-toast";
 import { AdminChatViewer } from "@/components/admin/AdminChatViewer";
 
@@ -22,7 +21,6 @@ export default function AdminUsersPage() {
     const [users, setUsers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
-    const [page, setPage] = useState(1);
     const [page, setPage] = useState(1);
     const [meta, setMeta] = useState<any>(null);
     const [viewerOpen, setViewerOpen] = useState(false);
@@ -115,21 +113,21 @@ export default function AdminUsersPage() {
                                     </div>
                                 </TableCell>
                                 <TableCell className="text-right">
-                                    <div className="flex justify-end gap-2">
-                                        {user.role !== 'ADMIN' && (
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                onClick={() => handleRoleUpdate(user.id, 'ADMIN')}
-                                            >
-                                                Make Admin
+                                    <div className="flex flex-col items-end gap-2">
+                                        <div className="flex justify-end gap-2">
+                                            {user.role !== 'ADMIN' && (
+                                                <Button
+                                                    variant="outline"
+                                                    size="sm"
+                                                    onClick={() => handleRoleUpdate(user.id, 'ADMIN')}
+                                                >
+                                                    Make Admin
+                                                </Button>
+                                            )}
+                                            <Button variant="ghost" size="sm">
+                                                Details
                                             </Button>
-                                        )}
-                                        <Button variant="ghost" size="sm">
-                                            Details
-                                        </Button>
-                                    </div>
-                                    <div className="flex justify-end gap-2 mt-2">
+                                        </div>
                                         <Button
                                             variant="outline"
                                             size="sm"
@@ -172,16 +170,13 @@ export default function AdminUsersPage() {
                     </div>
                 </div>
             )}
-        </div>
-    )
-}
 
-<AdminChatViewer
-    isOpen={viewerOpen}
-    onClose={() => setViewerOpen(false)}
-    userId={selectedUser?.id || null}
-    userName={selectedUser?.name || 'User'}
-/>
-        </div >
+            <AdminChatViewer
+                isOpen={viewerOpen}
+                onClose={() => setViewerOpen(false)}
+                userId={selectedUser?.id || null}
+                userName={selectedUser?.name || 'User'}
+            />
+        </div>
     );
 }
