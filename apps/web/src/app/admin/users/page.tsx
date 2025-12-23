@@ -14,14 +14,19 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "react-hot-toast";
+import { AdminChatViewer } from "@/components/admin/AdminChatViewer";
 
 export default function AdminUsersPage() {
     const [users, setUsers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState("");
     const [page, setPage] = useState(1);
+    const [page, setPage] = useState(1);
     const [meta, setMeta] = useState<any>(null);
+    const [viewerOpen, setViewerOpen] = useState(false);
+    const [selectedUser, setSelectedUser] = useState<{ id: string; name: string } | null>(null);
 
     const loadUsers = async () => {
         setLoading(true);
@@ -124,6 +129,19 @@ export default function AdminUsersPage() {
                                             Details
                                         </Button>
                                     </div>
+                                    <div className="flex justify-end gap-2 mt-2">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            className="text-blue-400 border-blue-400/20 hover:bg-blue-400/10"
+                                            onClick={() => {
+                                                setSelectedUser({ id: user.id, name: user.name || 'Unnamed' });
+                                                setViewerOpen(true);
+                                            }}
+                                        >
+                                            View Chats
+                                        </Button>
+                                    </div>
                                 </TableCell>
                             </TableRow>
                         ))}
@@ -155,5 +173,15 @@ export default function AdminUsersPage() {
                 </div>
             )}
         </div>
+    )
+}
+
+<AdminChatViewer
+    isOpen={viewerOpen}
+    onClose={() => setViewerOpen(false)}
+    userId={selectedUser?.id || null}
+    userName={selectedUser?.name || 'User'}
+/>
+        </div >
     );
 }

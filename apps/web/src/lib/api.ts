@@ -133,5 +133,13 @@ export const api = {
             body: JSON.stringify({ userId, paypalTxnId }),
         });
     },
+    // Admin Chat Viewer
+    getAdminUserConversations: async (userId: string) => {
+        return fetchWithAuth(`/admin/users/${userId}/conversations`);
+    },
+
+    getAdminConversationMessages: async (conversationId: string) => {
+        return fetchWithAuth(`/admin/conversations/${conversationId}/messages`);
+    },
 };
 

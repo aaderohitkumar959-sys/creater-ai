@@ -19,7 +19,7 @@ export class AdminController {
   constructor(
     private analyticsService: AnalyticsService,
     private prisma: PrismaService,
-  ) {}
+  ) { }
 
   // Temporary: Public stats endpoint for development (NO auth guards for testing)
   @Get('stats')
@@ -62,11 +62,11 @@ export class AdminController {
 
     const where = search
       ? {
-          OR: [
-            { email: { contains: search, mode: 'insensitive' as const } },
-            { name: { contains: search, mode: 'insensitive' as const } },
-          ],
-        }
+        OR: [
+          { email: { contains: search, mode: 'insensitive' as const } },
+          { name: { contains: search, mode: 'insensitive' as const } },
+        ],
+      }
       : {};
 
     const [users, total] = await Promise.all([
@@ -101,6 +101,36 @@ export class AdminController {
     return this.prisma.user.update({
       where: { id },
       data: { role: body.role },
+    });
+  }
+
+  // --- Chat Viewer Endpoints ---
+
+  @Get('users/:id/conversations')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  async getUserConversations(@Param('id') userId: string) {
+    return this.prisma.conversation.findMany({
+      where: { userId },
+      include: {
+        persona: {
+          select: { name: true, avatarUrl: true, role: true }, // Verify 'role' exists in schema if needed, or stick to basics
+        },
+        _count: {
+          select: { messages: true },
+        },
+      },
+      orderBy: { updatedAt: 'desc' },
+    });
+  }
+
+  @Get('conversations/:id/messages')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('ADMIN')
+  async getConversationMessages(@Param('id') conversationId: string) {
+    return this.prisma.message.findMany({
+      where: { conversationId },
+      orderBy: { createdAt: 'asc' },
     });
   }
 }
