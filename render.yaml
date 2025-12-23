@@ -3,7 +3,7 @@ services:
     name: creator-ai-api
     env: node
     plan: free
-    buildCommand: npm install --include=dev && npx turbo build --filter=api
+    buildCommand: npm ci --workspaces --include=dev && cd packages/database && npx prisma generate && cd ../.. && npx turbo build --filter=api
     startCommand: node apps/api/dist/main.js
     envVars:
       - key: NODE_ENV
