@@ -14,8 +14,41 @@ import toast from 'react-hot-toast';
 import { api } from '@/lib/api';
 
 interface ChatUIProps {
-    persona: { id: string; name: string; avatar: string };
+    persona: { id: string; name: string; avatar: string; description?: string };
 }
+
+const ChatHero = ({ persona, credits, isPremium }: { persona: any, credits: number, isPremium: boolean }) => (
+    <div className="flex flex-col items-center justify-center py-12 px-6 text-center space-y-4 animate-in fade-in slide-in-from-top-4 duration-700">
+        <div className="relative group">
+            <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+            <div className="relative w-28 h-28 rounded-full overflow-hidden border-2 border-white/10 shadow-2xl">
+                <img src={persona.avatar} alt={persona.name} className="w-full h-full object-cover transform transition-transform duration-500 group-hover:scale-110" />
+            </div>
+        </div>
+        <div className="space-y-1">
+            <h1 className="text-3xl font-bold text-white tracking-tight">{persona.name}</h1>
+            <p className="text-sm text-[var(--text-secondary)] max-w-[240px] leading-relaxed">
+                {persona.description || "Your private AI companion. Ready to chat about anything."}
+            </p>
+        </div>
+        <div className="flex gap-2">
+            <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[10px] text-[var(--text-muted)] flex items-center gap-1">
+                <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                Always Online
+            </span>
+            {credits > 0 && (
+                <span className="px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-[10px] text-blue-400 font-medium">
+                    {credits} msgs
+                </span>
+            )}
+            {isPremium && (
+                <span className="px-3 py-1 rounded-full bg-yellow-500/10 border border-yellow-500/20 text-[10px] text-yellow-500 font-medium flex items-center gap-1">
+                    <Sparkles size={10} /> Premium
+                </span>
+            )}
+        </div>
+    </div>
+);
 
 export const ChatUI: React.FC<ChatUIProps> = ({ persona }) => {
     const router = useRouter();
@@ -132,7 +165,7 @@ export const ChatUI: React.FC<ChatUIProps> = ({ persona }) => {
     };
 
     return (
-        <div className="h-[100dvh] flex flex-col bg-[var(--bg-primary)] relative overflow-hidden">
+        <div className="flex-1 flex flex-col bg-[var(--bg-primary)] relative overflow-hidden">
             {/* Top Bar */}
             <div className="glass-medium border-b border-[var(--border-medium)] backdrop-blur-xl sticky top-0 z-10">
                 <div className="container-mobile h-16 flex items-center justify-between">
@@ -162,8 +195,11 @@ export const ChatUI: React.FC<ChatUIProps> = ({ persona }) => {
                 </div>
             </div>
 
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4">
+            {/* Messages Area */}
+            <div className="flex-1 overflow-y-auto px-4 py-2 space-y-4 scroll-smooth">
+                {/* Character Hero Header */}
+                <ChatHero persona={persona} credits={credits} isPremium={isPremium} />
+
                 {messages.map(m => (
                     <MessageBubble
                         key={m.id}

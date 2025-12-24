@@ -8,6 +8,11 @@
   box-sizing: border-box;
 }
 
+html,
+body {
+  height: 100%;
+}
+
 /* CreatorAI Premium Design System - Dark Theme (Default) */
 :root,
 :root.dark {

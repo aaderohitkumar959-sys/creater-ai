@@ -14,7 +14,7 @@ export function LayoutContent({ children }: { children: React.ReactNode }) {
     return (
         <>
             {/* Main content with bottom padding for nav, except on chat pages */}
-            <div className={cn("min-h-[100dvh] flex flex-col", !isChatPage && "pb-20")}>
+            <div className={cn("h-[100dvh] flex flex-col overflow-hidden", !isChatPage && "pb-20")}>
                 {children}
             </div>
 
