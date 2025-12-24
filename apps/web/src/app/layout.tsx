@@ -1,11 +1,7 @@
-"use client";
-
 import type { Metadata } from "next";
 import "./globals.css";
 import { Providers } from "@/components/providers";
-import { Toaster } from 'react-hot-toast';
-import { DailyRewardCheck } from '@/components/gamification/DailyRewardCheck';
-import { BottomNav } from '@/components/navigation/bottom-nav';
+import { LayoutContent } from "@/components/layout/LayoutContent";
 import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 
@@ -19,17 +15,11 @@ export const metadata: Metadata = {
   },
 };
 
-import { usePathname } from 'next/navigation';
-import { cn } from '@/lib/utils';
-
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const pathname = usePathname();
-  const isChatPage = pathname?.includes('/chat') || pathname?.includes('/public-chat');
-
   console.log("ROOT LAYOUT LOADED", Date.now());
   return (
     <html lang="en" suppressHydrationWarning style={{ backgroundColor: '#0B0F14' }}>
@@ -45,29 +35,9 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <Providers>
-          {/* Main content with bottom padding for nav, except on chat pages */}
-          <div className={cn("min-h-[100dvh] flex flex-col", !isChatPage && "pb-20")}>
+          <LayoutContent>
             {children}
-          </div>
-
-          {/* Bottom Navigation */}
-          <BottomNav />
-
-          {/* Daily Reward Check (runs on mount) */}
-          <DailyRewardCheck />
-
-          {/* Toast Notifications */}
-          <Toaster
-            position="top-center"
-            toastOptions={{
-              duration: 3000,
-              style: {
-                background: '#1E293B',
-                color: '#F8FAFC',
-                border: '1px solid #334155',
-              },
-            }}
-          />
+          </LayoutContent>
 
           {/* Vercel Analytics - Privacy-friendly page tracking */}
           <Analytics />
