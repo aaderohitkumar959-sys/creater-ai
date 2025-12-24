@@ -247,6 +247,18 @@
   .backdrop-blur-premium {
     backdrop-filter: blur(20px) saturate(180%);
   }
+
+  .container-mobile {
+    @apply w-full max-w-[500px] mx-auto px-4;
+  }
+
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .touch-target {
+    @apply min-h-[44px] min-w-[44px];
+  }
 }
 
 /* Custom animations */

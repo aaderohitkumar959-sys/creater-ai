@@ -1,3 +1,5 @@
+"use client";
+
 import type { Metadata } from "next";
 import "./globals.css";
 import { Providers } from "@/components/providers";
@@ -17,11 +19,17 @@ export const metadata: Metadata = {
   },
 };
 
+import { usePathname } from 'next/navigation';
+import { cn } from '@/lib/utils';
+
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const pathname = usePathname();
+  const isChatPage = pathname?.includes('/chat') || pathname?.includes('/public-chat');
+
   console.log("ROOT LAYOUT LOADED", Date.now());
   return (
     <html lang="en" suppressHydrationWarning style={{ backgroundColor: '#0B0F14' }}>
@@ -29,6 +37,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0" />
       </head>
       <body
         className="antialiased bg-[var(--bg-primary)] text-[var(--text-primary)]"
@@ -36,8 +45,8 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <Providers>
-          {/* Main content with bottom padding for nav */}
-          <div className="pb-20">
+          {/* Main content with bottom padding for nav, except on chat pages */}
+          <div className={cn("min-h-[100dvh] flex flex-col", !isChatPage && "pb-20")}>
             {children}
           </div>
 

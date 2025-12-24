@@ -78,6 +78,10 @@ export const BottomNav: React.FC = () => {
         return item.activePattern.test(pathname || '/');
     };
 
+    // Hide BottomNav on chat pages
+    const isChatPage = pathname?.includes('/chat') || pathname?.includes('/public-chat');
+    if (isChatPage) return null;
+
     return (
         <nav
             className="fixed bottom-0 left-0 right-0 z-50 safe-bottom glass-medium border-t border-[var(--border-medium)]"
