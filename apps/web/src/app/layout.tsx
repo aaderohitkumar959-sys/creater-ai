@@ -6,12 +6,31 @@ import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/next';
 
 export const metadata: Metadata = {
-  title: "Syelope - AI Character Platform",
-  description: "Chat with unique AI personalities. Your AI companion awaits.",
+  title: {
+    default: "Syelope - AI Characters That Listen & Care",
+    template: "%s | Syelope"
+  },
+  description: "Syelope is a private AI character chat platform where users can talk freely, feel understood, and connect emotionally with AI characters.",
   manifest: "/manifest.json",
   icons: {
     icon: "/favicon.ico",
     apple: "/icon-192x192.png",
+  },
+  verification: {
+    google: "o1x9_gl5NqiQCYzRxaUFVgOpN4tPs2IB8S9UkqP8N8M",
+  },
+  openGraph: {
+    type: "website",
+    siteName: "Syelope",
+    title: "Syelope – AI Characters That Listen & Care",
+    description: "Syelope is a private AI character chat platform where users can talk freely, feel understood, and connect emotionally with AI characters.",
+    images: ["/syelope-logo.jpg"],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Syelope – AI Characters That Listen & Care",
+    description: "Syelope is a private AI character chat platform where users can talk freely, feel understood, and connect emotionally with AI characters.",
+    images: ["/syelope-logo.jpg"],
   },
 };
 
