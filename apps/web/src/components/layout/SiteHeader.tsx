@@ -15,9 +15,9 @@ export function SiteHeader() {
             <nav className="border-b border-border backdrop-blur-xl bg-glass sticky top-0 z-50">
                 <div className="container mx-auto px-4 py-4 flex justify-between items-center">
                     <Link href="/" className="flex items-center gap-2">
-                        <Sparkles className="w-8 h-8 text-primary animate-float" />
+                        <img src="/syelope-logo.jpg" alt="Syelope" className="w-8 h-8 rounded-lg object-contain" />
                         <span className="text-2xl font-bold text-gradient">
-                            CreatorAI
+                            Syelope
                         </span>
                     </Link>
 

@@ -60,8 +60,8 @@ export const TopBar: React.FC<TopBarProps> = ({
                     className="flex items-center gap-2 cursor-pointer"
                     onClick={() => router.push('/')}
                 >
-                    <div className="w-8 h-8 rounded-lg bg-gradient-accent flex items-center justify-center">
-                        <span className="text-white font-bold text-lg">S</span>
+                    <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center border border-white/10">
+                        <img src="/syelope-logo.jpg" alt="Syelope Logo" className="w-full h-full object-contain" />
                     </div>
                     <span className="text-xl font-bold text-gradient hidden sm:block">
                         Syelope

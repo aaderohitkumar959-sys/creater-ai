@@ -219,7 +219,7 @@ export default function MemoryViewerPage() {
                     <div className="flex items-center justify-between mb-6">
                         <div>
                             <h1 className="text-4xl font-bold text-white mb-2 flex items-center gap-3">
-                                <Brain className="w-10 h-10 text-violet-400" />
+                                <img src="/syelope-logo.jpg" alt="" className="w-10 h-10 rounded-lg object-contain border border-white/10" />
                                 AI Memory
                             </h1>
                             <p className="text-gray-300">
@@ -279,8 +279,8 @@ export default function MemoryViewerPage() {
                             key={type}
                             onClick={() => setSelectedType(type)}
                             className={`px-4 py-2 rounded-lg font-medium transition-colors ${selectedType === type
-                                    ? 'bg-violet-600 text-white'
-                                    : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700'
+                                ? 'bg-violet-600 text-white'
+                                : 'bg-gray-800/50 text-gray-300 hover:bg-gray-700'
                                 }`}
                         >
                             {type === 'ALL' ? 'All' : `${getTypeIcon(type)} ${type}`}
