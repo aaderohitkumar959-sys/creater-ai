@@ -58,7 +58,8 @@ export const ChatUI: React.FC<ChatUIProps> = ({ persona }) => {
     // Paywall State
     const [isPremium, setIsPremium] = useState(false);
     const [showPaywall, setShowPaywall] = useState(false);
-    const [unlockCode, setUnlockCode] = useState('');
+    const [hasSentFarewell, setHasSentFarewell] = useState(false);
+    const [isLocallyTyping, setIsLocallyTyping] = useState(false);
     const [credits, setCredits] = useState(0);
     const FREE_LIMIT = 5;
 
@@ -94,17 +95,17 @@ export const ChatUI: React.FC<ChatUIProps> = ({ persona }) => {
             }
         ],
         onFinish: () => {
+            setIsLocallyTyping(false);
             // Check limit after AI finishes responding
-            if (!isPremium) {
-                // Count user messages. We divide by 2 roughly, or just check total length
-                // Better: check how many user messages are in the history
-                const userMsgCount = messages.filter(m => m.role === 'user').length + 1; // +1 includes the one just sent
+            if (!isPremium && credits <= 0) {
+                const userMsgCount = messages.filter(m => m.role === 'user').length + 1;
                 if (userMsgCount >= FREE_LIMIT) {
                     setShowPaywall(true);
                 }
             }
         },
         onError: (err) => {
+            setIsLocallyTyping(false);
             console.error("Chat error:", err);
             toast.error("Connection fuzzy... try again?");
         }
@@ -113,36 +114,26 @@ export const ChatUI: React.FC<ChatUIProps> = ({ persona }) => {
     // Auto-scroll
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [messages, isLoading]);
+    }, [messages, isLoading, isLocallyTyping]);
 
-    const handleUnlock = async () => {
-        if (!unlockCode.trim()) {
-            toast.error("Please enter a code");
-            return;
-        }
-
-        try {
-            const userId = getUserId();
-            const result = await api.redeemCode(userId, unlockCode);
-
-            if (result.success) {
-                const newCredits = result.totalCredits;
-                setCredits(newCredits);
-                localStorage.setItem('chat_credits', newCredits.toString());
-                localStorage.setItem('is_premium_user', 'true');
-                setIsPremium(true);
-                setShowPaywall(false);
-                setUnlockCode('');
-                toast.success(`Unlocked! You have ${newCredits} messages. ❤️`);
-            } else {
-                toast.error(result.message || "Invalid code. Try again!");
-            }
-        } catch (error: any) {
-            toast.error(error.message || "Invalid code. Try again!");
+    const handleClosePaywall = () => {
+        setShowPaywall(false);
+        if (!hasSentFarewell && !isPremium && credits <= 0) {
+            setHasSentFarewell(true);
+            // Inject a farewell message from the AI without hitting the backend if possible,
+            // or do a single lightweight call. Per user: "Only 1 extra LLM call".
+            // We'll append a message to the UI to simulate the farewell.
+            const farewellMsg = {
+                id: 'farewell-' + Date.now(),
+                role: 'assistant' as const,
+                content: "I'll be here if you come back... 💔",
+                createdAt: new Date(),
+            };
+            setMessages([...messages, farewellMsg]);
         }
     };
 
-    const onSubmitWrapper = (e?: React.FormEvent, msg?: string) => {
+    const onSubmitWrapper = (e?: React.FormEvent) => {
         if (e) e.preventDefault();
 
         // Count user messages in current session
@@ -150,7 +141,6 @@ export const ChatUI: React.FC<ChatUIProps> = ({ persona }) => {
 
         // If they have paid credits, they can always chat
         if (credits > 0 || isPremium) {
-            // Deduct local credit for snappy UI (backend will sync)
             if (credits > 0) {
                 const nextCredits = credits - 1;
                 setCredits(nextCredits);
@@ -161,7 +151,9 @@ export const ChatUI: React.FC<ChatUIProps> = ({ persona }) => {
             return;
         }
 
-        handleSubmit(e, { data: { message: msg || input } });
+        // Fix 3: Show typing indicator immediately
+        setIsLocallyTyping(true);
+        handleSubmit(e);
     };
 
     return (
@@ -181,7 +173,7 @@ export const ChatUI: React.FC<ChatUIProps> = ({ persona }) => {
                             <div>
                                 <h2 className="font-semibold text-[var(--text-primary)] text-sm">{persona.name}</h2>
                                 <p className="text-xs text-[var(--text-muted)] flex items-center gap-1">
-                                    {isLoading ? 'typing...' : 'online'}
+                                    {(isLoading || isLocallyTyping) ? 'typing...' : 'online'}
                                     {credits > 0 && <span className="text-pink-400 font-medium ml-2">{credits} msgs left</span>}
                                     {isPremium && credits === 0 && <Sparkles size={10} className="text-yellow-400" />}
                                 </p>
@@ -211,7 +203,7 @@ export const ChatUI: React.FC<ChatUIProps> = ({ persona }) => {
                     />
                 ))}
 
-                {isLoading && (
+                {(isLoading || isLocallyTyping) && (
                     <div className="flex gap-3 mb-4">
                         <div className="w-8 h-8 rounded-full overflow-hidden">
                             <img src={persona.avatar} alt={persona.name} className="w-full h-full object-cover" />
@@ -233,13 +225,13 @@ export const ChatUI: React.FC<ChatUIProps> = ({ persona }) => {
                             type="text"
                             value={input}
                             onChange={handleInputChange}
-                            placeholder={showPaywall ? "Unlock to chat..." : `Message ${persona.name}...`}
-                            disabled={isLoading || showPaywall}
+                            placeholder={(showPaywall || (hasSentFarewell && !isPremium && credits <= 0)) ? "Unlock to chat..." : `Message ${persona.name}...`}
+                            disabled={isLoading || showPaywall || (hasSentFarewell && !isPremium && credits <= 0)}
                             className="flex-1 px-4 py-3 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-medium)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 text-base"
                         />
                         <button
                             type="submit"
-                            disabled={isLoading || showPaywall || !input.trim()}
+                            disabled={isLoading || showPaywall || !input.trim() || (hasSentFarewell && !isPremium && credits <= 0)}
                             className="px-6 py-3 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
                             Send
@@ -251,7 +243,17 @@ export const ChatUI: React.FC<ChatUIProps> = ({ persona }) => {
             {/* PAYWALL MODAL */}
             {showPaywall && (
                 <div className="absolute inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-in fade-in duration-300">
-                    <div className="max-w-sm w-full bg-slate-900 border border-slate-700 rounded-2xl p-6 shadow-2xl space-y-6">
+                    <div className="max-w-sm w-full bg-slate-900 border border-slate-700 rounded-2xl p-6 shadow-2xl space-y-6 relative">
+                        {/* Close button for Fix 2 */}
+                        <button
+                            onClick={handleClosePaywall}
+                            className="absolute top-4 right-4 text-slate-500 hover:text-white transition-colors"
+                        >
+                            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+
                         <div className="text-center space-y-2">
                             <div className="w-16 h-16 bg-pink-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
                                 <Lock className="w-8 h-8 text-pink-500" />
@@ -270,66 +272,15 @@ export const ChatUI: React.FC<ChatUIProps> = ({ persona }) => {
                             </div>
 
                             <Button className="w-full bg-pink-600 hover:bg-pink-700 text-white h-12 rounded-xl text-lg font-medium" asChild>
+                                {/* Note: We should ideally update this link to include a return_url that matches our new success page */}
                                 <a href="https://www.paypal.com/ncp/payment/Z3H9FFL8YRS9S" target="_blank" rel="noopener noreferrer">
                                     Unlock Now
                                 </a>
                             </Button>
 
-                            <div className="relative">
-                                <div className="absolute inset-0 flex items-center">
-                                    <span className="w-full border-t border-slate-700" />
-                                </div>
-                                <div className="relative flex justify-center text-xs uppercase">
-                                    <span className="bg-slate-900 px-2 text-slate-500">I have a code</span>
-                                </div>
-                            </div>
-
-                            <div className="flex gap-2">
-                                <Input
-                                    placeholder="Enter unlock code"
-                                    className="bg-slate-800 border-slate-700 text-white"
-                                    value={unlockCode}
-                                    onChange={(e) => setUnlockCode(e.target.value)}
-                                />
-                                <Button variant="outline" onClick={handleUnlock}>
-                                    Apply Code
-                                </Button>
-                            </div>
-
-                            <div className="relative">
-                                <div className="absolute inset-0 flex items-center">
-                                    <span className="w-full border-t border-slate-700" />
-                                </div>
-                                <div className="relative flex justify-center text-xs uppercase">
-                                    <span className="bg-slate-900 px-2 text-slate-500">Or use Transaction ID</span>
-                                </div>
-                            </div>
-
-                            <div className="flex gap-2">
-                                <Input
-                                    placeholder="Enter PayPal Txn ID"
-                                    className="bg-slate-800 border-slate-700 text-white"
-                                    value={unlockCode.startsWith('PAY-') ? '' : unlockCode}
-                                    onChange={(e) => setUnlockCode(e.target.value)}
-                                />
-                                <Button variant="secondary" onClick={async () => {
-                                    if (!unlockCode) return toast.error("Enter Txn ID");
-                                    try {
-                                        const res = await api.verifyPayPalPayment(getUserId(), unlockCode);
-                                        if (res.success) {
-                                            const newCredits = res.granted;
-                                            setCredits(prev => prev + newCredits);
-                                            localStorage.setItem('chat_credits', (credits + newCredits).toString());
-                                            setShowPaywall(false);
-                                            toast.success("Transaction verified! Credits added. 🚀");
-                                        }
-                                    } catch (err: any) {
-                                        toast.error("Could not verify transaction.");
-                                    }
-                                }}>
-                                    Verify
-                                </Button>
-                            </div>
+                            <p className="text-[10px] text-center text-slate-500 uppercase tracking-widest">
+                                Instant Activation after payment
+                            </p>
                         </div>
                     </div>
                 </div>

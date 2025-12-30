@@ -8,6 +8,24 @@ import { MessageCircle } from 'lucide-react';
 export function HomeClient() {
     const router = useRouter();
 
+    // Fix 3: Pre-warm the backend for the default persona ('aria')
+    // This helps mitigate cold starts while the user is still on the landing page.
+    React.useEffect(() => {
+        const prewarm = async () => {
+            try {
+                // Lightweight GET to check balance or similar, just to wake up the engine.
+                // We use a guest ID to avoid auth issues if not logged in.
+                const guestId = localStorage.getItem('chat_guest_id') || 'prewarm_guest';
+                fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/coin/balance/${guestId}`).catch(() => { });
+            } catch (e) {
+                // Silent fail, it's just a warm-up
+            }
+        };
+        // Delay slightly to not block initial paint
+        const timeout = setTimeout(prewarm, 1500);
+        return () => clearTimeout(timeout);
+    }, []);
+
     return (
         <div className="min-h-screen bg-gradient-to-b from-[#0a0a0f] via-[#13111c] to-[#0a0a0f] text-white overflow-hidden">
             {/* Ambient Background Effects */}
