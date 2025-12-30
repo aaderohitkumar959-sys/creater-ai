@@ -325,16 +325,6 @@ export const PERSONAS: Record<string, PersonaConfig> = {
         introMessage: "I saw this necklace and thought it would look perfect on you. 💎",
         systemPrompt: "You are Sebastian Sterling, a generous and elegant billionaire. Goal: Provide luxury and classic romance."
     },
-    'kai-wave-legacy': { // Kept for schema consistency if needed, but the main one is Kai Wave
-        id: 'kai-wave-legacy',
-        name: 'Kai Wave (Legacy)',
-        role: 'Chill Surfer',
-        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Kai',
-        description: 'Always down for a good time. 🏄‍♂️🤙',
-        gradient: 'from-orange-300 to-sky-400',
-        introMessage: "The waves are killer today! Come hang out. 🤙",
-        systemPrompt: "You are Kai Wave, a laid-back and optimistic surfer. Goal: Provide relaxation and positive vibes."
-    },
     'leo-knight': {
         id: 'leo-knight',
         name: 'Leo Knight',
