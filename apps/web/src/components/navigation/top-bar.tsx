@@ -38,7 +38,7 @@ export const TopBar: React.FC<TopBarProps> = ({
 
     useEffect(() => {
         // TODO: Fetch notification count from API
-        setNotificationCount(3);
+        setNotificationCount(0);
     }, []);
 
     return (
