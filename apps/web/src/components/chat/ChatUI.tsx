@@ -176,7 +176,14 @@ export const ChatUI: React.FC<ChatUIProps> = ({ persona }) => {
                                 <img src={persona.avatar} alt={persona.name} className="w-full h-full object-cover" />
                             </div>
                             <div>
-                                <h2 className="font-semibold text-[var(--text-primary)] text-sm">{persona.name}</h2>
+                                <div className="flex items-center gap-2">
+                                    <h2 className="font-semibold text-[var(--text-primary)] text-sm">{persona.name}</h2>
+                                    {isPremium ? (
+                                        <span className="text-[8px] px-1.5 py-0.5 rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20 font-bold uppercase tracking-widest">Eternal</span>
+                                    ) : (
+                                        <span className="text-[8px] px-1.5 py-0.5 rounded-md bg-pink-500/10 text-pink-400 border border-pink-500/20 font-bold uppercase tracking-widest animate-pulse">Fragile</span>
+                                    )}
+                                </div>
                                 <p className="text-xs text-[var(--text-muted)] flex items-center gap-1">
                                     {(isLoading || isLocallyTyping) ? 'is writing...' : 'is here'}
                                     {isPremium && <Sparkles size={8} className="text-yellow-400/50" />}
