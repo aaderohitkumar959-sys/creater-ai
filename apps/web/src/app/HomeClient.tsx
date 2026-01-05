@@ -37,21 +37,21 @@ export function HomeClient() {
             {/* Content */}
             <div className="relative z-10 pb-20">
                 {/* Logo Section */}
-                <div className="pt-16 pb-8 px-6 flex flex-col items-center">
+                <div className="pt-10 md:pt-16 pb-6 md:pb-8 px-6 flex flex-col items-center">
                     <div className="relative">
                         {/* Logo Glow Effect */}
                         <div className="absolute inset-0 blur-2xl opacity-50">
                             <img
                                 src="/syelope-logo.jpg"
                                 alt=""
-                                className="w-40 h-40 object-contain"
+                                className="w-28 h-28 md:w-40 md:h-40 object-contain"
                             />
                         </div>
                         {/* Main Logo */}
                         <img
                             src="/syelope-logo.jpg"
                             alt="Syelope"
-                            className="relative w-40 h-40 object-contain drop-shadow-2xl"
+                            className="relative w-28 h-28 md:w-40 md:h-40 object-contain drop-shadow-2xl"
                         />
                     </div>
 
@@ -96,7 +96,7 @@ export function HomeClient() {
                                 <div
                                     key={persona.id}
                                     onClick={() => router.push(`/public-chat/${persona.id}`)}
-                                    className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-white/5 to-transparent border border-white/10 p-6 transition-all duration-500 hover:border-white/30 hover:bg-white/[0.07] active:scale-[0.99] cursor-pointer backdrop-blur-xl"
+                                    className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-white/5 to-transparent border border-white/10 p-4 md:p-6 transition-all duration-500 hover:border-white/30 hover:bg-white/[0.07] active:scale-[0.99] cursor-pointer backdrop-blur-xl"
                                     style={{
                                         animationDelay: `${index * 150}ms`,
                                         animation: 'fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards',
@@ -108,12 +108,12 @@ export function HomeClient() {
 
                                     <div className="flex items-center gap-5 relative z-10">
                                         {/* Avatar */}
-                                        <div className="relative">
-                                            <div className="w-20 h-20 rounded-2xl overflow-hidden border-2 border-white/10 group-hover:border-white/30 transition-all duration-500 shadow-2xl">
+                                        <div className="relative flex-shrink-0">
+                                            <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl overflow-hidden border-2 border-white/10 group-hover:border-white/30 transition-all duration-500 shadow-2xl">
                                                 <img src={persona.avatar} alt={persona.name} className="w-full h-full object-cover grayscale-[0.2] group-hover:grayscale-0 transition-all duration-700" />
                                             </div>
                                             {/* Presence Glow */}
-                                            <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-4 border-[#13111c] shadow-[0_0_15px_rgba(34,197,94,0.5)]"></div>
+                                            <div className="absolute -bottom-1 -right-1 w-4 h-4 md:w-5 md:h-5 bg-green-500 rounded-full border-4 border-[#13111c] shadow-[0_0_15px_rgba(34,197,94,0.5)]"></div>
                                         </div>
 
                                         {/* Info */}

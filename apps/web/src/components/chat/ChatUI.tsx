@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useChat } from 'ai/react';
 import { MessageBubble } from '@/components/chat/message-bubble';
 import { TypingIndicator } from '@/components/chat/typing-indicator';
-import { ArrowLeft, Lock, Sparkles, Star } from 'lucide-react';
+import { ArrowLeft, Lock, Sparkles, Star, SendHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { PERSONAS } from '@/lib/personas';
 import { Button } from '@/components/ui/button';
@@ -18,7 +18,7 @@ interface ChatUIProps {
 }
 
 const ChatHero = ({ persona, credits, isPremium }: { persona: any, credits: number, isPremium: boolean }) => (
-    <div className="flex flex-col items-center justify-center py-12 px-6 text-center space-y-4 animate-in fade-in slide-in-from-top-4 duration-700">
+    <div className="flex flex-col items-center justify-center py-8 md:py-12 px-6 text-center space-y-4 animate-in fade-in slide-in-from-top-4 duration-700">
         <div className="relative group">
             <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-full blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
             <div className="relative w-28 h-28 rounded-full overflow-hidden border-2 border-white/10 shadow-2xl">
@@ -162,7 +162,7 @@ export const ChatUI: React.FC<ChatUIProps> = ({ persona }) => {
             <div className="glass-medium border-b border-[var(--border-medium)] backdrop-blur-xl sticky top-0 z-10">
                 <div className="container-mobile h-16 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <button onClick={() => router.back()} className="p-2 rounded-lg hover:bg-white/5 transition-colors">
+                        <button onClick={() => router.back()} className="p-2 -ml-2 rounded-lg hover:bg-white/5 transition-colors touch-target">
                             <ArrowLeft size={20} className="text-[var(--text-secondary)]" />
                         </button>
 
@@ -187,7 +187,7 @@ export const ChatUI: React.FC<ChatUIProps> = ({ persona }) => {
             </div>
 
             {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto px-4 py-2 space-y-4 scroll-smooth">
+            <div className="flex-1 overflow-y-auto px-3 md:px-4 py-2 space-y-4 scroll-smooth">
                 {/* Character Hero Header */}
                 <ChatHero persona={persona} credits={credits} isPremium={isPremium} />
 
@@ -231,9 +231,9 @@ export const ChatUI: React.FC<ChatUIProps> = ({ persona }) => {
                         <button
                             type="submit"
                             disabled={isLoading || showPaywall || !input.trim() || (hasSentFarewell && !isPremium && credits <= 0)}
-                            className="px-6 py-3 rounded-xl bg-blue-600 text-white font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            className="w-12 h-12 flex-shrink-0 rounded-xl bg-blue-600 text-white flex items-center justify-center hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         >
-                            Send
+                            <SendHorizontal size={20} />
                         </button>
                     </div>
                 </form>

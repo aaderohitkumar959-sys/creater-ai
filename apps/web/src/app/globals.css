@@ -190,7 +190,8 @@ body {
     background-color: #1E293B;
     border-radius: 1rem;
     padding: 0.75rem 1rem;
-    max-width: 80%;
+    max-width: 90%;
+    md: max-width: 80%;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
   }
 
@@ -262,7 +263,11 @@ body {
   }
 
   .touch-target {
-    @apply min-h-[44px] min-w-[44px];
+    @apply min-h-[44px] min-w-[44px] flex items-center justify-center;
+  }
+
+  .touch-target-large {
+    @apply min-h-[56px] min-w-[56px] flex items-center justify-center;
   }
 }
 
