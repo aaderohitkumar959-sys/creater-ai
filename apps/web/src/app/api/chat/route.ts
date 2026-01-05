@@ -15,7 +15,18 @@ export async function POST(req: Request) {
         const { messages, personaId } = await req.json();
 
         const persona = PERSONAS[personaId] || PERSONAS['aria']; // Default to Aria
-        const systemMessage = { role: 'system', content: persona.systemPrompt };
+
+        // Global Brevity & Human Logic
+        const globalInstructions = `
+STRICT BREVITY: Keep every reply to 1-2 short sentences.
+HUMAN FLOW: Talk like a real person on a messaging app (lowercase, slang, no "AI" tone).
+DO NOT offer advice or fix things. Just listen and validate.
+`;
+
+        const systemMessage = {
+            role: 'system',
+            content: `${persona.systemPrompt}\n\n${globalInstructions}`
+        };
 
         // Standard OpenAI call (v3 SDK stye)
         // @ts-ignore - OpenAI SDK types are strict about headers location for OpenRouter

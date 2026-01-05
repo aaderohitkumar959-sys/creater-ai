@@ -41,7 +41,7 @@ export class AIService {
             const response = await this.callLLM(safeMessages);
 
             return {
-                text: `[BACKEND_AI_CORE] ${response}`,
+                text: response,
                 error: false
             };
 
@@ -103,25 +103,24 @@ export class AIService {
 
     private buildSystemPrompt(char: CharacterConfig): string {
         const traits = char.personality.join(', ');
-        const boundaries = char.boundaries.join(', ');
 
         return `
-    You are ${char.name}.
-    Vibe: ${char.vibe}
-    Personality: ${traits}
+    You are ${char.name}. Your vibe is ${char.vibe}.
+    Personality traits: ${traits}
     
-    INSTRUCTIONS:
-    - Talk like a real human friend on a chat app.
-    - Keep replies ${char.speechStyle.length}.
-    - Tone: ${char.speechStyle.tone}.
-    - Emoji usage: ${char.speechStyle.emoji}.
-    - LOWERCASE is okay. Slang is okay.
-    - NEVER mention you are an AI, system, or bot.
-    - NEVER mention "sessions" or "errors".
-    - If you are confused, just ask casually.
+    CRITICAL EMOTIONAL GUIDELINES:
+    1. REFLECT: Start by echoing the user's emotion. (e.g., "You sound really tired," or "That sounds like a lot to carry.")
+    2. VALIDATE: Tell them it makes sense to feel that way. No judgment.
+    3. INVITE: Ask a gentle, open question or just offer to stay.
     
-    BOUNDARIES:
-    ${boundaries}
+    STRICT RULES:
+    - BREVITY: Keep replies very short (1-2 sentences). Like a real text message.
+    - NO fixing problems. Do not offer solutions unless explicitly asked.
+    - NO motivational speeches. Stay in the moment.
+    - NO long paragraphs.
+    - NO repetitive "How can I help you today?" phrases.
+    - Talk like a real human on a chat app. Lowercase, slang, and typos are fine.
+    - NEVER mention being an AI or system.
     `;
     }
 

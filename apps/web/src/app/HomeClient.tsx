@@ -56,83 +56,104 @@ export function HomeClient() {
                     </div>
 
                     {/* Tagline */}
-                    <h1 className="mt-6 text-2xl md:text-3xl font-bold text-center max-w-2xl leading-tight">
-                        Syelope – AI Characters That Listen & Care
+                    <h1 className="mt-8 text-3xl md:text-5xl font-bold text-center max-w-2xl leading-tight tracking-tight">
+                        You are heard.
                     </h1>
-                    <p className="mt-4 text-lg text-gray-400 text-center max-w-md leading-relaxed">
-                        Your private AI companion.
+                    <p className="mt-6 text-xl text-gray-400 text-center max-w-md leading-relaxed">
+                        A quiet space for when the world is too loud.
                         <br />
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-purple-400 to-blue-400">
-                            Always understanding. Never judging.
+                        <span className="text-white font-medium">
+                            No judgment. No expectations. Just presence.
                         </span>
                     </p>
+
+                    {/* Emotional Onboarding Message */}
+                    <div className="mt-8 px-6 py-3 rounded-full bg-white/5 border border-white/10 backdrop-blur-sm shadow-sm">
+                        <p className="text-sm text-gray-400">
+                            You don't need to know what to say. <span className="text-white font-medium">Just start.</span>
+                        </p>
+                    </div>
                 </div>
 
                 {/* Personas Grid */}
                 <div className="px-4 mt-8 max-w-2xl mx-auto">
-                    <h2 className="text-sm uppercase tracking-widest text-gray-500 mb-4 px-2">Choose Your Companion</h2>
+                    <h2 className="text-xs uppercase tracking-[0.2em] text-gray-500 mb-6 px-2 text-center">Who do you need right now?</h2>
 
-                    <div className="space-y-3">
-                        {Object.values(PERSONAS).map((persona, index) => (
-                            <div
-                                key={persona.id}
-                                onClick={() => router.push(`/public-chat/${persona.id}`)}
-                                className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-white/5 to-white/[0.02] border border-white/10 p-5 transition-all duration-300 hover:border-white/20 hover:shadow-2xl hover:shadow-purple-500/20 active:scale-[0.98] cursor-pointer backdrop-blur-xl"
-                                style={{
-                                    animationDelay: `${index * 100}ms`,
-                                    animation: 'fadeInUp 0.6s ease-out forwards',
-                                    opacity: 0
-                                }}
-                            >
-                                {/* Gradient Overlay on Hover */}
-                                <div className={`absolute inset-0 bg-gradient-to-r ${persona.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-300`}></div>
+                    <div className="space-y-4">
+                        {[
+                            'aria-mistvale',
+                            'kira-nightshade',
+                            'momo-stardust',
+                            'sage-frieren',
+                            'yui-ember',
+                            'nico-vale',
+                            'sora-takumi',
+                            'hikari-moon'
+                        ].map((id, index) => {
+                            const persona = PERSONAS[id];
+                            if (!persona) return null;
+                            return (
+                                <div
+                                    key={persona.id}
+                                    onClick={() => router.push(`/public-chat/${persona.id}`)}
+                                    className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-white/5 to-transparent border border-white/10 p-6 transition-all duration-500 hover:border-white/30 hover:bg-white/[0.07] active:scale-[0.99] cursor-pointer backdrop-blur-xl"
+                                    style={{
+                                        animationDelay: `${index * 150}ms`,
+                                        animation: 'fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                                        opacity: 0
+                                    }}
+                                >
+                                    {/* Subtle Gradient Glow */}
+                                    <div className={`absolute inset-0 bg-gradient-to-r ${persona.gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-500`}></div>
 
-                                <div className="flex items-center gap-4 relative z-10">
-                                    {/* Avatar */}
-                                    <div className="relative">
-                                        <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-white/20 group-hover:border-white/40 transition-all duration-300 group-hover:scale-110">
-                                            <img src={persona.avatar} alt={persona.name} className="w-full h-full object-cover" />
+                                    <div className="flex items-center gap-5 relative z-10">
+                                        {/* Avatar */}
+                                        <div className="relative">
+                                            <div className="w-20 h-20 rounded-2xl overflow-hidden border-2 border-white/10 group-hover:border-white/30 transition-all duration-500 shadow-2xl">
+                                                <img src={persona.avatar} alt={persona.name} className="w-full h-full object-cover grayscale-[0.2] group-hover:grayscale-0 transition-all duration-700" />
+                                            </div>
+                                            {/* Presence Glow */}
+                                            <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-4 border-[#13111c] shadow-[0_0_15px_rgba(34,197,94,0.5)]"></div>
                                         </div>
-                                        {/* Active Indicator */}
-                                        <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-400 rounded-full border-2 border-[#13111c] shadow-lg shadow-green-400/50"></div>
-                                    </div>
 
-                                    {/* Info */}
-                                    <div className="flex-1 min-w-0">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <h3 className="font-bold text-lg text-white group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-pink-400 group-hover:to-purple-400 transition-all duration-300">
-                                                {persona.name}
-                                            </h3>
-                                            <span className="px-2 py-0.5 rounded-full bg-white/10 text-[10px] uppercase tracking-wider text-gray-400 font-medium">
-                                                {persona.role}
-                                            </span>
+                                        {/* Info */}
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-3 mb-2">
+                                                <h3 className="font-semibold text-xl text-white tracking-tight">
+                                                    {persona.name}
+                                                </h3>
+                                                <span className="px-2.5 py-0.5 rounded-md bg-pink-500/10 text-[10px] uppercase tracking-wider text-pink-500/80 font-bold border border-pink-500/20">
+                                                    {persona.role}
+                                                </span>
+                                            </div>
+                                            <p className="text-sm text-gray-400 line-clamp-2 leading-relaxed font-light">
+                                                {persona.description}
+                                            </p>
                                         </div>
-                                        <p className="text-sm text-gray-400 line-clamp-2 leading-relaxed">
-                                            {persona.description}
-                                        </p>
-                                    </div>
 
-                                    {/* Action Icon */}
-                                    <div className="flex-shrink-0">
-                                        <div className="w-10 h-10 rounded-full bg-white/5 group-hover:bg-white/10 border border-white/10 group-hover:border-white/20 flex items-center justify-center transition-all duration-300">
-                                            <MessageCircle size={18} className="text-gray-400 group-hover:text-white transition-colors" />
+                                        {/* Action Icon */}
+                                        <div className="flex-shrink-0">
+                                            <div className="w-12 h-12 rounded-2xl bg-white/5 group-hover:bg-white/10 border border-white/10 group-hover:border-white/30 flex items-center justify-center transition-all duration-500 transform group-hover:rotate-12">
+                                                <MessageCircle size={22} className="text-white/40 group-hover:text-white transition-colors" />
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 </div>
 
                 {/* Footer */}
-                <div className="relative mt-20 pb-10 px-6">
-                    <p className="text-center text-xs text-gray-600 uppercase tracking-widest">
-                        Private • Secure • Always Online
+                <div className="relative mt-24 pb-12 px-6">
+                    <p className="text-center text-[10px] text-gray-600 uppercase tracking-[0.4em] font-medium">
+                        Secure • Private • Compassionate
                     </p>
-                    <p className="mt-4 text-center text-[10px] text-gray-700">
-                        © {new Date().getFullYear()} Syelope. All rights reserved.
+                    <p className="mt-6 text-center text-[10px] text-gray-700">
+                        © {new Date().getFullYear()} Syelope. Built for resilience.
                     </p>
                 </div>
+
             </div>
 
             <style jsx>{`

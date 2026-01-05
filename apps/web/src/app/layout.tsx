@@ -7,7 +7,7 @@ import { SpeedInsights } from '@vercel/speed-insights/next';
 
 export const metadata: Metadata = {
   title: {
-    default: "Syelope - AI Characters That Listen & Care",
+    default: "Syelope - You are heard.",
     template: "%s | Syelope"
   },
   description: "Syelope is a private AI character chat platform where users can talk freely, feel understood, and connect emotionally with AI characters.",
@@ -22,14 +22,14 @@ export const metadata: Metadata = {
   openGraph: {
     type: "website",
     siteName: "Syelope",
-    title: "Syelope – AI Characters That Listen & Care",
-    description: "Syelope is a private AI character chat platform where users can talk freely, feel understood, and connect emotionally with AI characters.",
+    title: "Syelope – You are heard.",
+    description: "A private space for when you're overwhelmed. No judgment. No expectations. Just presence.",
     images: ["/syelope-logo.jpg"],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Syelope – AI Characters That Listen & Care",
-    description: "Syelope is a private AI character chat platform where users can talk freely, feel understood, and connect emotionally with AI characters.",
+    title: "Syelope – You are heard.",
+    description: "A private space for when you're overwhelmed. No judgment. No expectations. Just presence.",
     images: ["/syelope-logo.jpg"],
   },
 };

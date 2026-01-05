@@ -29,7 +29,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
     return (
         <div
             className={cn(
-                'flex gap-3 mb-4 animate-fadeIn',
+                'flex gap-3 mb-8 animate-fadeIn',
                 isUser && 'flex-row-reverse'
             )}
         >
@@ -56,12 +56,7 @@ export const MessageBubble: React.FC<MessageBubbleProps> = ({
                     !isUser && 'glass-medium border border-[var(--border-medium)]'
                 )}
             >
-                {/* AI Name (only for AI messages) */}
-                {!isUser && aiName && (
-                    <p className="text-xs font-semibold text-[var(--text-secondary)] mb-1">
-                        {aiName}
-                    </p>
-                )}
+                {/* AI Name removed to reduce clutter */}
 
                 {/* Message Text */}
                 <p className={cn(

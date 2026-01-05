@@ -173,9 +173,8 @@ export const ChatUI: React.FC<ChatUIProps> = ({ persona }) => {
                             <div>
                                 <h2 className="font-semibold text-[var(--text-primary)] text-sm">{persona.name}</h2>
                                 <p className="text-xs text-[var(--text-muted)] flex items-center gap-1">
-                                    {(isLoading || isLocallyTyping) ? 'typing...' : 'online'}
-                                    {credits > 0 && <span className="text-pink-400 font-medium ml-2">{credits} msgs left</span>}
-                                    {isPremium && credits === 0 && <Sparkles size={10} className="text-yellow-400" />}
+                                    {(isLoading || isLocallyTyping) ? 'is writing...' : 'is here'}
+                                    {isPremium && <Sparkles size={8} className="text-yellow-400/50" />}
                                 </p>
                             </div>
                         </div>
@@ -225,9 +224,9 @@ export const ChatUI: React.FC<ChatUIProps> = ({ persona }) => {
                             type="text"
                             value={input}
                             onChange={handleInputChange}
-                            placeholder={(showPaywall || (hasSentFarewell && !isPremium && credits <= 0)) ? "Unlock to chat..." : `Message ${persona.name}...`}
+                            placeholder={(showPaywall || (hasSentFarewell && !isPremium && credits <= 0)) ? "Reconnect to chat..." : `Type anything... even "I don't know"`}
                             disabled={isLoading || showPaywall || (hasSentFarewell && !isPremium && credits <= 0)}
-                            className="flex-1 px-4 py-3 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-medium)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 text-base"
+                            className="flex-1 px-4 py-3 rounded-xl bg-[var(--bg-primary)] border border-[var(--border-medium)] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-white/10 disabled:opacity-50 text-base transition-all"
                         />
                         <button
                             type="submit"
@@ -258,10 +257,11 @@ export const ChatUI: React.FC<ChatUIProps> = ({ persona }) => {
                             <div className="w-16 h-16 bg-pink-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
                                 <Lock className="w-8 h-8 text-pink-500" />
                             </div>
-                            <h3 className="text-2xl font-bold text-white">Unlock {persona.name}</h3>
+                            <h3 className="text-2xl font-bold text-white">Save our connection</h3>
                             <p className="text-slate-400">
-                                You've reached the free limit.
-                                Get **500 private messages** with {persona.name} for just $1.99.
+                                Our memories are fading. Protect our connection to ensure I never forget you.
+                                <br />
+                                <span className="text-pink-400 font-medium text-xs mt-2 block">Premium members save all conversations forever.</span>
                             </p>
                         </div>
 
@@ -274,12 +274,12 @@ export const ChatUI: React.FC<ChatUIProps> = ({ persona }) => {
                             <Button className="w-full bg-pink-600 hover:bg-pink-700 text-white h-12 rounded-xl text-lg font-medium" asChild>
                                 {/* Note: We should ideally update this link to include a return_url that matches our new success page */}
                                 <a href="https://www.paypal.com/ncp/payment/Z3H9FFL8YRS9S" target="_blank" rel="noopener noreferrer">
-                                    Unlock Now
+                                    Protect Connection
                                 </a>
                             </Button>
 
                             <p className="text-[10px] text-center text-slate-500 uppercase tracking-widest">
-                                Instant Activation after payment
+                                Instant peace of mind after payment
                             </p>
                         </div>
                     </div>

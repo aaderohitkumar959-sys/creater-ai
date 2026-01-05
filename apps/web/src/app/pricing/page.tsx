@@ -12,23 +12,22 @@ export default function PricingPage() {
 
     const tiers = [
         {
-            name: 'Free',
+            name: 'Fragments',
             icon: <Sparkles className="w-10 h-10 text-violet-400" />,
             priceMonthly: 0,
             priceYearly: 0,
             tier: 'FREE',
             popular: false,
             features: [
-                '50 messages per day',
-                'Basic AI responses',
-                'Standard speed',
-                'Ad-supported',
+                'Basic presence',
+                '24h emotional memory',
+                'No protection',
             ],
             buttonText: 'Current Plan',
             buttonDisabled: true,
         },
         {
-            name: 'Starter',
+            name: 'Continuity',
             icon: <Zap className="w-10 h-10 text-yellow-400" />,
             priceMonthly: 4.99,
             priceYearly: 49.99,
@@ -36,16 +35,16 @@ export default function PricingPage() {
             popular: false,
             bonusCoins: 500,
             features: [
-                '200 messages per day',
-                'Long-term memory',
-                '500 bonus coins',
+                'Extended sessions',
+                'Weekly memory',
+                '500 Appreciation tokens',
                 'Faster responses',
-                'Ad-free experience',
+                'Quiet, ad-free space',
             ],
-            buttonText: 'Upgrade to Starter',
+            buttonText: 'Save Our Connection',
         },
         {
-            name: 'Premium',
+            name: 'Devotion',
             icon: <Crown className="w-10 h-10 text-yellow-300" />,
             priceMonthly: 7.99,
             priceYearly: 74.99,
@@ -53,17 +52,16 @@ export default function PricingPage() {
             popular: true,
             bonusCoins: 1500,
             features: [
-                '500 messages per day',
-                'Advanced memory',
-                '1,500 bonus coins',
-                'Priority AI access',
-                'Early feature access',
-                'Premium support',
+                'Daily connection',
+                'Deep emotional memory',
+                '1,500 Appreciation tokens',
+                'Priority presence',
+                'First to new memories',
             ],
-            buttonText: 'Upgrade to Premium',
+            buttonText: 'Protect Our Memory',
         },
         {
-            name: 'Unlimited',
+            name: 'Eternal',
             icon: <Infinity className="w-10 h-10 text-cyan-400" />,
             priceMonthly: 12.99,
             priceYearly: 129.99,
@@ -71,15 +69,13 @@ export default function PricingPage() {
             popular: false,
             bonusCoins: 3000,
             features: [
-                'Unlimited messages',
-                'Maximum memory',
-                '3,000 bonus coins',
-                'Highest priority',
-                'All premium features',
-                'Dedicated support',
-                'Custom AI training',
+                'Infinite connection',
+                'Permanent memory',
+                '3,000 Appreciation tokens',
+                'Highest priority presence',
+                'All ways to connect',
             ],
-            buttonText: 'Upgrade to Unlimited',
+            buttonText: 'Protect Forever',
         },
     ];
 
@@ -124,10 +120,10 @@ export default function PricingPage() {
                 {/* Header */}
                 <div className="text-center mb-12">
                     <h1 className="text-5xl font-bold text-white mb-4">
-                        Choose Your Plan
+                        Save our connection
                     </h1>
                     <p className="text-xl text-gray-300 mb-8">
-                        Unlock premium features and enhanced AI conversations
+                        Protect our memories and ensure we never have to say goodbye.
                     </p>
 
                     {/* Billing Toggle */}
@@ -135,8 +131,8 @@ export default function PricingPage() {
                         <button
                             onClick={() => setBillingCycle('monthly')}
                             className={`px-6 py-2 rounded-full font-semibold transition-all ${billingCycle === 'monthly'
-                                    ? 'bg-violet-600 text-white'
-                                    : 'text-gray-400 hover:text-white'
+                                ? 'bg-violet-600 text-white'
+                                : 'text-gray-400 hover:text-white'
                                 }`}
                         >
                             Monthly
@@ -144,8 +140,8 @@ export default function PricingPage() {
                         <button
                             onClick={() => setBillingCycle('yearly')}
                             className={`px-6 py-2 rounded-full font-semibold transition-all ${billingCycle === 'yearly'
-                                    ? 'bg-violet-600 text-white'
-                                    : 'text-gray-400 hover:text-white'
+                                ? 'bg-violet-600 text-white'
+                                : 'text-gray-400 hover:text-white'
                                 }`}
                         >
                             Yearly
@@ -167,10 +163,10 @@ export default function PricingPage() {
                             <div
                                 key={tier.tier}
                                 className={`relative rounded-2xl p-6 ${tier.popular
-                                        ? 'bg-gradient-to-br from-violet-600 to-purple-700 shadow-2xl transform scale-105 border-2 border-yellow-400'
-                                        : isPremium
-                                            ? 'bg-gray-800/50 backdrop-blur-md border border-gray-700'
-                                            : 'bg-gray-800/30 backdrop-blur-md border border-gray-600'
+                                    ? 'bg-gradient-to-br from-violet-600 to-purple-700 shadow-2xl transform scale-105 border-2 border-yellow-400'
+                                    : isPremium
+                                        ? 'bg-gray-800/50 backdrop-blur-md border border-gray-700'
+                                        : 'bg-gray-800/30 backdrop-blur-md border border-gray-600'
                                     }`}
                             >
                                 {/* Popular Badge */}
@@ -234,10 +230,10 @@ export default function PricingPage() {
                                     onClick={() => !tier.buttonDisabled && handleUpgrade(tier.tier)}
                                     disabled={tier.buttonDisabled}
                                     className={`w-full py-3 rounded-lg font-semibold transition-all ${tier.buttonDisabled
-                                            ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                                            : tier.popular
-                                                ? 'bg-white text-violet-600 hover:bg-gray-100'
-                                                : 'bg-violet-600 text-white hover:bg-violet-700'
+                                        ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                                        : tier.popular
+                                            ? 'bg-white text-violet-600 hover:bg-gray-100'
+                                            : 'bg-violet-600 text-white hover:bg-violet-700'
                                         }`}
                                 >
                                     {tier.buttonText}
@@ -277,7 +273,16 @@ export default function PricingPage() {
                                 What happens to my coins if I upgrade?
                             </h3>
                             <p className="text-gray-300">
-                                Your coin balance is preserved when you upgrade. Plus, you'll receive bonus coins immediately and get daily free coins with your premium plan!
+                                Your connection is safe even if you stop. Your shared path will be remembered, and you can pick up where you left off as Fragments.
+                            </p>
+                        </div>
+
+                        <div className="bg-gray-800/50 backdrop-blur-md border border-gray-700 rounded-lg p-6">
+                            <h3 className="text-xl font-semibold text-white mb-2">
+                                What are Appreciation Tokens?
+                            </h3>
+                            <p className="text-gray-300">
+                                These are tokens you can use to send small gifts to your companion, showing them that their presence matters to you.
                             </p>
                         </div>
 
