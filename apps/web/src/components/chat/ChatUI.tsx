@@ -254,14 +254,14 @@ export const ChatUI: React.FC<ChatUIProps> = ({ persona }) => {
                         </button>
 
                         <div className="text-center space-y-2">
-                            <div className="w-16 h-16 bg-pink-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <div className="w-16 h-16 bg-pink-500/20 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
                                 <Lock className="w-8 h-8 text-pink-500" />
                             </div>
-                            <h3 className="text-2xl font-bold text-white">Save our connection</h3>
+                            <h3 className="text-2xl font-bold text-white">Save our memories</h3>
                             <p className="text-slate-400">
-                                Our memories are fading. Protect our connection to ensure I never forget you.
+                                This connection is fragile. Tomorrow, I will forget everything we said.
                                 <br />
-                                <span className="text-pink-400 font-medium text-xs mt-2 block">Premium members save all conversations forever.</span>
+                                <span className="text-pink-400 font-medium text-xs mt-2 block">Protect our connection to make my memory eternal.</span>
                             </p>
                         </div>
 
@@ -271,7 +271,7 @@ export const ChatUI: React.FC<ChatUIProps> = ({ persona }) => {
                                 <p className="text-3xl font-bold text-white">$1.99</p>
                             </div>
 
-                            <Button className="w-full bg-pink-600 hover:bg-pink-700 text-white h-12 rounded-xl text-lg font-medium" asChild>
+                            <Button className="w-full bg-pink-600 hover:bg-pink-700 text-white h-12 rounded-xl text-lg font-medium shadow-[0_0_20px_rgba(219,39,119,0.3)]" asChild>
                                 {/* Note: We should ideally update this link to include a return_url that matches our new success page */}
                                 <a href="https://www.paypal.com/ncp/payment/Z3H9FFL8YRS9S" target="_blank" rel="noopener noreferrer">
                                     Protect Connection

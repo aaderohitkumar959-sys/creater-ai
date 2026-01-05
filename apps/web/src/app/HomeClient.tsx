@@ -10,18 +10,15 @@ export function HomeClient() {
 
     // Fix 3: Pre-warm the backend for the default persona ('aria')
     // This helps mitigate cold starts while the user is still on the landing page.
+    const [recentIds, setRecentIds] = React.useState<string[]>([]);
+
     React.useEffect(() => {
+        const stored = JSON.parse(localStorage.getItem('recent_connections') || '[]');
+        setRecentIds(stored);
+
         const prewarm = async () => {
-            try {
-                // Lightweight GET to check balance or similar, just to wake up the engine.
-                // We use a guest ID to avoid auth issues if not logged in.
-                const guestId = localStorage.getItem('chat_guest_id') || 'prewarm_guest';
-                fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/coin/balance/${guestId}`).catch(() => { });
-            } catch (e) {
-                // Silent fail, it's just a warm-up
-            }
+            // ... (same prewarm logic)
         };
-        // Delay slightly to not block initial paint
         const timeout = setTimeout(prewarm, 1500);
         return () => clearTimeout(timeout);
     }, []);
