@@ -80,7 +80,12 @@ export const ChatUI: React.FC<ChatUIProps> = ({ persona }) => {
 
         const storedCredits = localStorage.getItem('chat_credits');
         if (storedCredits) setCredits(parseInt(storedCredits));
-    }, []);
+
+        // Survival Pivot: Mark this persona as recent
+        const recent = JSON.parse(localStorage.getItem('recent_connections') || '[]');
+        const updated = [persona.id, ...recent.filter((id: string) => id !== persona.id)].slice(0, 3);
+        localStorage.setItem('recent_connections', JSON.stringify(updated));
+    }, [persona.id]);
 
     // Vercel AI SDK Hook
     const { messages, input, handleInputChange, handleSubmit, isLoading, setMessages } = useChat({

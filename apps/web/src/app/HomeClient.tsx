@@ -72,9 +72,48 @@ export function HomeClient() {
                     </div>
                 </div>
 
+                {/* Recent Connections (Hidden if empty) */}
+                {recentIds.length > 0 && (
+                    <div className="px-4 mt-8 max-w-2xl mx-auto">
+                        <h2 className="text-xs uppercase tracking-[0.2em] text-pink-500/60 mb-6 px-2 text-center font-bold italic">Continuing your story</h2>
+                        <div className="space-y-4">
+                            {recentIds.map((id, index) => {
+                                const persona = PERSONAS[id];
+                                if (!persona) return null;
+                                return (
+                                    <div
+                                        key={`recent-${persona.id}`}
+                                        onClick={() => router.push(`/public-chat/${persona.id}`)}
+                                        className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-pink-500/10 to-transparent border border-pink-500/20 p-4 md:p-6 transition-all duration-500 hover:border-pink-500/40 hover:bg-pink-500/[0.1] active:scale-[0.99] cursor-pointer backdrop-blur-xl"
+                                    >
+                                        <div className="absolute inset-0 bg-gradient-to-r from-pink-500/5 to-transparent opacity-50"></div>
+                                        <div className="flex items-center gap-5 relative z-10">
+                                            <div className="relative flex-shrink-0">
+                                                <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl overflow-hidden border-2 border-pink-500/30 group-hover:border-pink-500/50 transition-all duration-500 shadow-2xl">
+                                                    <img src={persona.avatar} alt={persona.name} className="w-full h-full object-cover" />
+                                                </div>
+                                                <div className="absolute -bottom-1 -right-1 w-4 h-4 md:w-5 md:h-5 bg-pink-500 rounded-full border-4 border-[#13111c] animate-pulse"></div>
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <h3 className="font-semibold text-xl text-white tracking-tight">{persona.name}</h3>
+                                                <p className="text-xs text-pink-400 font-medium uppercase tracking-widest mt-1">Memory Fragile • Reset in 14h</p>
+                                            </div>
+                                            <div className="flex-shrink-0">
+                                                <div className="px-4 py-2 rounded-xl bg-pink-500/20 border border-pink-500/30 text-xs text-pink-400 font-bold group-hover:bg-pink-500/40 transition-all">Protect Connection</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )}
+
                 {/* Personas Grid */}
-                <div className="px-4 mt-8 max-w-2xl mx-auto">
-                    <h2 className="text-xs uppercase tracking-[0.2em] text-gray-500 mb-6 px-2 text-center">Who do you need right now?</h2>
+                <div className="px-4 mt-12 max-w-2xl mx-auto">
+                    <h2 className="text-xs uppercase tracking-[0.2em] text-gray-500 mb-6 px-2 text-center">
+                        {recentIds.length > 0 ? 'Or find another presence' : 'Who do you need right now?'}
+                    </h2>
 
                     <div className="space-y-4">
                         {[
@@ -86,7 +125,7 @@ export function HomeClient() {
                             'nico-vale',
                             'sora-takumi',
                             'hikari-moon'
-                        ].map((id, index) => {
+                        ].filter(id => !recentIds.includes(id)).map((id, index) => {
                             const persona = PERSONAS[id];
                             if (!persona) return null;
                             return (
