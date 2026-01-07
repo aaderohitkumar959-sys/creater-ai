@@ -35,6 +35,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
+        if (!auth) {
+            setLoading(false);
+            return;
+        }
+
         // Handle email link sign-in if needed
         if (isSignInWithEmailLink(auth, window.location.href)) {
             let email = window.localStorage.getItem('emailForSignIn');
@@ -73,6 +78,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }, []);
 
     const signInWithGoogle = async () => {
+        if (!auth) return;
         const provider = new GoogleAuthProvider();
         try {
             await signInWithPopup(auth, provider);
@@ -82,6 +88,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     const sendEmailLink = async (email: string) => {
+        if (!auth) return;
         const actionCodeSettings = {
             url: window.location.origin + '/login',
             handleCodeInApp: true,
@@ -97,6 +104,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     const signOut = async () => {
+        if (!auth) return;
         try {
             await firebaseSignOut(auth);
         } catch (error) {
