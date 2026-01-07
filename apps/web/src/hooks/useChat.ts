@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ChatResponse {
     userMessage: any;
@@ -10,25 +10,25 @@ interface ChatResponse {
 }
 
 export function useChat() {
-    const { data: session } = useSession();
+    const { user } = useAuth();
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<any>(null);
 
     const sendMessage = async (personaId: string, message: string): Promise<any> => {
-        if (!session?.user?.id) throw new Error('User not authenticated');
+        if (!user) throw new Error('User not authenticated');
 
         setIsLoading(true);
         setError(null);
 
         try {
+            const token = await user.getIdToken();
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/chat/send`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${session.user.accessToken || ''}` // Assuming token is needed
+                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify({
-                    userId: session.user.id,
                     personaId,
                     message,
                 }),
@@ -37,7 +37,7 @@ export function useChat() {
             if (!res.ok) {
                 const errorData = await res.json();
                 const error = new Error(errorData.message || 'Failed to send message');
-                (error as any).response = res; // Attach response for status check
+                (error as any).response = res;
                 throw error;
             }
 

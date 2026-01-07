@@ -3,11 +3,11 @@
 import { useState } from 'react';
 import { Check, Sparkles, Crown, Zap, Infinity } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function PricingPage() {
     const router = useRouter();
-    const { data: session } = useSession();
+    const { user } = useAuth();
     const [billingCycle, setBillingCycle] = useState<'monthly' | 'yearly'>('monthly');
 
     const tiers = [
@@ -80,13 +80,13 @@ export default function PricingPage() {
     ];
 
     const handleUpgrade = async (tier: string) => {
-        if (!session) {
+        if (!user) {
             router.push('/login');
             return;
         }
 
         try {
-            const token = localStorage.getItem('accessToken');
+            const token = await user.getIdToken();
             const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/payment/create-checkout`, {
                 method: 'POST',
                 headers: {

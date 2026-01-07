@@ -1,187 +1,167 @@
 "use strict";
-var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+Object.defineProperty(exports, "CoinService", {
+    enumerable: true,
+    get: function() {
+        return CoinService;
+    }
+});
+const _common = require("@nestjs/common");
+const _firestoreservice = require("../prisma/firestore.service");
+const _firebaseadmin = /*#__PURE__*/ _interop_require_wildcard(require("firebase-admin"));
+function _getRequireWildcardCache(nodeInterop) {
+    if (typeof WeakMap !== "function") return null;
+    var cacheBabelInterop = new WeakMap();
+    var cacheNodeInterop = new WeakMap();
+    return (_getRequireWildcardCache = function(nodeInterop) {
+        return nodeInterop ? cacheNodeInterop : cacheBabelInterop;
+    })(nodeInterop);
+}
+function _interop_require_wildcard(obj, nodeInterop) {
+    if (!nodeInterop && obj && obj.__esModule) {
+        return obj;
+    }
+    if (obj === null || typeof obj !== "object" && typeof obj !== "function") {
+        return {
+            default: obj
+        };
+    }
+    var cache = _getRequireWildcardCache(nodeInterop);
+    if (cache && cache.has(obj)) {
+        return cache.get(obj);
+    }
+    var newObj = {
+        __proto__: null
+    };
+    var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor;
+    for(var key in obj){
+        if (key !== "default" && Object.prototype.hasOwnProperty.call(obj, key)) {
+            var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null;
+            if (desc && (desc.get || desc.set)) {
+                Object.defineProperty(newObj, key, desc);
+            } else {
+                newObj[key] = obj[key];
+            }
+        }
+    }
+    newObj.default = obj;
+    if (cache) {
+        cache.set(obj, newObj);
+    }
+    return newObj;
+}
+function _ts_decorate(decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    else for(var i = decorators.length - 1; i >= 0; i--)if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
-};
-var __metadata = (this && this.__metadata) || function (k, v) {
+}
+function _ts_metadata(k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.CoinService = void 0;
-const common_1 = require("@nestjs/common");
-const prisma_service_1 = require("../prisma/prisma.service");
+}
 let CoinService = class CoinService {
-    prisma;
-    constructor(prisma) {
-        this.prisma = prisma;
-    }
-    async getOrCreateWallet(userId) {
-        let wallet = await this.prisma.coinWallet.findUnique({
-            where: { userId },
-        });
-        if (!wallet) {
-            wallet = await this.prisma.coinWallet.create({
-                data: { userId },
-            });
-        }
-        return wallet;
-    }
     async getBalance(userId) {
-        const wallet = await this.prisma.coinWallet.findUnique({
-            where: { userId },
-        });
-        if (!wallet) {
-            return 0;
-        }
-        return wallet.balance;
+        const user = await this.firestore.findUnique('users', userId);
+        return user?.coinBalance || 0;
     }
-    async addCoins(userId, amount, description, metadata) {
-        const wallet = await this.getOrCreateWallet(userId);
-        return await this.prisma.$transaction(async (tx) => {
-            await tx.coinTransaction.create({
-                data: {
-                    walletId: wallet.id,
-                    type: 'PURCHASE',
-                    amount,
-                    description,
-                    metadata,
-                },
+    /**
+   * Add coins to user wallet
+   */ async addCoins(userId, amount, description, metadata) {
+        await this.firestore.runTransaction(async (transaction)=>{
+            const userRef = this.firestore.collection('users').doc(userId);
+            const userDoc = await transaction.get(userRef);
+            if (!userDoc.exists) {
+                throw new _common.NotFoundException('User not found');
+            }
+            // 1. Create transaction record in sub-collection
+            const txRef = userRef.collection('transactions').doc();
+            transaction.set(txRef, {
+                type: 'PURCHASE',
+                amount,
+                description,
+                metadata,
+                createdAt: _firebaseadmin.firestore.FieldValue.serverTimestamp()
             });
-            const updatedWallet = await tx.coinWallet.update({
-                where: { id: wallet.id },
-                data: { balance: { increment: amount } },
+            // 2. Update user balance
+            transaction.update(userRef, {
+                coinBalance: _firebaseadmin.firestore.FieldValue.increment(amount),
+                updatedAt: _firebaseadmin.firestore.FieldValue.serverTimestamp()
             });
-            return updatedWallet.balance;
         });
+        return this.getBalance(userId);
     }
-    async deductCoins(userId, amount, description, metadata) {
+    /**
+   * Deduct coins from user wallet
+   */ async deductCoins(userId, amount, description, metadata) {
         try {
-            await this.prisma.$transaction(async (tx) => {
-                const wallet = await tx.coinWallet.findUnique({
-                    where: { userId },
-                });
-                if (!wallet || wallet.balance < amount) {
+            await this.firestore.runTransaction(async (transaction)=>{
+                const userRef = this.firestore.collection('users').doc(userId);
+                const userDoc = await transaction.get(userRef);
+                if (!userDoc.exists) throw new Error('USER_NOT_FOUND');
+                const balance = userDoc.data().coinBalance || 0;
+                if (balance < amount) {
                     throw new Error('INSUFFICIENT_BALANCE');
                 }
-                await tx.coinTransaction.create({
-                    data: {
-                        walletId: wallet.id,
-                        type: 'SPEND',
-                        amount: -amount,
-                        description,
-                        metadata,
-                    },
+                // 1. Create transaction record
+                const txRef = userRef.collection('transactions').doc();
+                transaction.set(txRef, {
+                    type: 'SPEND',
+                    amount: -amount,
+                    description,
+                    metadata,
+                    createdAt: _firebaseadmin.firestore.FieldValue.serverTimestamp()
                 });
-                const updated = await tx.coinWallet.updateMany({
-                    where: {
-                        id: wallet.id,
-                        balance: { gte: amount },
-                    },
-                    data: { balance: { decrement: amount } },
+                // 2. Update balance
+                transaction.update(userRef, {
+                    coinBalance: _firebaseadmin.firestore.FieldValue.increment(-amount),
+                    updatedAt: _firebaseadmin.firestore.FieldValue.serverTimestamp()
                 });
-                if (updated.count === 0) {
-                    throw new Error('CONCURRENT_MODIFICATION');
-                }
-            }, {
-                isolationLevel: 'Serializable',
             });
             return true;
-        }
-        catch (error) {
-            if (error.message === 'INSUFFICIENT_BALANCE' || error.message === 'CONCURRENT_MODIFICATION') {
+        } catch (error) {
+            if (error.message === 'INSUFFICIENT_BALANCE' || error.message === 'USER_NOT_FOUND') {
                 return false;
             }
             throw error;
         }
     }
-    async addCreatorEarnings(creatorUserId, amount, metadata) {
-        console.warn('[DEPRECATED] addCreatorEarnings should not be used in user-only platform');
-        const platformFee = Math.floor(amount * 0.3);
-        const creatorEarnings = amount - platformFee;
-        const wallet = await this.getOrCreateWallet(creatorUserId);
-        await this.prisma.coinTransaction.create({
-            data: {
-                walletId: wallet.id,
-                type: 'EARN',
-                amount: creatorEarnings,
-                description: 'Creator earnings from message',
-                metadata: { ...metadata, platformFee, grossAmount: amount },
-            },
-        });
-        await this.prisma.coinWallet.update({
-            where: { id: wallet.id },
-            data: { balance: { increment: creatorEarnings } },
-        });
-        return creatorEarnings;
-    }
     async getTransactionHistory(userId, limit = 20) {
-        const wallet = await this.getOrCreateWallet(userId);
-        return this.prisma.coinTransaction.findMany({
-            where: { walletId: wallet.id },
-            orderBy: { createdAt: 'desc' },
-            take: limit,
-        });
+        const snapshot = await this.firestore.collection('users').doc(userId).collection('transactions').orderBy('createdAt', 'desc').limit(limit).get();
+        return snapshot.docs.map((doc)=>({
+                id: doc.id,
+                ...doc.data()
+            }));
     }
     async canEarnAdReward(userId) {
         const adsWatched = await this.getAdsWatchedToday(userId);
         return adsWatched < 5;
     }
     async getAdsWatchedToday(userId) {
-        const wallet = await this.getOrCreateWallet(userId);
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-        const count = await this.prisma.coinTransaction.count({
-            where: {
-                walletId: wallet.id,
-                type: 'EARN',
-                description: { contains: 'ad reward' },
-                createdAt: { gte: today },
-            },
-        });
-        return count;
+        const snapshot = await this.firestore.collection('users').doc(userId).collection('transactions').where('type', '==', 'EARN').where('createdAt', '>=', today).get();
+        return snapshot.size;
     }
     async grantAdReward(userId, amount) {
         const canEarn = await this.canEarnAdReward(userId);
         if (!canEarn) {
             throw new Error('Daily ad limit reached');
         }
-        const wallet = await this.getOrCreateWallet(userId);
-        return await this.prisma.$transaction(async (tx) => {
-            await tx.coinTransaction.create({
-                data: {
-                    walletId: wallet.id,
-                    type: 'EARN',
-                    amount,
-                    description: 'Earned from ad reward',
-                    metadata: { source: 'advertisement', timestamp: new Date() },
-                },
-            });
-            const updated = await tx.coinWallet.update({
-                where: { id: wallet.id },
-                data: { balance: { increment: amount } },
-            });
-            return updated.balance;
+        await this.addCoins(userId, amount, 'Earned from ad reward', {
+            source: 'ad'
         });
+        return this.getBalance(userId);
     }
-    async verifyWalletIntegrity(userId) {
-        const wallet = await this.getOrCreateWallet(userId);
-        const transactions = await this.prisma.coinTransaction.findMany({
-            where: { walletId: wallet.id },
-        });
-        const transactionSum = transactions.reduce((sum, tx) => sum + tx.amount, 0);
-        const difference = wallet.balance - transactionSum;
-        return {
-            isValid: difference === 0,
-            walletBalance: wallet.balance,
-            transactionSum,
-            difference,
-        };
+    constructor(firestore){
+        this.firestore = firestore;
     }
 };
-exports.CoinService = CoinService;
-exports.CoinService = CoinService = __decorate([
-    (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+CoinService = _ts_decorate([
+    (0, _common.Injectable)(),
+    _ts_metadata("design:type", Function),
+    _ts_metadata("design:paramtypes", [
+        typeof _firestoreservice.FirestoreService === "undefined" ? Object : _firestoreservice.FirestoreService
+    ])
 ], CoinService);

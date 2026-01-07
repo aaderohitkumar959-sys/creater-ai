@@ -5,7 +5,6 @@ import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './auth/auth.module';
-import { PrismaModule } from './prisma/prisma.module';
 import { CreatorModule } from './creator/creator.module';
 import { PaymentModule } from './payment/payment.module';
 import { CoinModule } from './coin/coin.module';
@@ -31,7 +30,6 @@ import { UserModule } from './user/user.module';
         limit: 100,
       },
     ]),
-    PrismaModule,
     AuthModule,
     CreatorModule,
     PaymentModule,

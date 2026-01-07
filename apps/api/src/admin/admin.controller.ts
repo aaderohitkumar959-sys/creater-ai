@@ -1,33 +1,22 @@
-import {
-  Controller,
-  Get,
-  UseGuards,
-  Query,
-  Param,
-  Body,
-  Patch,
-} from '@nestjs/common';
+import { Controller, Get, UseGuards, Query, Param, Body, Patch } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
 import { Roles } from '../auth/roles.decorator';
 import { AnalyticsService } from '../analytics/analytics.service';
-import { PrismaService } from '../prisma/prisma.service';
-import { Role } from '@prisma/client';
+import { FirestoreService } from '../prisma/firestore.service';
 
 @Controller('admin')
 export class AdminController {
   constructor(
     private analyticsService: AnalyticsService,
-    private prisma: PrismaService,
+    private firestore: FirestoreService,
   ) { }
 
-  // Temporary: Public stats endpoint for development (NO auth guards for testing)
   @Get('stats')
   async getStats() {
     try {
       return await this.analyticsService.getDashboardStats();
     } catch (error) {
-      // Return mock data if analytics service fails
       return {
         totalRevenue: 12450.5,
         totalUsers: 1523,
@@ -58,31 +47,17 @@ export class AdminController {
   @Roles('ADMIN')
   async getUsers(@Query('page') page = 1, @Query('search') search = '') {
     const take = 10;
-    const skip = (page - 1) * take;
 
-    const where = search
-      ? {
-        OR: [
-          { email: { contains: search, mode: 'insensitive' as const } },
-          { name: { contains: search, mode: 'insensitive' as const } },
-        ],
-      }
-      : {};
+    let users = await this.firestore.findMany('users', (ref) => {
+      let q = ref.orderBy('createdAt', 'desc').limit(take);
+      return q;
+    }) as any[];
 
-    const [users, total] = await Promise.all([
-      this.prisma.user.findMany({
-        where,
-        take,
-        skip,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          _count: {
-            select: { violations: true, reportsMade: true },
-          },
-        },
-      }),
-      this.prisma.user.count({ where }),
-    ]);
+    if (search) {
+      users = users.filter(u => u.email?.toLowerCase().includes(search.toLowerCase()) || u.name?.toLowerCase().includes(search.toLowerCase()));
+    }
+
+    const total = await this.firestore.count('users');
 
     return {
       data: users,
@@ -97,40 +72,25 @@ export class AdminController {
   @Patch('users/:id/role')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
-  async updateUserRole(@Param('id') id: string, @Body() body: { role: Role }) {
-    return this.prisma.user.update({
-      where: { id },
-      data: { role: body.role },
-    });
+  async updateUserRole(@Param('id') id: string, @Body() body: { role: string }) {
+    return this.firestore.update('users', id, { role: body.role });
   }
-
-  // --- Chat Viewer Endpoints ---
 
   @Get('users/:id/conversations')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   async getUserConversations(@Param('id') userId: string) {
-    return this.prisma.conversation.findMany({
-      where: { userId },
-      include: {
-        persona: {
-          select: { name: true, avatarUrl: true, role: true }, // Verify 'role' exists in schema if needed, or stick to basics
-        },
-        _count: {
-          select: { messages: true },
-        },
-      },
-      orderBy: { updatedAt: 'desc' },
-    });
+    return this.firestore.findMany('conversations', (ref) =>
+      ref.where('userId', '==', userId).orderBy('updatedAt', 'desc')
+    );
   }
 
   @Get('conversations/:id/messages')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles('ADMIN')
   async getConversationMessages(@Param('id') conversationId: string) {
-    return this.prisma.message.findMany({
-      where: { conversationId },
-      orderBy: { createdAt: 'asc' },
-    });
+    return this.firestore.findMany(`conversations/${conversationId}/messages`, (ref) =>
+      ref.orderBy('createdAt', 'asc')
+    );
   }
 }

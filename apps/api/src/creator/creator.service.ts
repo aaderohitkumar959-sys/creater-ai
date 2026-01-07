@@ -1,19 +1,19 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { FirestoreService } from '../prisma/firestore.service';
 import { ConfigService } from '@nestjs/config';
 import { createCipheriv, randomBytes, scrypt } from 'crypto';
 import { promisify } from 'util';
+import * as admin from 'firebase-admin';
 
 @Injectable()
 export class CreatorService {
   constructor(
-    private prisma: PrismaService,
+    private firestore: FirestoreService,
     private config: ConfigService,
-  ) {}
+  ) { }
 
   private async encrypt(text: string): Promise<string> {
-    const password =
-      this.config.get<string>('ENCRYPTION_KEY') || 'default-secret-key';
+    const password = this.config.get<string>('ENCRYPTION_KEY') || 'default-secret-key';
     const iv = randomBytes(16);
     const key = (await promisify(scrypt)(password, 'salt', 32)) as Buffer;
     const cipher = createCipheriv('aes-256-ctr', key, iv);
@@ -22,105 +22,57 @@ export class CreatorService {
   }
 
   async createCreatorProfile(userId: string, bio: string) {
-    return this.prisma.creator.create({
-      data: {
-        userId,
-        bio,
-      },
-    });
+    return this.firestore.create('creators', { bio, userId, earnings: 0 }, userId);
   }
 
-  async createPersona(
-    creatorId: string,
-    data: {
-      name: string;
-      description: string;
-      avatarUrl?: string;
-      personality: any;
-    },
-  ) {
-    return this.prisma.persona.create({
-      data: {
-        creatorId,
-        ...data,
-      },
-    });
+  async createPersona(creatorId: string, data: { name: string; description: string; avatarUrl?: string; personality: any }) {
+    return this.firestore.create('personas', { creatorId, ...data, trainingData: [] });
   }
 
-  async addTrainingData(
-    personaId: string,
-    content: string,
-    type: 'TEXT' | 'FILE' = 'TEXT',
-  ) {
+  async addTrainingData(personaId: string, content: string, type: 'TEXT' | 'FILE' = 'TEXT') {
     const encryptedContent = await this.encrypt(content);
-    return this.prisma.trainingData.create({
-      data: {
-        personaId,
-        content: encryptedContent,
-        type,
-      },
-    });
+    const persona = await this.firestore.findUnique('personas', personaId) as any;
+    if (!persona) throw new Error('Persona not found');
+
+    const trainingData = persona.trainingData || [];
+    trainingData.push({ content: encryptedContent, type, createdAt: new Date() });
+
+    return this.firestore.update('personas', personaId, { trainingData });
   }
 
   async getCreatorProfile(userId: string) {
-    return this.prisma.creator.findUnique({
-      where: { userId },
-      include: { personas: true },
-    });
+    const creator = await this.firestore.findUnique('creators', userId) as any;
+    if (!creator) return null;
+    const personas = await this.firestore.findMany('personas', (ref) => ref.where('creatorId', '==', creator.id));
+    return { ...creator, personas };
   }
 
   async getPersonaById(personaId: string) {
-    return this.prisma.persona.findUnique({
-      where: { id: personaId },
-      include: {
-        trainingData: true,
-        creator: true,
-      },
-    });
+    const persona = await this.firestore.findUnique('personas', personaId) as any;
+    if (!persona) return null;
+    const creator = await this.firestore.findUnique('creators', persona.creatorId);
+    return { ...persona, creator };
   }
 
-  async updatePersona(
-    personaId: string,
-    data: {
-      name?: string;
-      description?: string;
-      avatarUrl?: string;
-      personality?: any;
-    },
-  ) {
-    return this.prisma.persona.update({
-      where: { id: personaId },
-      data,
-    });
+  async updatePersona(personaId: string, data: any) {
+    return this.firestore.update('personas', personaId, data);
   }
 
   async getDashboardStats(userId: string) {
-    const creator = await this.prisma.creator.findUnique({
-      where: { userId },
-      include: {
-        personas: {
-          include: {
-            _count: {
-              select: { conversations: true },
-            },
-          },
-        },
-      },
-    });
-
+    const creator = await this.firestore.findUnique('creators', userId) as any;
     if (!creator) return null;
 
-    // Calculate total messages across all personas
-    // Note: This is an approximation or requires a more complex query if we want exact message counts
-    // For now, let's just return the personas and total earnings
+    const personas = await this.firestore.findMany('personas', (ref) => ref.where('creatorId', '==', creator.id)) as any[];
+
+    const personasWithStats = await Promise.all(personas.map(async (p) => {
+      const conversationsCount = await this.firestore.count('conversations', (ref) => ref.where('personaId', '==', p.id));
+      return { ...p, conversationCount: conversationsCount };
+    }));
 
     return {
-      earnings: creator.earnings,
-      personas: creator.personas.map((p) => ({
-        ...p,
-        conversationCount: p._count.conversations,
-      })),
-      totalPersonas: creator.personas.length,
+      earnings: creator.earnings || 0,
+      personas: personasWithStats,
+      totalPersonas: personas.length,
     };
   }
 }

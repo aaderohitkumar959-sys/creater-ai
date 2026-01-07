@@ -1,29 +1,48 @@
 "use strict";
-var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+Object.defineProperty(exports, "ChatModule", {
+    enumerable: true,
+    get: function() {
+        return ChatModule;
+    }
+});
+const _common = require("@nestjs/common");
+const _chatservice = require("./chat.service");
+const _chatcontroller = require("./chat.controller");
+const _chatstreamcontroller = require("./chat-stream.controller");
+const _aimodule = require("../ai/ai.module");
+const _moderationmodule = require("../moderation/moderation.module");
+const _analyticsmodule = require("../analytics/analytics.module");
+const _metermodule = require("../meter/meter.module");
+const _prismamodule = require("../prisma/prisma.module");
+function _ts_decorate(decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    else for(var i = decorators.length - 1; i >= 0; i--)if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.ChatModule = void 0;
-const common_1 = require("@nestjs/common");
-const chat_service_1 = require("./chat.service");
-const chat_controller_1 = require("./chat.controller");
-const chat_stream_controller_1 = require("./chat-stream.controller");
-const ai_module_1 = require("../ai/ai.module");
-const moderation_module_1 = require("../moderation/moderation.module");
-const analytics_module_1 = require("../analytics/analytics.module");
-const meter_module_1 = require("../meter/meter.module");
-const prisma_module_1 = require("../prisma/prisma.module");
+}
 let ChatModule = class ChatModule {
 };
-exports.ChatModule = ChatModule;
-exports.ChatModule = ChatModule = __decorate([
-    (0, common_1.Module)({
-        imports: [ai_module_1.AIModule, moderation_module_1.ModerationModule, analytics_module_1.AnalyticsModule, meter_module_1.MeterModule, prisma_module_1.PrismaModule],
-        controllers: [chat_controller_1.ChatController, chat_stream_controller_1.ChatStreamController],
-        providers: [chat_service_1.ChatService],
-        exports: [chat_service_1.ChatService],
+ChatModule = _ts_decorate([
+    (0, _common.Module)({
+        imports: [
+            _aimodule.AIModule,
+            _moderationmodule.ModerationModule,
+            _analyticsmodule.AnalyticsModule,
+            _metermodule.MeterModule,
+            _prismamodule.PrismaModule
+        ],
+        controllers: [
+            _chatcontroller.ChatController,
+            _chatstreamcontroller.ChatStreamController
+        ],
+        providers: [
+            _chatservice.ChatService
+        ],
+        exports: [
+            _chatservice.ChatService
+        ]
     })
 ], ChatModule);

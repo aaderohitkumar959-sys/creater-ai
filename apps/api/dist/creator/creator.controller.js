@@ -1,30 +1,36 @@
 "use strict";
-var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+Object.defineProperty(exports, "CreatorController", {
+    enumerable: true,
+    get: function() {
+        return CreatorController;
+    }
+});
+const _common = require("@nestjs/common");
+const _creatorservice = require("./creator.service");
+const _jwtauthguard = require("../auth/jwt-auth.guard");
+function _ts_decorate(decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    else for(var i = decorators.length - 1; i >= 0; i--)if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
-};
-var __metadata = (this && this.__metadata) || function (k, v) {
+}
+function _ts_metadata(k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
-};
-var __param = (this && this.__param) || function (paramIndex, decorator) {
-    return function (target, key) { decorator(target, key, paramIndex); }
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.CreatorController = void 0;
-const common_1 = require("@nestjs/common");
-const creator_service_1 = require("./creator.service");
-const jwt_auth_guard_1 = require("../auth/jwt-auth.guard");
+}
+function _ts_param(paramIndex, decorator) {
+    return function(target, key) {
+        decorator(target, key, paramIndex);
+    };
+}
 let CreatorController = class CreatorController {
-    creatorService;
-    constructor(creatorService) {
-        this.creatorService = creatorService;
-    }
     async createProfile(req, body) {
         return this.creatorService.createCreatorProfile(req.user.id, body.bio);
     }
     async createPersona(req, body) {
+        // First get creator ID
         const creator = await this.creatorService.getCreatorProfile(req.user.id);
         if (!creator) {
             throw new Error('Creator profile not found');
@@ -37,43 +43,58 @@ let CreatorController = class CreatorController {
     async getDashboard(req) {
         return this.creatorService.getDashboardStats(req.user.id);
     }
+    constructor(creatorService){
+        this.creatorService = creatorService;
+    }
 };
-exports.CreatorController = CreatorController;
-__decorate([
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    (0, common_1.Post)('profile'),
-    __param(0, (0, common_1.Request)()),
-    __param(1, (0, common_1.Body)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object]),
-    __metadata("design:returntype", Promise)
+_ts_decorate([
+    (0, _common.UseGuards)(_jwtauthguard.JwtAuthGuard),
+    (0, _common.Post)('profile'),
+    _ts_param(0, (0, _common.Request)()),
+    _ts_param(1, (0, _common.Body)()),
+    _ts_metadata("design:type", Function),
+    _ts_metadata("design:paramtypes", [
+        void 0,
+        Object
+    ]),
+    _ts_metadata("design:returntype", Promise)
 ], CreatorController.prototype, "createProfile", null);
-__decorate([
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    (0, common_1.Post)('persona'),
-    __param(0, (0, common_1.Request)()),
-    __param(1, (0, common_1.Body)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object]),
-    __metadata("design:returntype", Promise)
+_ts_decorate([
+    (0, _common.UseGuards)(_jwtauthguard.JwtAuthGuard),
+    (0, _common.Post)('persona'),
+    _ts_param(0, (0, _common.Request)()),
+    _ts_param(1, (0, _common.Body)()),
+    _ts_metadata("design:type", Function),
+    _ts_metadata("design:paramtypes", [
+        void 0,
+        Object
+    ]),
+    _ts_metadata("design:returntype", Promise)
 ], CreatorController.prototype, "createPersona", null);
-__decorate([
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    (0, common_1.Post)('training-data'),
-    __param(0, (0, common_1.Body)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", Promise)
+_ts_decorate([
+    (0, _common.UseGuards)(_jwtauthguard.JwtAuthGuard),
+    (0, _common.Post)('training-data'),
+    _ts_param(0, (0, _common.Body)()),
+    _ts_metadata("design:type", Function),
+    _ts_metadata("design:paramtypes", [
+        Object
+    ]),
+    _ts_metadata("design:returntype", Promise)
 ], CreatorController.prototype, "addTrainingData", null);
-__decorate([
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    (0, common_1.Get)('dashboard'),
-    __param(0, (0, common_1.Request)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", Promise)
+_ts_decorate([
+    (0, _common.UseGuards)(_jwtauthguard.JwtAuthGuard),
+    (0, _common.Get)('dashboard'),
+    _ts_param(0, (0, _common.Request)()),
+    _ts_metadata("design:type", Function),
+    _ts_metadata("design:paramtypes", [
+        void 0
+    ]),
+    _ts_metadata("design:returntype", Promise)
 ], CreatorController.prototype, "getDashboard", null);
-exports.CreatorController = CreatorController = __decorate([
-    (0, common_1.Controller)('creator'),
-    __metadata("design:paramtypes", [creator_service_1.CreatorService])
+CreatorController = _ts_decorate([
+    (0, _common.Controller)('creator'),
+    _ts_metadata("design:type", Function),
+    _ts_metadata("design:paramtypes", [
+        typeof _creatorservice.CreatorService === "undefined" ? Object : _creatorservice.CreatorService
+    ])
 ], CreatorController);

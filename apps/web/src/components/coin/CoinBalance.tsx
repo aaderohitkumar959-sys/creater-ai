@@ -1,28 +1,31 @@
 "use client";
 
-import { useSession } from "next-auth/react";
+import { useAuth } from "@/contexts/AuthContext";
 import { useEffect, useState } from "react";
 import { Coins } from "lucide-react";
 import Link from "next/link";
 
 export function CoinBalance() {
-    const { data: session } = useSession();
+    const { user, loading: authLoading } = useAuth();
     const [balance, setBalance] = useState<number | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        if (!session?.user?.id) {
+        if (authLoading) return;
+
+        if (!user) {
             setLoading(false);
             return;
         }
 
         const fetchBalance = async () => {
             try {
+                const token = await user.getIdToken();
                 const res = await fetch(
-                    `${process.env.NEXT_PUBLIC_API_URL}/coins/balance`,
+                    `${process.env.NEXT_PUBLIC_API_URL}/coin/balance/${user.uid}`,
                     {
                         headers: {
-                            Authorization: `Bearer ${(session.user as any).accessToken || ""}`,
+                            Authorization: `Bearer ${token}`,
                         },
                     }
                 );
@@ -43,9 +46,9 @@ export function CoinBalance() {
         };
 
         fetchBalance();
-    }, [session]);
+    }, [user, authLoading]);
 
-    if (!session || loading) {
+    if (!user || loading) {
         return null;
     }
 

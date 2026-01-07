@@ -219,7 +219,7 @@ export default function MemoryViewerPage() {
                     <div className="flex items-center justify-between mb-6">
                         <div>
                             <h1 className="text-4xl font-bold text-white mb-2 flex items-center gap-3">
-                                <img src="/syelope-logo.jpg" alt="" className="w-10 h-10 rounded-lg object-contain border border-white/10" />
+                                <img src="/brand-logo.png" alt="" className="w-10 h-10 rounded-lg object-contain border border-white/10" />
                                 AI Memory
                             </h1>
                             <p className="text-gray-300">

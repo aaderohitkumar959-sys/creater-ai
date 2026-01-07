@@ -1,17 +1,48 @@
 "use strict";
-var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+Object.defineProperty(exports, "JwtAuthGuard", {
+    enumerable: true,
+    get: function() {
+        return JwtAuthGuard;
+    }
+});
+const _common = require("@nestjs/common");
+const _authservice = require("./auth.service");
+function _ts_decorate(decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    else for(var i = decorators.length - 1; i >= 0; i--)if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
+}
+function _ts_metadata(k, v) {
+    if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
+}
+let JwtAuthGuard = class JwtAuthGuard {
+    async canActivate(context) {
+        const request = context.switchToHttp().getRequest();
+        const authHeader = request.headers.authorization;
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
+            throw new _common.UnauthorizedException('No token provided');
+        }
+        const token = authHeader.split('Bearer ')[1];
+        try {
+            const decodedUser = await this.authService.verifyFirebaseToken(token);
+            request.user = decodedUser;
+            return true;
+        } catch (error) {
+            throw new _common.UnauthorizedException('Invalid token');
+        }
+    }
+    constructor(authService){
+        this.authService = authService;
+    }
 };
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.JwtAuthGuard = void 0;
-const common_1 = require("@nestjs/common");
-const passport_1 = require("@nestjs/passport");
-let JwtAuthGuard = class JwtAuthGuard extends (0, passport_1.AuthGuard)('jwt') {
-};
-exports.JwtAuthGuard = JwtAuthGuard;
-exports.JwtAuthGuard = JwtAuthGuard = __decorate([
-    (0, common_1.Injectable)()
+JwtAuthGuard = _ts_decorate([
+    (0, _common.Injectable)(),
+    _ts_metadata("design:type", Function),
+    _ts_metadata("design:paramtypes", [
+        typeof _authservice.AuthService === "undefined" ? Object : _authservice.AuthService
+    ])
 ], JwtAuthGuard);

@@ -1,26 +1,22 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { FirestoreService } from '../prisma/firestore.service';
 import { CoinService } from '../coin/coin.service';
+import * as admin from 'firebase-admin';
 
 @Injectable()
 export class QuestService {
   constructor(
-    private prisma: PrismaService,
+    private firestore: FirestoreService,
     private coinService: CoinService,
   ) { }
 
   async getDailyStatus(userId: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { loginStreak: true, lastDailyRewardClaimed: true },
-    });
-
+    const user = await this.firestore.findUnique('users', userId) as any;
     if (!user) throw new BadRequestException('User not found');
 
     const now = new Date();
-    const lastClaim = user.lastDailyRewardClaimed
-      ? new Date(user.lastDailyRewardClaimed)
-      : null;
+    const lastClaimDoc = user.lastDailyRewardClaimed?.toDate ? user.lastDailyRewardClaimed.toDate() : user.lastDailyRewardClaimed;
+    const lastClaim = lastClaimDoc ? new Date(lastClaimDoc) : null;
 
     let canClaim = true;
     if (lastClaim) {
@@ -32,9 +28,9 @@ export class QuestService {
     }
 
     return {
-      streak: user.loginStreak,
+      streak: user.loginStreak || 0,
       canClaim,
-      rewardAmount: this.calculateReward(user.loginStreak + 1),
+      rewardAmount: this.calculateReward((user.loginStreak || 0) + 1),
     };
   }
 
@@ -44,19 +40,14 @@ export class QuestService {
       throw new BadRequestException('Reward already claimed today');
     }
 
-    const user = await this.prisma.user.findUnique({ where: { id: userId } });
+    const user = await this.firestore.findUnique('users', userId) as any;
     if (!user) throw new BadRequestException('User not found');
+
     const now = new Date();
-    const lastLogin = user.lastLoginDate ? new Date(user.lastLoginDate) : new Date(0);
+    const lastClaimDoc = user.lastDailyRewardClaimed?.toDate ? user.lastDailyRewardClaimed.toDate() : user.lastDailyRewardClaimed;
+    const lastClaim = lastClaimDoc ? new Date(lastClaimDoc) : null;
 
-    // Check if streak is broken (more than 48 hours since last login/claim logic)
-    // For simplicity, let's assume if last claim was yesterday, streak continues.
-    // If last claim was before yesterday, streak resets.
-
-    let newStreak = user.loginStreak + 1;
-    const lastClaim = user.lastDailyRewardClaimed
-      ? new Date(user.lastDailyRewardClaimed)
-      : null;
+    let newStreak = (user.loginStreak || 0) + 1;
 
     if (lastClaim) {
       const yesterday = new Date();
@@ -68,9 +59,6 @@ export class QuestService {
         lastClaim.getFullYear() === yesterday.getFullYear();
 
       if (!isYesterday) {
-        // Streak broken if not claimed yesterday (and not first time)
-        // But wait, if they claimed today already, we returned early.
-        // If they claimed 2 days ago, streak resets.
         const diffTime = Math.abs(now.getTime() - lastClaim.getTime());
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
         if (diffDays > 2) newStreak = 1;
@@ -81,17 +69,12 @@ export class QuestService {
 
     const reward = this.calculateReward(newStreak);
 
-    // Update user
-    await this.prisma.user.update({
-      where: { id: userId },
-      data: {
-        loginStreak: newStreak,
-        lastDailyRewardClaimed: now,
-        lastLoginDate: now,
-      },
+    await this.firestore.update('users', userId, {
+      loginStreak: newStreak,
+      lastDailyRewardClaimed: admin.firestore.FieldValue.serverTimestamp(),
+      lastLoginDate: admin.firestore.FieldValue.serverTimestamp(),
     });
 
-    // Add coins
     await this.coinService.addCoins(userId, reward, 'Daily Login Reward');
 
     return {
@@ -102,7 +85,6 @@ export class QuestService {
   }
 
   private calculateReward(streak: number): number {
-    // Base reward 10, +5 for every streak day, capped at 50
     return Math.min(10 + (streak - 1) * 5, 50);
   }
 }

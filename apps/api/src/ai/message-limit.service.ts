@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { FirestoreService } from '../prisma/firestore.service';
 import { SubscriptionService } from '../subscription/subscription.service';
+import * as admin from 'firebase-admin';
 
 @Injectable()
 export class MessageLimitService {
@@ -8,7 +9,7 @@ export class MessageLimitService {
     private readonly PREMIUM_TIER_DAILY_LIMIT = 500;
 
     constructor(
-        private prisma: PrismaService,
+        private firestore: FirestoreService,
         private subscriptionService: SubscriptionService,
     ) { }
 
@@ -21,37 +22,21 @@ export class MessageLimitService {
         limit: number;
         resetsAt: Date;
     }> {
-        // Get user subscription
         const hasPremium = await this.subscriptionService.hasPremiumAccess(userId);
-        const limit = hasPremium
-            ? this.PREMIUM_TIER_DAILY_LIMIT
-            : this.FREE_TIER_DAILY_LIMIT;
+        const limit = hasPremium ? this.PREMIUM_TIER_DAILY_LIMIT : this.FREE_TIER_DAILY_LIMIT;
 
-        // Get user's daily message count
-        const user = await this.prisma.user.findUnique({
-            where: { id: userId },
-            select: {
-                dailyMessageCount: true,
-                lastMessageDate: true,
-            },
-        });
-
-        if (!user) {
-            throw new Error('User not found');
-        }
+        const user = await this.firestore.findUnique('users', userId) as any;
+        if (!user) throw new Error('User not found');
 
         const today = this.getDateString(new Date());
-        const lastMessageDate = user.lastMessageDate
-            ? this.getDateString(user.lastMessageDate)
-            : null;
+        const lastMsgDateDoc = user.lastMessageDate?.toDate ? user.lastMessageDate.toDate() : user.lastMessageDate;
+        const lastMessageDate = lastMsgDateDoc ? this.getDateString(new Date(lastMsgDateDoc)) : null;
 
-        // Reset count if new day
         let currentCount = 0;
         if (lastMessageDate === today) {
             currentCount = user.dailyMessageCount || 0;
         }
 
-        // Calculate next reset time
         const resetsAt = new Date();
         resetsAt.setDate(resetsAt.getDate() + 1);
         resetsAt.setHours(0, 0, 0, 0);
@@ -59,12 +44,7 @@ export class MessageLimitService {
         const remaining = Math.max(0, limit - currentCount);
         const allowed = currentCount < limit;
 
-        return {
-            allowed,
-            remaining,
-            limit,
-            resetsAt,
-        };
+        return { allowed, remaining, limit, resetsAt };
     }
 
     /**
@@ -74,89 +54,35 @@ export class MessageLimitService {
         const today = new Date();
         const todayString = this.getDateString(today);
 
-        const user = await this.prisma.user.findUnique({
-            where: { id: userId },
-        });
+        const user = await this.firestore.findUnique('users', userId) as any;
+        if (!user) throw new Error('User not found');
 
-        if (!user) {
-            throw new Error('User not found');
-        }
+        const lastMsgDateDoc = user.lastMessageDate?.toDate ? user.lastMessageDate.toDate() : user.lastMessageDate;
+        const lastMessageDate = lastMsgDateDoc ? this.getDateString(new Date(lastMsgDateDoc)) : null;
 
-        const lastMessageDate = user.lastMessageDate
-            ? this.getDateString(user.lastMessageDate)
-            : null;
-
-        // Reset if new day, otherwise increment
         if (lastMessageDate !== todayString) {
-            await this.prisma.user.update({
-                where: { id: userId },
-                data: {
-                    dailyMessageCount: 1,
-                    lastMessageDate: today,
-                },
+            await this.firestore.update('users', userId, {
+                dailyMessageCount: 1,
+                lastMessageDate: admin.firestore.FieldValue.serverTimestamp(),
             });
         } else {
-            await this.prisma.user.update({
-                where: { id: userId },
-                data: {
-                    dailyMessageCount: { increment: 1 },
-                },
+            await this.firestore.update('users', userId, {
+                dailyMessageCount: admin.firestore.FieldValue.increment(1),
             });
         }
-
-        console.log('[MESSAGE_LIMIT] Incremented count for user:', userId);
     }
 
     /**
      * Get usage statistics
      */
-    async getUsageStats(userId: string): Promise<{
-        todayCount: number;
-        limit: number;
-        percentageUsed: number;
-        tier: 'FREE' | 'PREMIUM';
-    }> {
-        const hasPremium = await this.subscriptionService.hasPremiumAccess(userId);
-        const limit = hasPremium
-            ? this.PREMIUM_TIER_DAILY_LIMIT
-            : this.FREE_TIER_DAILY_LIMIT;
-
-        const user = await this.prisma.user.findUnique({
-            where: { id: userId },
-        });
-
-        if (!user) {
-            throw new Error('User not found');
-        }
-
-        const today = this.getDateString(new Date());
-        const lastMessageDate = user.lastMessageDate
-            ? this.getDateString(user.lastMessageDate)
-            : null;
-
-        const todayCount =
-            lastMessageDate === today ? user.dailyMessageCount || 0 : 0;
-
+    async getUsageStats(userId: string) {
+        const stats = await this.canSendMessage(userId);
         return {
-            todayCount,
-            limit,
-            percentageUsed: Math.round((todayCount / limit) * 100),
-            tier: hasPremium ? 'PREMIUM' : 'FREE',
+            todayCount: stats.limit - stats.remaining,
+            limit: stats.limit,
+            percentageUsed: Math.round(((stats.limit - stats.remaining) / stats.limit) * 100),
+            tier: stats.limit > this.FREE_TIER_DAILY_LIMIT ? 'PREMIUM' : 'FREE',
         };
-    }
-
-    /**
-     * Reset all user counts (admin function, runs daily at midnight)
-     */
-    async resetDailyCounts(): Promise<number> {
-        const result = await this.prisma.user.updateMany({
-            data: {
-                dailyMessageCount: 0,
-            },
-        });
-
-        console.log('[MESSAGE_LIMIT] Reset daily counts for all users');
-        return result.count;
     }
 
     private getDateString(date: Date): string {

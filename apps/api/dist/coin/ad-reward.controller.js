@@ -1,47 +1,57 @@
 "use strict";
-var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+Object.defineProperty(exports, "AdRewardController", {
+    enumerable: true,
+    get: function() {
+        return AdRewardController;
+    }
+});
+const _common = require("@nestjs/common");
+const _coinservice = require("./coin.service");
+const _jwtauthguard = require("../auth/jwt-auth.guard");
+function _ts_decorate(decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    else for(var i = decorators.length - 1; i >= 0; i--)if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
-};
-var __metadata = (this && this.__metadata) || function (k, v) {
+}
+function _ts_metadata(k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
-};
-var __param = (this && this.__param) || function (paramIndex, decorator) {
-    return function (target, key) { decorator(target, key, paramIndex); }
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.AdRewardController = void 0;
-const common_1 = require("@nestjs/common");
-const coin_service_1 = require("./coin.service");
-const jwt_auth_guard_1 = require("../auth/jwt-auth.guard");
+}
+function _ts_param(paramIndex, decorator) {
+    return function(target, key) {
+        decorator(target, key, paramIndex);
+    };
+}
 let AdRewardController = class AdRewardController {
-    coinService;
-    constructor(coinService) {
-        this.coinService = coinService;
-    }
     async validateAdReward(body, req) {
         const userId = req.user.id;
+        // In production, validate the token with the ad provider's server
+        // For now, we'll use a simple validation for test tokens
         if (body.adProvider === 'test' && body.adToken.startsWith('test_')) {
+            // Check if user has exceeded daily ad limit
             const canEarn = await this.coinService.canEarnAdReward(userId);
             if (!canEarn) {
                 return {
                     success: false,
-                    error: 'Daily ad limit reached. Try again tomorrow!',
+                    error: 'Daily ad limit reached. Try again tomorrow!'
                 };
             }
+            // Grant reward (e.g., 10 coins per ad)
             const newBalance = await this.coinService.grantAdReward(userId, 10);
             return {
                 success: true,
                 coinsEarned: 10,
                 newBalance,
-                message: 'Congratulations! You earned 10 coins.',
+                message: 'Congratulations! You earned 10 coins.'
             };
         }
+        // TODO: Add real validation for AdMob, Unity Ads, etc.
         return {
             success: false,
-            error: 'Invalid ad token',
+            error: 'Invalid ad token'
         };
     }
     async checkAvailability(req) {
@@ -52,28 +62,38 @@ let AdRewardController = class AdRewardController {
             canEarn,
             adsWatchedToday,
             maxAdsPerDay: 5,
-            coinsPerAd: 10,
+            coinsPerAd: 10
         };
     }
+    constructor(coinService){
+        this.coinService = coinService;
+    }
 };
-exports.AdRewardController = AdRewardController;
-__decorate([
-    (0, common_1.Post)('validate'),
-    __param(0, (0, common_1.Body)()),
-    __param(1, (0, common_1.Request)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object]),
-    __metadata("design:returntype", Promise)
+_ts_decorate([
+    (0, _common.Post)('validate'),
+    _ts_param(0, (0, _common.Body)()),
+    _ts_param(1, (0, _common.Request)()),
+    _ts_metadata("design:type", Function),
+    _ts_metadata("design:paramtypes", [
+        typeof AdRewardRequest === "undefined" ? Object : AdRewardRequest,
+        Object
+    ]),
+    _ts_metadata("design:returntype", Promise)
 ], AdRewardController.prototype, "validateAdReward", null);
-__decorate([
-    (0, common_1.Post)('check-availability'),
-    __param(0, (0, common_1.Request)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", Promise)
+_ts_decorate([
+    (0, _common.Post)('check-availability'),
+    _ts_param(0, (0, _common.Request)()),
+    _ts_metadata("design:type", Function),
+    _ts_metadata("design:paramtypes", [
+        Object
+    ]),
+    _ts_metadata("design:returntype", Promise)
 ], AdRewardController.prototype, "checkAvailability", null);
-exports.AdRewardController = AdRewardController = __decorate([
-    (0, common_1.Controller)('coin/ad-reward'),
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    __metadata("design:paramtypes", [coin_service_1.CoinService])
+AdRewardController = _ts_decorate([
+    (0, _common.Controller)('coin/ad-reward'),
+    (0, _common.UseGuards)(_jwtauthguard.JwtAuthGuard),
+    _ts_metadata("design:type", Function),
+    _ts_metadata("design:paramtypes", [
+        typeof _coinservice.CoinService === "undefined" ? Object : _coinservice.CoinService
+    ])
 ], AdRewardController);

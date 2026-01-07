@@ -1,15 +1,31 @@
 "use client"
 
-import { signIn } from "next-auth/react"
+import { useAuth } from "@/contexts/AuthContext"
 import { Button } from "@/components/ui/button"
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 
 export default function LoginPage() {
     const [email, setEmail] = useState("")
+    const [isSubmitting, setIsSubmitting] = useState(false)
+    const { signInWithGoogle, sendEmailLink, user } = useAuth()
+    const router = useRouter()
+
+    // Redirect if already logged in (not anonymous)
+    if (user && !user.isAnonymous) {
+        router.push("/dashboard")
+    }
 
     const handleEmailLogin = async (e: React.FormEvent) => {
         e.preventDefault()
-        await signIn("email", { email, callbackUrl: "/dashboard" })
+        setIsSubmitting(true)
+        try {
+            await sendEmailLink(email)
+        } catch (error) {
+            console.error("Login failed:", error)
+        } finally {
+            setIsSubmitting(false)
+        }
     }
 
     return (
@@ -17,7 +33,7 @@ export default function LoginPage() {
             <div className="w-full max-w-md space-y-8 rounded-lg bg-white p-6 shadow-md">
                 <div className="text-center">
                     <h2 className="text-3xl font-bold tracking-tight text-gray-900">
-                        Sign in to Syelope
+                        Sign in to CreaterAI
                     </h2>
                     <p className="mt-2 text-sm text-gray-600">
                         Or create an account to start chatting
@@ -26,7 +42,7 @@ export default function LoginPage() {
 
                 <div className="mt-8 space-y-6">
                     <Button
-                        onClick={() => signIn("google", { callbackUrl: "/" })}
+                        onClick={signInWithGoogle}
                         className="w-full"
                         variant="outline"
                     >
@@ -59,8 +75,8 @@ export default function LoginPage() {
                                 placeholder="Email address"
                             />
                         </div>
-                        <Button type="submit" className="w-full">
-                            Sign in with Email
+                        <Button type="submit" className="w-full" disabled={isSubmitting}>
+                            {isSubmitting ? "Sending..." : "Sign in with Email"}
                         </Button>
                     </form>
                 </div>

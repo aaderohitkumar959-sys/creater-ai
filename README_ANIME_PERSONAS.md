@@ -1,4 +1,4 @@
-# Syelope Anime Personas - Deployment & A/B Test Plan
+# CreaterAI Anime Personas - Deployment & A/B Test Plan
 
 This document outlines how to deploy the 12 new anime personas and the plan for optimizing engagement through A/B testing.
 

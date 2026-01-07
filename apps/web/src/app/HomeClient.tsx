@@ -39,15 +39,15 @@ export function HomeClient() {
                         {/* Logo Glow Effect */}
                         <div className="absolute inset-0 blur-2xl opacity-50">
                             <img
-                                src="/syelope-logo.jpg"
+                                src="/brand-logo.png"
                                 alt=""
                                 className="w-28 h-28 md:w-40 md:h-40 object-contain"
                             />
                         </div>
                         {/* Main Logo */}
                         <img
-                            src="/syelope-logo.jpg"
-                            alt="Syelope"
+                            src="/brand-logo.png"
+                            alt="CreaterAI"
                             className="relative w-28 h-28 md:w-40 md:h-40 object-contain drop-shadow-2xl"
                         />
                     </div>
@@ -186,7 +186,7 @@ export function HomeClient() {
                         Secure • Private • Compassionate
                     </p>
                     <p className="mt-6 text-center text-[10px] text-gray-700">
-                        © {new Date().getFullYear()} Syelope. Built for resilience.
+                        © {new Date().getFullYear()} CreaterAI. Built for resilience.
                     </p>
                 </div>
 

@@ -1,131 +1,111 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
+Object.defineProperty(exports, "__esModule", {
+    value: true
 });
-var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+Object.defineProperty(exports, "AuthService", {
+    enumerable: true,
+    get: function() {
+        return AuthService;
+    }
+});
+const _common = require("@nestjs/common");
+const _firestoreservice = require("../prisma/firestore.service");
+const _firebaseadmin = /*#__PURE__*/ _interop_require_wildcard(require("firebase-admin"));
+function _getRequireWildcardCache(nodeInterop) {
+    if (typeof WeakMap !== "function") return null;
+    var cacheBabelInterop = new WeakMap();
+    var cacheNodeInterop = new WeakMap();
+    return (_getRequireWildcardCache = function(nodeInterop) {
+        return nodeInterop ? cacheNodeInterop : cacheBabelInterop;
+    })(nodeInterop);
+}
+function _interop_require_wildcard(obj, nodeInterop) {
+    if (!nodeInterop && obj && obj.__esModule) {
+        return obj;
+    }
+    if (obj === null || typeof obj !== "object" && typeof obj !== "function") {
+        return {
+            default: obj
+        };
+    }
+    var cache = _getRequireWildcardCache(nodeInterop);
+    if (cache && cache.has(obj)) {
+        return cache.get(obj);
+    }
+    var newObj = {
+        __proto__: null
+    };
+    var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor;
+    for(var key in obj){
+        if (key !== "default" && Object.prototype.hasOwnProperty.call(obj, key)) {
+            var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null;
+            if (desc && (desc.get || desc.set)) {
+                Object.defineProperty(newObj, key, desc);
+            } else {
+                newObj[key] = obj[key];
+            }
+        }
+    }
+    newObj.default = obj;
+    if (cache) {
+        cache.set(obj, newObj);
+    }
+    return newObj;
+}
+function _ts_decorate(decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    else for(var i = decorators.length - 1; i >= 0; i--)if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
-};
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
-var __metadata = (this && this.__metadata) || function (k, v) {
+}
+function _ts_metadata(k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.AuthService = void 0;
-const common_1 = require("@nestjs/common");
-const jwt_1 = require("@nestjs/jwt");
-const config_1 = require("@nestjs/config");
-const prisma_service_1 = require("../prisma/prisma.service");
-const argon2 = __importStar(require("argon2"));
+}
 let AuthService = class AuthService {
-    prisma;
-    jwtService;
-    config;
-    constructor(prisma, jwtService, config) {
-        this.prisma = prisma;
-        this.jwtService = jwtService;
-        this.config = config;
-    }
-    async validateUser(payload) {
-        const user = await this.prisma.user.findUnique({
-            where: { id: payload.sub },
-        });
-        if (user) {
-            const { ...result } = user;
-            return result;
+    /**
+   * Verifies Firebase ID Token
+   */ async verifyFirebaseToken(token) {
+        try {
+            if (!_firebaseadmin.apps.length) _firebaseadmin.initializeApp();
+            const decodedToken = await _firebaseadmin.auth().verifyIdToken(token);
+            return decodedToken;
+        } catch (error) {
+            console.error('Firebase token verification failed:', error);
+            throw new _common.UnauthorizedException('Invalid token');
         }
-        return null;
     }
-    async login(user) {
-        const dbUser = await this.prisma.user.upsert({
-            where: { id: user.id },
-            update: {
-                email: user.email,
-                name: user.name,
-                image: user.image,
-            },
-            create: {
-                id: user.id,
-                email: user.email,
-                name: user.name,
-                image: user.image,
-                role: user.role || 'USER',
-            },
-        });
-        const tokens = await this.getTokens(dbUser.id, dbUser.email || '', dbUser.role);
-        await this.updateRefreshToken(dbUser.id, tokens.refreshToken);
-        return tokens;
-    }
-    async logout(userId) {
-        return true;
-    }
-    async refreshTokens(userId, refreshToken) {
-        const user = await this.prisma.user.findUnique({
-            where: { id: userId },
-        });
-        if (!user)
-            throw new common_1.ForbiddenException('Access Denied');
-        const tokens = await this.getTokens(user.id, user.email || '', user.role);
-        return tokens;
-    }
-    async updateRefreshToken(userId, refreshToken) {
-        const hash = await this.hashData(refreshToken);
-    }
-    async getTokens(userId, email, role) {
-        const [accessToken, refreshToken] = await Promise.all([
-            this.jwtService.signAsync({ sub: userId, email, role }, {
-                secret: this.config.get('JWT_SECRET'),
-                expiresIn: '15m',
-            }),
-            this.jwtService.signAsync({ sub: userId, email, role }, {
-                secret: this.config.get('JWT_REFRESH_SECRET') || 'refresh-secret',
-                expiresIn: '7d',
-            }),
-        ]);
-        return {
-            accessToken,
-            refreshToken,
+    async login(firebaseUser) {
+        const { uid, email, name, picture } = firebaseUser;
+        // Sync user with Firestore
+        const userRef = this.firestore.collection('users').doc(uid);
+        const doc = await userRef.get();
+        const userData = {
+            id: uid,
+            email: email || '',
+            name: name || '',
+            image: picture || '',
+            updatedAt: _firebaseadmin.firestore.FieldValue.serverTimestamp()
         };
+        if (!doc.exists) {
+            await userRef.set({
+                ...userData,
+                role: 'USER',
+                createdAt: _firebaseadmin.firestore.FieldValue.serverTimestamp(),
+                coinBalance: 0
+            });
+        } else {
+            await userRef.update(userData);
+        }
+        return userData;
     }
-    hashData(data) {
-        return argon2.hash(data);
+    constructor(firestore){
+        this.firestore = firestore;
     }
 };
-exports.AuthService = AuthService;
-exports.AuthService = AuthService = __decorate([
-    (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
-        jwt_1.JwtService,
-        config_1.ConfigService])
+AuthService = _ts_decorate([
+    (0, _common.Injectable)(),
+    _ts_metadata("design:type", Function),
+    _ts_metadata("design:paramtypes", [
+        typeof _firestoreservice.FirestoreService === "undefined" ? Object : _firestoreservice.FirestoreService
+    ])
 ], AuthService);

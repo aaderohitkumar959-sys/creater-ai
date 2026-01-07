@@ -1,10 +1,11 @@
-import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { FirestoreService } from '../prisma/firestore.service';
+import * as admin from 'firebase-admin';
 import * as crypto from 'crypto';
 
 @Injectable()
 export class UserService {
-    constructor(private prisma: PrismaService) { }
+    constructor(private firestore: FirestoreService) { }
 
     /**
      * GDPR: Request user data deletion
@@ -15,70 +16,41 @@ export class UserService {
         token: string;
         expiresAt: Date;
     }> {
-        // Fetch user first
-        const user = await this.prisma.user.findUnique({
-            where: { id: userId },
-        });
+        const user = await this.firestore.findUnique('users', userId) as any;
 
         if (!user) {
-            throw new Error('User not found');
+            throw new NotFoundException('User not found');
         }
 
-        // Generate unique deletion token
         const token = crypto.randomBytes(32).toString('hex');
         const expiresAt = new Date();
-        expiresAt.setDate(expiresAt.getDate() + 30); // 30-day grace period
+        expiresAt.setDate(expiresAt.getDate() + 30);
 
-        // Store deletion request in metadata
-        const currentMetadata = (user.metadata as any) || {};
-        await this.prisma.user.update({
-            where: { id: userId },
-            data: {
-                metadata: {
-                    ...currentMetadata,
-                    deletionRequested: true,
-                    deletionToken: token,
-                    deletionExpiresAt: expiresAt.toISOString(),
-                },
-            },
+        await this.firestore.update('users', userId, {
+            'metadata.deletionRequested': true,
+            'metadata.deletionToken': token,
+            'metadata.deletionExpiresAt': expiresAt.toISOString(),
         });
 
-        console.log('[GDPR] Deletion requested:', {
-            userId,
-            expiresAt,
-        });
+        console.log('[GDPR] Deletion requested:', { userId, expiresAt });
 
-        // TODO: Send email with confirmation link
-        // Email should contain: /user/confirm-deletion/:token
-
-        return {
-            success: true,
-            token,
-            expiresAt,
-        };
+        return { success: true, token, expiresAt };
     }
 
     /**
      * GDPR: Confirm and execute user data deletion
-     * Permanent deletion after confirmation
      */
     async confirmDeletion(token: string): Promise<boolean> {
-        // Find all users with metadata and check for token (Json fields need client-side filtering)
-        const users = await this.prisma.user.findMany({
-            // Fetch users that might have metadata - filter client-side
-        });
+        const users = await this.firestore.findMany('users', (ref) =>
+            ref.where('metadata.deletionToken', '==', token)
+        );
 
-        // Filter for matching token in metadata
-        const user = users.find((u) => {
-            const meta = u.metadata as any;
-            return meta?.deletionToken === token;
-        });
-
-        if (!user) {
+        if (users.length === 0) {
             throw new Error('Invalid deletion token');
         }
 
-        const metadata = user.metadata as any;
+        const user = users[0] as any;
+        const metadata = user.metadata;
         const expiresAt = new Date(metadata.deletionExpiresAt);
 
         if (expiresAt < new Date()) {
@@ -87,94 +59,43 @@ export class UserService {
 
         console.log('[GDPR] Executing deletion for user:', user.id);
 
-        // Delete all user data in correct order (respecting foreign keys)
-        await this.prisma.$transaction(async (tx) => {
-            // 1. Delete messages
-            await tx.message.deleteMany({ where: { userId: user.id } });
+        await this.firestore.runTransaction(async (transaction) => {
+            const userId = user.id;
 
-            // 2. Delete conversations
-            await tx.conversation.deleteMany({ where: { userId: user.id } });
+            // 1. Delete user doc
+            transaction.delete(this.firestore.collection('users').doc(userId));
 
-            // 3. Delete coin transactions
-            const wallet = await tx.coinWallet.findUnique({
-                where: { userId: user.id },
+            // 2. Delete conversations (note: this only deletes the top level, sub-collections need special handling if not using recursive delete)
+            const convSnapshot = await this.firestore.collection('conversations')
+                .where('userId', '==', userId)
+                .get();
+
+            convSnapshot.forEach(doc => {
+                transaction.delete(doc.ref);
             });
-            if (wallet) {
-                await tx.coinTransaction.deleteMany({ where: { walletId: wallet.id } });
-                await tx.coinWallet.delete({ where: { id: wallet.id } });
-            }
 
-            // 4. Delete payments
-            await tx.payment.deleteMany({ where: { userId: user.id } });
-
-            // 5. Delete sessions
-            await tx.session.deleteMany({ where: { userId: user.id } });
-
-            // 6. Delete accounts (OAuth)
-            await tx.account.deleteMany({ where: { userId: user.id } });
-
-            // 7. Delete analytics events
-            // await tx.analyticsEvent.deleteMany({ where: { userId: user.id } });
-
-            // 8. Finally, delete user
-            await tx.user.delete({ where: { id: user.id } });
-
-            console.log('[GDPR] User data deleted successfully:', user.id);
+            // 3. Delete usage tracking
+            transaction.delete(this.firestore.collection('usage_tracking').doc(userId));
         });
 
+        console.log('[GDPR] User data deleted successfully:', user.id);
         return true;
     }
 
     /**
      * GDPR: Export all user data
-     * Returns JSON with all user information
      */
     async exportData(userId: string): Promise<any> {
-        const user = await this.prisma.user.findUnique({
-            where: { id: userId },
-            include: {
-                accounts: true,
-                sessions: {
-                    select: {
-                        id: true,
-                        sessionToken: true,
-                        expires: true,
-                        createdAt: true,
-                    },
-                },
-                CoinWallet: {
-                    include: {
-                        transactions: {
-                            orderBy: { createdAt: 'desc' },
-                            take: 1000, // Limit to last 1000 transactions
-                        },
-                    },
-                },
-                Payment: {
-                    orderBy: { createdAt: 'desc' },
-                },
-                conversations: {
-                    include: {
-                        messages: {
-                            orderBy: { createdAt: 'asc' },
-                        },
-                        persona: {
-                            select: {
-                                id: true,
-                                name: true,
-                                description: true,
-                            },
-                        },
-                    },
-                },
-            },
-        });
+        const user = await this.firestore.findUnique('users', userId) as any;
 
         if (!user) {
-            throw new Error('User not found');
+            throw new NotFoundException('User not found');
         }
 
-        // Sanitize sensitive data
+        const conversations = await this.firestore.findMany('conversations', (ref) =>
+            ref.where('userId', '==', userId)
+        );
+
         const exportData = {
             user: {
                 id: user.id,
@@ -185,45 +106,14 @@ export class UserService {
                 createdAt: user.createdAt,
                 updatedAt: user.updatedAt,
             },
-            accounts: user.accounts.map((acc) => ({
-                provider: acc.provider,
-                providerAccountId: acc.providerAccountId,
-                type: acc.type,
-            })),
-            coinWallet: user.CoinWallet
-                ? {
-                    balance: user.CoinWallet.balance,
-                    transactions: user.CoinWallet.transactions.map((tx) => ({
-                        type: tx.type,
-                        amount: tx.amount,
-                        description: tx.description,
-                        createdAt: tx.createdAt,
-                    })),
-                }
-                : null,
-            payments: user.Payment.map((p) => ({
-                provider: p.provider,
-                amount: p.amount,
-                currency: p.currency,
-                status: p.status,
-                coinsGranted: p.coinsGranted,
-                createdAt: p.createdAt,
-            })),
-            conversations: user.conversations.map((conv) => ({
-                personaName: conv.persona.name,
-                personaDescription: conv.persona.description,
+            conversations: conversations.map((conv: any) => ({
+                personaId: conv.personaId,
                 createdAt: conv.createdAt,
-                messages: conv.messages.map((msg) => ({
-                    sender: msg.sender,
-                    content: msg.content,
-                    createdAt: msg.createdAt,
-                })),
             })),
             exportDate: new Date().toISOString(),
         };
 
         console.log('[GDPR] Data exported for user:', userId);
-
         return exportData;
     }
 
@@ -231,25 +121,10 @@ export class UserService {
      * Cancel deletion request
      */
     async cancelDeletion(userId: string): Promise<boolean> {
-        const user = await this.prisma.user.findUnique({
-            where: { id: userId },
-        });
-
-        if (!user) {
-            throw new Error('User not found');
-        }
-
-        const currentMetadata = (user.metadata as any) || {};
-        await this.prisma.user.update({
-            where: { id: userId },
-            data: {
-                metadata: {
-                    ...currentMetadata,
-                    deletionRequested: false,
-                    deletionToken: null,
-                    deletionExpiresAt: null,
-                },
-            },
+        await this.firestore.update('users', userId, {
+            'metadata.deletionRequested': false,
+            'metadata.deletionToken': null,
+            'metadata.deletionExpiresAt': null,
         });
 
         console.log('[GDPR] Deletion cancelled for user:', userId);
@@ -257,15 +132,10 @@ export class UserService {
     }
 
     async getUserProfile(userId: string) {
-        const user = await this.prisma.user.findUnique({
-            where: { id: userId },
-            include: {
-                CoinWallet: true,
-            },
-        });
+        const user = await this.firestore.findUnique('users', userId) as any;
 
         if (!user) {
-            throw new Error('User not found');
+            throw new NotFoundException('User not found');
         }
 
         return {
@@ -274,7 +144,7 @@ export class UserService {
             email: user.email,
             image: user.image,
             role: user.role,
-            coinBalance: user.CoinWallet?.balance || 0,
+            coinBalance: user.coinBalance || 0,
         };
     }
 }

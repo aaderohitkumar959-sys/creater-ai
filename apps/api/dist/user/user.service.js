@@ -1,164 +1,130 @@
 "use strict";
-var __createBinding = (this && this.__createBinding) || (Object.create ? (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    var desc = Object.getOwnPropertyDescriptor(m, k);
-    if (!desc || ("get" in desc ? !m.__esModule : desc.writable || desc.configurable)) {
-      desc = { enumerable: true, get: function() { return m[k]; } };
-    }
-    Object.defineProperty(o, k2, desc);
-}) : (function(o, m, k, k2) {
-    if (k2 === undefined) k2 = k;
-    o[k2] = m[k];
-}));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
+Object.defineProperty(exports, "__esModule", {
+    value: true
 });
-var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+Object.defineProperty(exports, "UserService", {
+    enumerable: true,
+    get: function() {
+        return UserService;
+    }
+});
+const _common = require("@nestjs/common");
+const _firestoreservice = require("../prisma/firestore.service");
+const _crypto = /*#__PURE__*/ _interop_require_wildcard(require("crypto"));
+function _getRequireWildcardCache(nodeInterop) {
+    if (typeof WeakMap !== "function") return null;
+    var cacheBabelInterop = new WeakMap();
+    var cacheNodeInterop = new WeakMap();
+    return (_getRequireWildcardCache = function(nodeInterop) {
+        return nodeInterop ? cacheNodeInterop : cacheBabelInterop;
+    })(nodeInterop);
+}
+function _interop_require_wildcard(obj, nodeInterop) {
+    if (!nodeInterop && obj && obj.__esModule) {
+        return obj;
+    }
+    if (obj === null || typeof obj !== "object" && typeof obj !== "function") {
+        return {
+            default: obj
+        };
+    }
+    var cache = _getRequireWildcardCache(nodeInterop);
+    if (cache && cache.has(obj)) {
+        return cache.get(obj);
+    }
+    var newObj = {
+        __proto__: null
+    };
+    var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor;
+    for(var key in obj){
+        if (key !== "default" && Object.prototype.hasOwnProperty.call(obj, key)) {
+            var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null;
+            if (desc && (desc.get || desc.set)) {
+                Object.defineProperty(newObj, key, desc);
+            } else {
+                newObj[key] = obj[key];
+            }
+        }
+    }
+    newObj.default = obj;
+    if (cache) {
+        cache.set(obj, newObj);
+    }
+    return newObj;
+}
+function _ts_decorate(decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    else for(var i = decorators.length - 1; i >= 0; i--)if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
-};
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
-var __metadata = (this && this.__metadata) || function (k, v) {
+}
+function _ts_metadata(k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.UserService = void 0;
-const common_1 = require("@nestjs/common");
-const prisma_service_1 = require("../prisma/prisma.service");
-const crypto = __importStar(require("crypto"));
+}
 let UserService = class UserService {
-    prisma;
-    constructor(prisma) {
-        this.prisma = prisma;
-    }
-    async requestDeletion(userId) {
-        const user = await this.prisma.user.findUnique({
-            where: { id: userId },
-        });
+    /**
+     * GDPR: Request user data deletion
+     * Creates a deletion request with 30-day grace period
+     */ async requestDeletion(userId) {
+        const user = await this.firestore.findUnique('users', userId);
         if (!user) {
-            throw new Error('User not found');
+            throw new _common.NotFoundException('User not found');
         }
-        const token = crypto.randomBytes(32).toString('hex');
+        const token = _crypto.randomBytes(32).toString('hex');
         const expiresAt = new Date();
         expiresAt.setDate(expiresAt.getDate() + 30);
-        const currentMetadata = user.metadata || {};
-        await this.prisma.user.update({
-            where: { id: userId },
-            data: {
-                metadata: {
-                    ...currentMetadata,
-                    deletionRequested: true,
-                    deletionToken: token,
-                    deletionExpiresAt: expiresAt.toISOString(),
-                },
-            },
+        await this.firestore.update('users', userId, {
+            'metadata.deletionRequested': true,
+            'metadata.deletionToken': token,
+            'metadata.deletionExpiresAt': expiresAt.toISOString()
         });
         console.log('[GDPR] Deletion requested:', {
             userId,
-            expiresAt,
+            expiresAt
         });
         return {
             success: true,
             token,
-            expiresAt,
+            expiresAt
         };
     }
-    async confirmDeletion(token) {
-        const users = await this.prisma.user.findMany({});
-        const user = users.find((u) => {
-            const meta = u.metadata;
-            return meta?.deletionToken === token;
-        });
-        if (!user) {
+    /**
+     * GDPR: Confirm and execute user data deletion
+     */ async confirmDeletion(token) {
+        const users = await this.firestore.findMany('users', (ref)=>ref.where('metadata.deletionToken', '==', token));
+        if (users.length === 0) {
             throw new Error('Invalid deletion token');
         }
+        const user = users[0];
         const metadata = user.metadata;
         const expiresAt = new Date(metadata.deletionExpiresAt);
         if (expiresAt < new Date()) {
             throw new Error('Deletion token expired');
         }
         console.log('[GDPR] Executing deletion for user:', user.id);
-        await this.prisma.$transaction(async (tx) => {
-            await tx.message.deleteMany({ where: { userId: user.id } });
-            await tx.conversation.deleteMany({ where: { userId: user.id } });
-            const wallet = await tx.coinWallet.findUnique({
-                where: { userId: user.id },
+        await this.firestore.runTransaction(async (transaction)=>{
+            const userId = user.id;
+            // 1. Delete user doc
+            transaction.delete(this.firestore.collection('users').doc(userId));
+            // 2. Delete conversations (note: this only deletes the top level, sub-collections need special handling if not using recursive delete)
+            const convSnapshot = await this.firestore.collection('conversations').where('userId', '==', userId).get();
+            convSnapshot.forEach((doc)=>{
+                transaction.delete(doc.ref);
             });
-            if (wallet) {
-                await tx.coinTransaction.deleteMany({ where: { walletId: wallet.id } });
-                await tx.coinWallet.delete({ where: { id: wallet.id } });
-            }
-            await tx.payment.deleteMany({ where: { userId: user.id } });
-            await tx.session.deleteMany({ where: { userId: user.id } });
-            await tx.account.deleteMany({ where: { userId: user.id } });
-            await tx.user.delete({ where: { id: user.id } });
-            console.log('[GDPR] User data deleted successfully:', user.id);
+            // 3. Delete usage tracking
+            transaction.delete(this.firestore.collection('usage_tracking').doc(userId));
         });
+        console.log('[GDPR] User data deleted successfully:', user.id);
         return true;
     }
-    async exportData(userId) {
-        const user = await this.prisma.user.findUnique({
-            where: { id: userId },
-            include: {
-                accounts: true,
-                sessions: {
-                    select: {
-                        id: true,
-                        sessionToken: true,
-                        expires: true,
-                        createdAt: true,
-                    },
-                },
-                CoinWallet: {
-                    include: {
-                        transactions: {
-                            orderBy: { createdAt: 'desc' },
-                            take: 1000,
-                        },
-                    },
-                },
-                Payment: {
-                    orderBy: { createdAt: 'desc' },
-                },
-                conversations: {
-                    include: {
-                        messages: {
-                            orderBy: { createdAt: 'asc' },
-                        },
-                        persona: {
-                            select: {
-                                id: true,
-                                name: true,
-                                description: true,
-                            },
-                        },
-                    },
-                },
-            },
-        });
+    /**
+     * GDPR: Export all user data
+     */ async exportData(userId) {
+        const user = await this.firestore.findUnique('users', userId);
         if (!user) {
-            throw new Error('User not found');
+            throw new _common.NotFoundException('User not found');
         }
+        const conversations = await this.firestore.findMany('conversations', (ref)=>ref.where('userId', '==', userId));
         const exportData = {
             user: {
                 id: user.id,
@@ -167,78 +133,32 @@ let UserService = class UserService {
                 image: user.image,
                 role: user.role,
                 createdAt: user.createdAt,
-                updatedAt: user.updatedAt,
+                updatedAt: user.updatedAt
             },
-            accounts: user.accounts.map((acc) => ({
-                provider: acc.provider,
-                providerAccountId: acc.providerAccountId,
-                type: acc.type,
-            })),
-            coinWallet: user.CoinWallet
-                ? {
-                    balance: user.CoinWallet.balance,
-                    transactions: user.CoinWallet.transactions.map((tx) => ({
-                        type: tx.type,
-                        amount: tx.amount,
-                        description: tx.description,
-                        createdAt: tx.createdAt,
-                    })),
-                }
-                : null,
-            payments: user.Payment.map((p) => ({
-                provider: p.provider,
-                amount: p.amount,
-                currency: p.currency,
-                status: p.status,
-                coinsGranted: p.coinsGranted,
-                createdAt: p.createdAt,
-            })),
-            conversations: user.conversations.map((conv) => ({
-                personaName: conv.persona.name,
-                personaDescription: conv.persona.description,
-                createdAt: conv.createdAt,
-                messages: conv.messages.map((msg) => ({
-                    sender: msg.sender,
-                    content: msg.content,
-                    createdAt: msg.createdAt,
+            conversations: conversations.map((conv)=>({
+                    personaId: conv.personaId,
+                    createdAt: conv.createdAt
                 })),
-            })),
-            exportDate: new Date().toISOString(),
+            exportDate: new Date().toISOString()
         };
         console.log('[GDPR] Data exported for user:', userId);
         return exportData;
     }
-    async cancelDeletion(userId) {
-        const user = await this.prisma.user.findUnique({
-            where: { id: userId },
-        });
-        if (!user) {
-            throw new Error('User not found');
-        }
-        const currentMetadata = user.metadata || {};
-        await this.prisma.user.update({
-            where: { id: userId },
-            data: {
-                metadata: {
-                    ...currentMetadata,
-                    deletionRequested: false,
-                    deletionToken: null,
-                    deletionExpiresAt: null,
-                },
-            },
+    /**
+     * Cancel deletion request
+     */ async cancelDeletion(userId) {
+        await this.firestore.update('users', userId, {
+            'metadata.deletionRequested': false,
+            'metadata.deletionToken': null,
+            'metadata.deletionExpiresAt': null
         });
         console.log('[GDPR] Deletion cancelled for user:', userId);
         return true;
     }
     async getUserProfile(userId) {
-        const user = await this.prisma.user.findUnique({
-            where: { id: userId },
-            include: {
-                CoinWallet: true,
-            },
-        });
+        const user = await this.firestore.findUnique('users', userId);
         if (!user) {
-            throw new Error('User not found');
+            throw new _common.NotFoundException('User not found');
         }
         return {
             id: user.id,
@@ -246,12 +166,17 @@ let UserService = class UserService {
             email: user.email,
             image: user.image,
             role: user.role,
-            coinBalance: user.CoinWallet?.balance || 0,
+            coinBalance: user.coinBalance || 0
         };
     }
+    constructor(firestore){
+        this.firestore = firestore;
+    }
 };
-exports.UserService = UserService;
-exports.UserService = UserService = __decorate([
-    (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+UserService = _ts_decorate([
+    (0, _common.Injectable)(),
+    _ts_metadata("design:type", Function),
+    _ts_metadata("design:paramtypes", [
+        typeof _firestoreservice.FirestoreService === "undefined" ? Object : _firestoreservice.FirestoreService
+    ])
 ], UserService);

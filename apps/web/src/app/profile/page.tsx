@@ -16,21 +16,21 @@ import {
 import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 import { useTheme } from '@/contexts/theme-context';
-import { signOut, useSession } from 'next-auth/react';
+import { useAuth } from '@/contexts/AuthContext';
 import { api } from '@/lib/api';
 
 
 export default function ProfilePage() {
     const router = useRouter();
     const { theme, toggleTheme } = useTheme();
-    const { data: session } = useSession();
+    const { user: firebaseUser, signOut: firebaseSignOut } = useAuth();
 
     const [coinBalance, setCoinBalance] = useState(240);
     const [loadingBalance, setLoadingBalance] = useState(true);
 
     useEffect(() => {
         const fetchBalance = async () => {
-            if (session?.user?.id) {
+            if (firebaseUser?.uid) {
                 try {
                     const balance = await api.getWalletBalance();
                     setCoinBalance(balance);
@@ -44,13 +44,13 @@ export default function ProfilePage() {
             }
         };
         fetchBalance();
-    }, [session]);
+    }, [firebaseUser]);
 
-    // Fallback data if session is loading or missing
+    // Fallback data if user is loading or missing
     const user = {
-        name: session?.user?.name || 'User',
-        email: session?.user?.email || 'Guest',
-        avatar: session?.user?.image || '',
+        name: firebaseUser?.displayName || 'User',
+        email: firebaseUser?.email || 'Guest',
+        avatar: firebaseUser?.photoURL || '',
         plan: 'Free',
         coinBalance: coinBalance,
         isPremium: false,
@@ -58,10 +58,8 @@ export default function ProfilePage() {
 
     const handleLogout = async () => {
         if (confirm('Are you sure you want to logout?')) {
-            await signOut({
-                callbackUrl: '/',
-                redirect: true
-            });
+            await firebaseSignOut();
+            router.push('/');
         }
     };
 

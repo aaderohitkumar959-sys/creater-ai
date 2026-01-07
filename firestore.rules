@@ -1,0 +1,33 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow users to read/write their own profiles
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // Allow users to read/write their own conversations
+    match /conversations/{conversationId} {
+      allow read, write: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+      
+      // Allow users to read/write messages in their conversations
+      match /messages/{messageId} {
+        allow read, write: if request.auth != null && get(/databases/$(database)/documents/conversations/$(conversationId)).data.userId == request.auth.uid;
+      }
+    }
+    
+    // Global access for personas (read-only for users)
+    match /personas/{personaId} {
+      allow read: if true;
+      allow write: if request.auth != null && request.auth.token.admin == true;
+    }
+    
+    // Usage tracking
+    match /usage_tracking/{trackId} {
+      allow read: if request.auth != null && trackId.startsWith(request.auth.uid);
+      allow write: if false; // Only Cloud Functions can update usage
+    }
+  }
+}

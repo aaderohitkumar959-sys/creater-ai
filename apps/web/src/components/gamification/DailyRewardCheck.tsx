@@ -1,26 +1,27 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/contexts/AuthContext';
 import { DailyRewardModal } from './DailyRewardModal';
 
 export const DailyRewardCheck: React.FC = () => {
-    const { data: session } = useSession();
+    const { user } = useAuth();
     const [showModal, setShowModal] = useState(false);
 
     useEffect(() => {
         const checkDailyReward = async () => {
-            if (!session?.user?.id) return;
+            if (!user?.uid) return;
 
             // Don't check if we already checked this session
             if (sessionStorage.getItem('daily_reward_checked')) return;
 
             try {
+                const token = await user.getIdToken();
                 const res = await fetch(
                     `${process.env.NEXT_PUBLIC_API_URL}/gamification/daily-reward/status`,
                     {
                         headers: {
-                            Authorization: `Bearer ${(session.user as any).accessToken || ''}`,
+                            Authorization: `Bearer ${token}`,
                         },
                     }
                 );
@@ -39,7 +40,7 @@ export const DailyRewardCheck: React.FC = () => {
         };
 
         checkDailyReward();
-    }, [session]);
+    }, [user]);
 
     if (!showModal) return null;
 

@@ -9,15 +9,7 @@ import React from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { Home, Search, MessageCircle, Wallet, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
-// import { useSession } from 'next-auth/react';
-
-// MOCK USE SESSION
-const useSession = () => {
-    return {
-        data: null,
-        status: 'unauthenticated'
-    };
-};
+import { useAuth } from '@/contexts/AuthContext';
 
 interface NavItem {
     id: string;
@@ -68,7 +60,7 @@ const navItems: NavItem[] = [
 export const BottomNav: React.FC = () => {
     const pathname = usePathname();
     const router = useRouter();
-    const { data: session } = useSession();
+    const { user } = useAuth();
 
     const handleNavClick = (href: string) => {
         router.push(href);
@@ -97,8 +89,8 @@ export const BottomNav: React.FC = () => {
 
                     // Customize label for Profile
                     let displayLabel = item.label;
-                    if (item.id === 'profile' && session?.user?.name) {
-                        displayLabel = session.user.name.split(' ')[0];
+                    if (item.id === 'profile' && user?.displayName) {
+                        displayLabel = user.displayName.split(' ')[0];
                     }
 
                     return (
@@ -127,12 +119,12 @@ export const BottomNav: React.FC = () => {
                                 }}
                             >
                                 <div style={{ width: 24, height: 24 }}>
-                                    {item.id === 'profile' && session?.user?.image ? (
+                                    {item.id === 'profile' && user?.photoURL ? (
                                         <div className={cn(
                                             "w-6 h-6 rounded-full overflow-hidden border",
                                             active ? "border-[var(--accent-blue)]" : "border-[var(--border-medium)]"
                                         )}>
-                                            <img src={session.user.image} alt="U" className="w-full h-full object-cover" />
+                                            <img src={user.photoURL} alt="U" className="w-full h-full object-cover" />
                                         </div>
                                     ) : (
                                         item.id === 'messages' ? (
@@ -140,7 +132,7 @@ export const BottomNav: React.FC = () => {
                                                 "w-6 h-6 rounded-lg overflow-hidden border",
                                                 active ? "border-[var(--accent-blue)]" : "border-white/10"
                                             )}>
-                                                <img src="/syelope-logo.jpg" alt="S" className="w-full h-full object-contain" />
+                                                <img src="/brand-logo.png" alt="C" className="w-full h-full object-contain" />
                                             </div>
                                         ) : (
                                             React.cloneElement(item.icon as React.ReactElement, {

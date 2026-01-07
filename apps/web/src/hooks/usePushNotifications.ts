@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/contexts/AuthContext';
 
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY as string;
 
@@ -19,7 +19,7 @@ function urlBase64ToUint8Array(base64String: string) {
 }
 
 export function usePushNotifications() {
-    const { data: session } = useSession();
+    const { user } = useAuth();
     const [isSubscribed, setIsSubscribed] = useState(false);
     const [subscription, setSubscription] = useState<PushSubscription | null>(null);
     const [registration, setRegistration] = useState<ServiceWorkerRegistration | null>(null);
@@ -43,7 +43,7 @@ export function usePushNotifications() {
     }, []);
 
     const subscribeToNotifications = async () => {
-        if (!registration) return;
+        if (!registration || !user) return;
         if (!VAPID_PUBLIC_KEY) {
             console.error("VAPID Public Key not found");
             return;
@@ -59,16 +59,15 @@ export function usePushNotifications() {
             setIsSubscribed(true);
 
             // Send subscription to backend
-            if (session?.user?.id) {
-                await fetch(`${process.env.NEXT_PUBLIC_API_URL}/notifications/subscribe`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${session.user.accessToken || ''}`
-                    },
-                    body: JSON.stringify(sub)
-                });
-            }
+            const token = await user.getIdToken();
+            await fetch(`${process.env.NEXT_PUBLIC_API_URL}/notifications/subscribe`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(sub)
+            });
 
             console.log('User subscribed to push notifications');
         } catch (error) {

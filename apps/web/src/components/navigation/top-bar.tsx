@@ -9,7 +9,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, Bell, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface TopBarProps {
     showSearch?: boolean;
@@ -23,7 +23,7 @@ export const TopBar: React.FC<TopBarProps> = ({
     className,
 }) => {
     const router = useRouter();
-    const { data: session, status } = useSession();
+    const { user, loading: authLoading } = useAuth();
     const [scrolled, setScrolled] = useState(false);
     const [notificationCount, setNotificationCount] = useState(0);
 
@@ -40,6 +40,9 @@ export const TopBar: React.FC<TopBarProps> = ({
         // TODO: Fetch notification count from API
         setNotificationCount(0);
     }, []);
+
+    // Status is 'authenticated' if user exists, else 'loading' or 'unauthenticated'
+    const status = authLoading ? 'loading' : user ? 'authenticated' : 'unauthenticated';
 
     return (
         <header
@@ -61,10 +64,10 @@ export const TopBar: React.FC<TopBarProps> = ({
                     onClick={() => router.push('/')}
                 >
                     <div className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center border border-white/10">
-                        <img src="/syelope-logo.jpg" alt="Syelope Logo" className="w-full h-full object-contain" />
+                        <img src="/brand-logo.png" alt="CreaterAI Logo" className="w-full h-full object-contain" />
                     </div>
                     <span className="text-xl font-bold text-gradient hidden sm:block">
-                        Syelope
+                        CreaterAI
                     </span>
                 </div>
 
@@ -122,15 +125,15 @@ export const TopBar: React.FC<TopBarProps> = ({
                                 'border-2 border-[var(--border-medium)] overflow-hidden shadow-lg'
                             )}
                         >
-                            {session.user?.image ? (
+                            {user?.photoURL ? (
                                 <img
-                                    src={session.user.image}
-                                    alt={session.user.name || 'User'}
+                                    src={user.photoURL}
+                                    alt={user.displayName || 'User'}
                                     className="w-full h-full object-cover"
                                 />
                             ) : (
                                 <span className="text-white font-bold">
-                                    {session.user?.name?.[0] || <User size={20} />}
+                                    {user?.displayName?.[0] || <User size={20} />}
                                 </span>
                             )}
                         </button>

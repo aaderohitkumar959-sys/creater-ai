@@ -70,7 +70,7 @@ export class AIService {
         - Key Length: ${apiKey.length}
         - Endpoint: ${endpoint}
         - Model: ${model}
-        - Headers: Referer=${'https://syelope-web.vercel.app'}, Title=${'Syelope AI'}
+        - Headers: Referer=${'https://createrai-web.vercel.app'}, Title=${'CreaterAI'}
         `);
 
         const response = await fetch(endpoint, {
@@ -78,8 +78,8 @@ export class AIService {
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${apiKey}`,
-                'HTTP-Referer': 'https://syelope-web.vercel.app',
-                'X-Title': 'Syelope AI'
+                'HTTP-Referer': 'https://createrai-web.vercel.app',
+                'X-Title': 'CreaterAI'
             },
             body: JSON.stringify({
                 model: model,

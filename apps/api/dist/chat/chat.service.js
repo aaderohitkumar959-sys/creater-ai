@@ -1,133 +1,166 @@
 "use strict";
-var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+Object.defineProperty(exports, "ChatService", {
+    enumerable: true,
+    get: function() {
+        return ChatService;
+    }
+});
+const _common = require("@nestjs/common");
+const _firestoreservice = require("../prisma/firestore.service");
+const _aiservice = require("../ai/ai.service");
+const _moderationservice = require("../moderation/moderation.service");
+const _analyticsservice = require("../analytics/analytics.service");
+const _meterservice = require("../meter/meter.service");
+const _firebaseadmin = /*#__PURE__*/ _interop_require_wildcard(require("firebase-admin"));
+function _getRequireWildcardCache(nodeInterop) {
+    if (typeof WeakMap !== "function") return null;
+    var cacheBabelInterop = new WeakMap();
+    var cacheNodeInterop = new WeakMap();
+    return (_getRequireWildcardCache = function(nodeInterop) {
+        return nodeInterop ? cacheNodeInterop : cacheBabelInterop;
+    })(nodeInterop);
+}
+function _interop_require_wildcard(obj, nodeInterop) {
+    if (!nodeInterop && obj && obj.__esModule) {
+        return obj;
+    }
+    if (obj === null || typeof obj !== "object" && typeof obj !== "function") {
+        return {
+            default: obj
+        };
+    }
+    var cache = _getRequireWildcardCache(nodeInterop);
+    if (cache && cache.has(obj)) {
+        return cache.get(obj);
+    }
+    var newObj = {
+        __proto__: null
+    };
+    var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor;
+    for(var key in obj){
+        if (key !== "default" && Object.prototype.hasOwnProperty.call(obj, key)) {
+            var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null;
+            if (desc && (desc.get || desc.set)) {
+                Object.defineProperty(newObj, key, desc);
+            } else {
+                newObj[key] = obj[key];
+            }
+        }
+    }
+    newObj.default = obj;
+    if (cache) {
+        cache.set(obj, newObj);
+    }
+    return newObj;
+}
+function _ts_decorate(decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    else for(var i = decorators.length - 1; i >= 0; i--)if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
-};
-var __metadata = (this && this.__metadata) || function (k, v) {
+}
+function _ts_metadata(k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.ChatService = void 0;
-const common_1 = require("@nestjs/common");
-const prisma_service_1 = require("../prisma/prisma.service");
-const ai_service_1 = require("../ai/ai.service");
-const moderation_service_1 = require("../moderation/moderation.service");
-const analytics_service_1 = require("../analytics/analytics.service");
-const meter_service_1 = require("../meter/meter.service");
+}
 let ChatService = class ChatService {
-    prisma;
-    aiService;
-    moderation;
-    analytics;
-    meteredService;
-    constructor(prisma, aiService, moderation, analytics, meteredService) {
-        this.prisma = prisma;
-        this.aiService = aiService;
-        this.moderation = moderation;
-        this.analytics = analytics;
-        this.meteredService = meteredService;
-    }
     async saveMessage(conversationId, content, sender) {
-        return this.prisma.message.create({
-            data: {
-                conversationId,
-                content,
-                sender,
-            },
-        });
+        const messageData = {
+            conversationId,
+            content,
+            sender,
+            createdAt: _firebaseadmin.firestore.FieldValue.serverTimestamp()
+        };
+        const docRef = await this.firestore.collection('conversations').doc(conversationId).collection('messages').add(messageData);
+        return {
+            id: docRef.id,
+            ...messageData
+        };
     }
     async getMessages(conversationId) {
-        return this.prisma.message.findMany({
-            where: { conversationId },
-            orderBy: { createdAt: 'asc' },
-        });
+        const snapshot = await this.firestore.collection('conversations').doc(conversationId).collection('messages').orderBy('createdAt', 'asc').get();
+        return snapshot.docs.map((doc)=>({
+                id: doc.id,
+                ...doc.data()
+            }));
     }
     async getUserConversations(userId) {
-        return this.prisma.conversation.findMany({
-            where: { userId },
-            include: {
-                persona: true,
-                messages: {
-                    take: 1,
-                    orderBy: { createdAt: 'desc' },
-                },
-            },
-            orderBy: { updatedAt: 'desc' },
-        });
+        const snapshot = await this.firestore.collection('conversations').where('userId', '==', userId).orderBy('updatedAt', 'desc').get();
+        return snapshot.docs.map((doc)=>({
+                id: doc.id,
+                ...doc.data()
+            }));
     }
     async createConversation(userId, personaId) {
-        const userExists = await this.prisma.user.findUnique({
-            where: { id: userId },
-        });
-        if (!userExists) {
-            const guestEmail = `${userId}@guest.creatorai.com`;
-            await this.prisma.user.upsert({
-                where: { id: userId },
-                update: {},
-                create: {
-                    id: userId,
-                    email: guestEmail,
-                    name: 'Guest User',
-                    role: 'USER',
-                },
-            });
-        }
-        return this.prisma.conversation.upsert({
-            where: {
-                userId_personaId: {
-                    userId,
-                    personaId,
-                },
-            },
-            update: {},
-            create: {
+        const convId = `${userId}_${personaId}`;
+        const convRef = this.firestore.collection('conversations').doc(convId);
+        const doc = await convRef.get();
+        if (!doc.exists) {
+            await convRef.set({
                 userId,
                 personaId,
-            },
-            include: {
-                persona: true,
-                messages: {
-                    take: 15,
-                    orderBy: { createdAt: 'desc' }
-                }
-            },
-        });
+                createdAt: _firebaseadmin.firestore.FieldValue.serverTimestamp(),
+                updatedAt: _firebaseadmin.firestore.FieldValue.serverTimestamp()
+            });
+        } else {
+            await convRef.update({
+                updatedAt: _firebaseadmin.firestore.FieldValue.serverTimestamp()
+            });
+        }
+        const persona = await this.firestore.findUnique('personas', personaId);
+        const messages = await this.getMessages(convId);
+        return {
+            id: convId,
+            userId,
+            personaId,
+            persona,
+            messages: messages.slice(-15)
+        };
     }
     async sendMessage(userId, personaId, message) {
+        // 0. Metering Check
         const { allowed, remaining } = await this.meteredService.checkLimit(userId);
         if (!allowed) {
-            throw new common_1.ForbiddenException('You ran out of messages! 🕒 Come back tomorrow!');
+            throw new _common.ForbiddenException('You ran out of messages! 🕒 Come back tomorrow!');
         }
+        // 1. Moderate Input
         const moderationResult = await this.moderation.checkContent(message);
         if (moderationResult.blocked) {
             await this.moderation.logViolation(userId, moderationResult.reason || 'CONTENT_VIOLATION', message);
             return {
-                userMessage: { content: message, createdAt: new Date() },
-                aiMessage: { content: "I can't talk about that 🙅‍♀️", createdAt: new Date() },
+                userMessage: {
+                    content: message,
+                    createdAt: new Date()
+                },
+                aiMessage: {
+                    content: "I can't talk about that 🙅‍♀️",
+                    createdAt: new Date()
+                },
                 remainingMessages: remaining
             };
         }
-        const resolvedPersonaId = await this.resolvePersonaId(personaId);
-        const conversation = await this.createConversation(userId, resolvedPersonaId);
+        // 2. Setup Conversation
+        const conversation = await this.createConversation(userId, personaId);
+        // 3. Save User Message
         const userMessage = await this.saveMessage(conversation.id, message, 'USER');
         await this.meteredService.incrementUsage(userId);
-        const rawHistory = await this.getMessages(conversation.id);
-        const history = rawHistory
-            .slice(-15)
-            .map(m => ({
-            role: m.sender === 'USER' ? 'user' : 'assistant',
-            content: m.content
-        }));
-        const aiResponse = await this.aiService.generateResponse(resolvedPersonaId, history, message);
+        // 4. Prepare History for AI
+        const history = conversation.messages.map((m)=>({
+                role: m.sender === 'USER' ? 'user' : 'assistant',
+                content: m.content
+            }));
+        // 5. Generate AI Response
+        const aiResponse = await this.aiService.generateResponse(personaId, history, message);
+        // 6. Save AI Response
         const aiMessage = await this.saveMessage(conversation.id, aiResponse.text, 'CREATOR');
         return {
             userMessage,
             aiMessage,
             tokensUsed: 0,
             model: 'llama-3.1',
-            remainingMessages: remaining > 0 ? remaining - 1 : -1,
+            remainingMessages: remaining > 0 ? remaining - 1 : -1
         };
     }
     async *streamMessage(userId, personaId, message) {
@@ -139,11 +172,10 @@ let ChatService = class ChatService {
             };
             yield {
                 type: 'complete',
-                messageId: 'id' in result.aiMessage ? result.aiMessage.id : `blocked-${Date.now()}`,
+                messageId: result.aiMessage.id,
                 remainingMessages: result.remainingMessages
             };
-        }
-        catch (error) {
+        } catch (error) {
             yield {
                 type: 'error',
                 content: "My brain is buffering... try again? 🔄"
@@ -151,53 +183,28 @@ let ChatService = class ChatService {
         }
     }
     async sendGift(userId, personaId, giftId, amount) {
-        await this.prisma.coinWallet.update({
-            where: { userId },
-            data: { balance: { decrement: amount } },
+        await this.firestore.update('users', userId, {
+            coinBalance: _firebaseadmin.firestore.FieldValue.increment(-amount)
         });
-        const persona = await this.prisma.persona.findUnique({
-            where: { id: personaId },
-            include: { creator: true },
-        });
-        if (persona && persona.creator) {
-            const creatorShare = Math.floor(amount * 0.7);
-            await this.prisma.creator.update({
-                where: { id: persona.creator.id },
-                data: { earnings: { increment: creatorShare } },
-            });
-        }
         const conversation = await this.createConversation(userId, personaId);
-        return this.prisma.message.create({
-            data: {
-                conversationId: conversation.id,
-                content: `🎁 Sent a gift! (${amount} coins)`,
-                sender: 'USER',
-            },
-        });
+        return this.saveMessage(conversation.id, `🎁 Sent a gift! (${amount} coins)`, 'USER');
     }
-    async resolvePersonaId(idOrSlug) {
-        const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-        if (uuidRegex.test(idOrSlug))
-            return idOrSlug;
-        const slugifiedName = idOrSlug.replace(/-/g, ' ');
-        const persona = await this.prisma.persona.findFirst({
-            where: {
-                name: { contains: slugifiedName, mode: 'insensitive' },
-            },
-            select: { id: true },
-        });
-        if (!persona) {
-            throw new Error(`Persona not found: ${idOrSlug}`);
-        }
-        return persona.id;
+    constructor(firestore, aiService, moderation, analytics, meteredService){
+        this.firestore = firestore;
+        this.aiService = aiService;
+        this.moderation = moderation;
+        this.analytics = analytics;
+        this.meteredService = meteredService;
     }
 };
-exports.ChatService = ChatService;
-exports.ChatService = ChatService = __decorate([
-    (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
-        ai_service_1.AIService,
-        moderation_service_1.ModerationService,
-        analytics_service_1.AnalyticsService,
-        meter_service_1.MeteredService])
+ChatService = _ts_decorate([
+    (0, _common.Injectable)(),
+    _ts_metadata("design:type", Function),
+    _ts_metadata("design:paramtypes", [
+        typeof _firestoreservice.FirestoreService === "undefined" ? Object : _firestoreservice.FirestoreService,
+        typeof _aiservice.AIService === "undefined" ? Object : _aiservice.AIService,
+        typeof _moderationservice.ModerationService === "undefined" ? Object : _moderationservice.ModerationService,
+        typeof _analyticsservice.AnalyticsService === "undefined" ? Object : _analyticsservice.AnalyticsService,
+        typeof _meterservice.MeteredService === "undefined" ? Object : _meterservice.MeteredService
+    ])
 ], ChatService);

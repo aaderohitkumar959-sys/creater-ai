@@ -1,45 +1,94 @@
 "use strict";
-var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+Object.defineProperty(exports, "SessionManagementService", {
+    enumerable: true,
+    get: function() {
+        return SessionManagementService;
+    }
+});
+const _common = require("@nestjs/common");
+const _firestoreservice = require("../prisma/firestore.service");
+const _firebaseadmin = /*#__PURE__*/ _interop_require_wildcard(require("firebase-admin"));
+function _getRequireWildcardCache(nodeInterop) {
+    if (typeof WeakMap !== "function") return null;
+    var cacheBabelInterop = new WeakMap();
+    var cacheNodeInterop = new WeakMap();
+    return (_getRequireWildcardCache = function(nodeInterop) {
+        return nodeInterop ? cacheNodeInterop : cacheBabelInterop;
+    })(nodeInterop);
+}
+function _interop_require_wildcard(obj, nodeInterop) {
+    if (!nodeInterop && obj && obj.__esModule) {
+        return obj;
+    }
+    if (obj === null || typeof obj !== "object" && typeof obj !== "function") {
+        return {
+            default: obj
+        };
+    }
+    var cache = _getRequireWildcardCache(nodeInterop);
+    if (cache && cache.has(obj)) {
+        return cache.get(obj);
+    }
+    var newObj = {
+        __proto__: null
+    };
+    var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor;
+    for(var key in obj){
+        if (key !== "default" && Object.prototype.hasOwnProperty.call(obj, key)) {
+            var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null;
+            if (desc && (desc.get || desc.set)) {
+                Object.defineProperty(newObj, key, desc);
+            } else {
+                newObj[key] = obj[key];
+            }
+        }
+    }
+    newObj.default = obj;
+    if (cache) {
+        cache.set(obj, newObj);
+    }
+    return newObj;
+}
+function _ts_decorate(decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    else for(var i = decorators.length - 1; i >= 0; i--)if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
-};
-var __metadata = (this && this.__metadata) || function (k, v) {
+}
+function _ts_metadata(k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.SessionManagementService = void 0;
-const common_1 = require("@nestjs/common");
-const prisma_service_1 = require("../prisma/prisma.service");
+}
 let SessionManagementService = class SessionManagementService {
-    prisma;
-    constructor(prisma) {
-        this.prisma = prisma;
-    }
     async invalidateAllSessions(userId) {
-        await this.prisma.session.deleteMany({
-            where: { userId },
-        });
-        console.log('[SESSION] Invalidated all sessions for user:', userId);
+        // In Firebase, we revoke refresh tokens to sign out from all devices
+        await _firebaseadmin.auth().revokeRefreshTokens(userId);
+        // Also clear any custom session tracking docs
+        const sessions = await this.firestore.findMany('sessions', (ref)=>ref.where('userId', '==', userId));
+        await Promise.all(sessions.map((s)=>this.firestore.delete('sessions', s.id)));
     }
     async logoutAllDevices(userId) {
         await this.invalidateAllSessions(userId);
     }
     async getActiveSessions(userId) {
-        const sessions = await this.prisma.session.findMany({
-            where: { userId },
-            orderBy: { createdAt: 'desc' },
-        });
-        return sessions.map((session) => ({
-            id: session.id,
-            createdAt: session.createdAt,
-            expiresAt: session.expires,
-        }));
+        // Fetch custom session tracking docs if they exist
+        const sessions = await this.firestore.findMany('sessions', (ref)=>ref.where('userId', '==', userId).orderBy('createdAt', 'desc'));
+        return sessions.map((session)=>({
+                id: session.id,
+                createdAt: session.createdAt?.toDate ? session.createdAt.toDate() : session.createdAt,
+                expiresAt: session.expires?.toDate ? session.expires.toDate() : session.expires
+            }));
+    }
+    constructor(firestore){
+        this.firestore = firestore;
     }
 };
-exports.SessionManagementService = SessionManagementService;
-exports.SessionManagementService = SessionManagementService = __decorate([
-    (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+SessionManagementService = _ts_decorate([
+    (0, _common.Injectable)(),
+    _ts_metadata("design:type", Function),
+    _ts_metadata("design:paramtypes", [
+        typeof _firestoreservice.FirestoreService === "undefined" ? Object : _firestoreservice.FirestoreService
+    ])
 ], SessionManagementService);

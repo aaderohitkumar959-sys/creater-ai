@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { FirestoreService } from '../prisma/firestore.service';
+import * as admin from 'firebase-admin';
 
 export enum ReportReason {
     HARASSMENT = 'HARASSMENT',
@@ -18,229 +19,94 @@ export enum ReportStatus {
 
 @Injectable()
 export class ReportService {
-    constructor(private prisma: PrismaService) { }
+    constructor(private firestore: FirestoreService) { }
 
-    /**
-     * Submit a report for content/user
-     */
-    async submitReport(
-        reporterId: string,
-        data: {
-            messageId?: string;
-            conversationId?: string;
-            reportedUserId?: string;
-            reason: ReportReason;
-            details?: string;
-        },
-    ) {
-        // Create report
-        const report = await this.prisma.report.create({
-            data: {
-                reporterId,
-                messageId: data.messageId,
-                conversationId: data.conversationId,
-                reportedUserId: data.reportedUserId,
-                type: data.messageId ? 'MESSAGE' : 'USER',
-                category: 'GENERAL',
-                reason: data.reason,
-                details: data.details,
-                status: ReportStatus.PENDING,
-            },
-        });
+    async submitReport(reporterId: string, data: { messageId?: string, conversationId?: string, reportedUserId?: string, reason: ReportReason, details?: string }) {
+        const reportData = {
+            reporterId,
+            messageId: data.messageId || null,
+            conversationId: data.conversationId || null,
+            reportedUserId: data.reportedUserId || null,
+            type: data.messageId ? 'MESSAGE' : 'USER',
+            category: 'GENERAL',
+            reason: data.reason,
+            details: data.details || '',
+            status: ReportStatus.PENDING,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        };
 
-        // Check if user has multiple reports (auto-flag)
+        const report = await this.firestore.create('reports', reportData);
+
         if (data.reportedUserId) {
-            const reportCount = await this.prisma.report.count({
-                where: {
-                    reportedUserId: data.reportedUserId,
-                    status: ReportStatus.PENDING,
-                },
-            });
+            const reportCount = await this.firestore.count('reports', (ref) =>
+                ref.where('reportedUserId', '==', data.reportedUserId).where('status', '==', ReportStatus.PENDING)
+            );
 
-            // Auto-review if 3+ reports
             if (reportCount >= 3) {
-                await this.prisma.report.update({
-                    where: { id: report.id },
-                    data: { status: ReportStatus.UNDER_REVIEW },
-                });
-
-                console.log('[REPORT] Auto-flagged user for review:', {
-                    userId: data.reportedUserId,
-                    reportCount,
-                });
+                await this.firestore.update('reports', report.id, { status: ReportStatus.UNDER_REVIEW });
             }
         }
-
-        console.log('[REPORT] Report submitted:', {
-            reportId: report.id,
-            reporter: reporterId,
-            reason: data.reason,
-        });
 
         return report;
     }
 
-    /**
-     * Get all pending reports (admin)
-     */
     async getPendingReports(limit: number = 50) {
-        return await this.prisma.report.findMany({
-            where: {
-                status: {
-                    in: [ReportStatus.PENDING, ReportStatus.UNDER_REVIEW],
-                },
-            },
-            include: {
-                reporter: {
-                    select: {
-                        id: true,
-                        name: true,
-                        email: true,
-                    },
-                },
-                reported: { // Fixed: was reportedUser, but schema uses 'reported'
-                    select: {
-                        id: true,
-                        name: true,
-                        email: true,
-                    },
-                },
-                message: {
-                    select: {
-                        content: true,
-                        sender: true,
-                        createdAt: true,
-                    },
-                },
-            },
-            orderBy: { createdAt: 'desc' },
-            take: limit,
-        });
+        const reports = await this.firestore.findMany('reports', (ref) =>
+            ref.where('status', 'in', [ReportStatus.PENDING, ReportStatus.UNDER_REVIEW])
+                .orderBy('createdAt', 'desc')
+                .limit(limit)
+        ) as any[];
+
+        return Promise.all(reports.map(async (r) => {
+            const [reporter, reported] = await Promise.all([
+                this.firestore.findUnique('users', r.reporterId),
+                r.reportedUserId ? this.firestore.findUnique('users', r.reportedUserId) : Promise.resolve(null),
+            ]);
+
+            let message = null;
+            if (r.conversationId && r.messageId) {
+                message = await this.firestore.findUnique(`conversations/${r.conversationId}/messages`, r.messageId);
+            }
+
+            return { ...r, reporter, reported, message };
+        }));
     }
 
-    /**
-     * Approve report and take action (admin)
-     */
-    async approveReport(
-        reportId: string,
-        adminId: string,
-        action: 'BAN_USER' | 'DELETE_MESSAGE' | 'WARNING',
-    ) {
-        const report = await this.prisma.report.findUnique({
-            where: { id: reportId },
+    async approveReport(reportId: string, adminId: string, action: 'BAN_USER' | 'DELETE_MESSAGE' | 'WARNING') {
+        const report = await this.firestore.findUnique('reports', reportId) as any;
+        if (!report) throw new Error('Report not found');
+
+        await this.firestore.update('reports', reportId, {
+            status: ReportStatus.APPROVED,
+            reviewedBy: adminId,
+            reviewedAt: admin.firestore.FieldValue.serverTimestamp(),
+            actionTaken: action,
         });
 
-        if (!report) {
-            throw new Error('Report not found');
+        if (action === 'BAN_USER' && report.reportedUserId) {
+            await this.firestore.update('users', report.reportedUserId, { isBanned: true });
+        } else if (action === 'DELETE_MESSAGE' && report.conversationId && report.messageId) {
+            await this.firestore.update(`conversations/${report.conversationId}/messages`, report.messageId, { isDeleted: true });
         }
-
-        // Update report status
-        await this.prisma.report.update({
-            where: { id: reportId },
-            data: {
-                status: ReportStatus.APPROVED,
-                reviewedBy: adminId,
-                reviewedAt: new Date(),
-                actionTaken: action,
-            },
-        });
-
-        // Take action based on decision
-        switch (action) {
-            case 'BAN_USER':
-                if (report.reportedUserId) {
-                    await this.banUser(report.reportedUserId);
-                }
-                break;
-
-            case 'DELETE_MESSAGE':
-                if (report.messageId) {
-                    await this.deleteMessage(report.messageId);
-                }
-                break;
-
-            case 'WARNING':
-                // Log warning, could send email
-                console.log('[REPORT] Warning issued to user:', {
-                    userId: report.reportedUserId,
-                });
-                break;
-        }
-
-        console.log('[REPORT] Report approved:', {
-            reportId,
-            action,
-            adminId,
-        });
     }
 
-    /**
-     * Reject report (admin)
-     */
     async rejectReport(reportId: string, adminId: string) {
-        await this.prisma.report.update({
-            where: { id: reportId },
-            data: {
-                status: ReportStatus.REJECTED,
-                reviewedBy: adminId,
-                reviewedAt: new Date(),
-            },
-        });
-
-        console.log('[REPORT] Report rejected:', {
-            reportId,
-            adminId,
+        await this.firestore.update('reports', reportId, {
+            status: ReportStatus.REJECTED,
+            reviewedBy: adminId,
+            reviewedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
     }
 
-    /**
-     * Ban user
-     */
-    private async banUser(userId: string) {
-        await this.prisma.user.update({
-            where: { id: userId },
-            data: { isBanned: true },
-        });
-
-        console.log('[REPORT] User banned:', userId);
-    }
-
-    /**
-     * Delete message
-     */
-    private async deleteMessage(messageId: string) {
-        await this.prisma.message.update({
-            where: { id: messageId },
-            data: { isDeleted: true },
-        });
-
-        console.log('[REPORT] Message deleted:', messageId);
-    }
-
-    /**
-     * Get report statistics (admin)
-     */
     async getReportStats() {
-        const total = await this.prisma.report.count();
-        const pending = await this.prisma.report.count({
-            where: { status: ReportStatus.PENDING },
-        });
-        const underReview = await this.prisma.report.count({
-            where: { status: ReportStatus.UNDER_REVIEW },
-        });
-        const approved = await this.prisma.report.count({
-            where: { status: ReportStatus.APPROVED },
-        });
-        const rejected = await this.prisma.report.count({
-            where: { status: ReportStatus.REJECTED },
-        });
+        const [total, pending, underReview, approved, rejected] = await Promise.all([
+            this.firestore.count('reports'),
+            this.firestore.count('reports', (ref) => ref.where('status', '==', ReportStatus.PENDING)),
+            this.firestore.count('reports', (ref) => ref.where('status', '==', ReportStatus.UNDER_REVIEW)),
+            this.firestore.count('reports', (ref) => ref.where('status', '==', ReportStatus.APPROVED)),
+            this.firestore.count('reports', (ref) => ref.where('status', '==', ReportStatus.REJECTED)),
+        ]);
 
-        return {
-            total,
-            pending,
-            underReview,
-            approved,
-            rejected,
-        };
+        return { total, pending, underReview, approved, rejected };
     }
 }

@@ -1,27 +1,45 @@
 "use strict";
-var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+function _export(target, all) {
+    for(var name in all)Object.defineProperty(target, name, {
+        enumerable: true,
+        get: Object.getOwnPropertyDescriptor(all, name).get
+    });
+}
+_export(exports, {
+    get AuthThrottlerGuard () {
+        return AuthThrottlerGuard;
+    },
+    get LoginRateLimitGuard () {
+        return LoginRateLimitGuard;
+    },
+    get PasswordResetRateLimitGuard () {
+        return PasswordResetRateLimitGuard;
+    }
+});
+const _common = require("@nestjs/common");
+const _throttler = require("@nestjs/throttler");
+function _ts_decorate(decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    else for(var i = decorators.length - 1; i >= 0; i--)if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.PasswordResetRateLimitGuard = exports.LoginRateLimitGuard = exports.AuthThrottlerGuard = void 0;
-const common_1 = require("@nestjs/common");
-const throttler_1 = require("@nestjs/throttler");
-let AuthThrottlerGuard = class AuthThrottlerGuard extends throttler_1.ThrottlerGuard {
+}
+let AuthThrottlerGuard = class AuthThrottlerGuard extends _throttler.ThrottlerGuard {
     async getTracker(req) {
+        // Track by both IP and email for login attempts
         const email = req.body?.email || '';
         const ip = req.ip || req.connection.remoteAddress;
+        // Combine IP + email for tracking (prevents distributed attacks on same account)
         return `${ip}:${email}`;
     }
 };
-exports.AuthThrottlerGuard = AuthThrottlerGuard;
-exports.AuthThrottlerGuard = AuthThrottlerGuard = __decorate([
-    (0, common_1.Injectable)()
+AuthThrottlerGuard = _ts_decorate([
+    (0, _common.Injectable)()
 ], AuthThrottlerGuard);
 let LoginRateLimitGuard = class LoginRateLimitGuard {
-    loginAttempts = new Map();
     async canActivate(context) {
         const request = context.switchToHttp().getRequest();
         const email = request.body?.email || '';
@@ -29,28 +47,35 @@ let LoginRateLimitGuard = class LoginRateLimitGuard {
         const key = `${ip}:${email}`;
         const now = Date.now();
         const attempt = this.loginAttempts.get(key);
+        // Reset if window expired (15 minutes)
         if (attempt && now > attempt.resetAt) {
             this.loginAttempts.delete(key);
         }
         const current = this.loginAttempts.get(key) || {
             count: 0,
-            resetAt: now + 15 * 60 * 1000,
+            resetAt: now + 15 * 60 * 1000
         };
+        // Block if exceeded limit
         if (current.count >= 5) {
-            console.warn('[AUTH] Login rate limit exceeded:', { email, ip });
+            console.warn('[AUTH] Login rate limit exceeded:', {
+                email,
+                ip
+            });
             throw new Error('Too many login attempts. Please try again in 15 minutes.');
         }
+        // Increment counter
         current.count++;
         this.loginAttempts.set(key, current);
         return true;
     }
+    constructor(){
+        this.loginAttempts = new Map();
+    }
 };
-exports.LoginRateLimitGuard = LoginRateLimitGuard;
-exports.LoginRateLimitGuard = LoginRateLimitGuard = __decorate([
-    (0, common_1.Injectable)()
+LoginRateLimitGuard = _ts_decorate([
+    (0, _common.Injectable)()
 ], LoginRateLimitGuard);
 let PasswordResetRateLimitGuard = class PasswordResetRateLimitGuard {
-    resetAttempts = new Map();
     async canActivate(context) {
         const request = context.switchToHttp().getRequest();
         const email = request.body?.email || '';
@@ -62,18 +87,22 @@ let PasswordResetRateLimitGuard = class PasswordResetRateLimitGuard {
         }
         const current = this.resetAttempts.get(key) || {
             count: 0,
-            resetAt: now + 60 * 60 * 1000,
+            resetAt: now + 60 * 60 * 1000
         };
         if (current.count >= 3) {
-            console.warn('[AUTH] Password reset rate limit exceeded:', { email });
+            console.warn('[AUTH] Password reset rate limit exceeded:', {
+                email
+            });
             throw new Error('Too many password reset requests. Please try again in 1 hour.');
         }
         current.count++;
         this.resetAttempts.set(key, current);
         return true;
     }
+    constructor(){
+        this.resetAttempts = new Map();
+    }
 };
-exports.PasswordResetRateLimitGuard = PasswordResetRateLimitGuard;
-exports.PasswordResetRateLimitGuard = PasswordResetRateLimitGuard = __decorate([
-    (0, common_1.Injectable)()
+PasswordResetRateLimitGuard = _ts_decorate([
+    (0, _common.Injectable)()
 ], PasswordResetRateLimitGuard);

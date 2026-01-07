@@ -1,25 +1,17 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { FirestoreService } from '../prisma/firestore.service';
+import * as admin from 'firebase-admin';
 
 @Injectable()
 export class MeteredService {
   private readonly DAILY_LIMIT = 40;
 
-  constructor(private prisma: PrismaService) { }
+  constructor(private firestore: FirestoreService) { }
 
   async checkLimit(
     userId: string,
   ): Promise<{ allowed: boolean; remaining: number }> {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        dailyMessageCount: true,
-        lastMessageDate: true,
-        role: true,
-        subscription: true,
-        paidMessageCredits: true,
-      } as any,
-    });
+    const user = await this.firestore.findUnique('users', userId) as any;
 
     if (!user) return { allowed: false, remaining: 0 };
 
@@ -28,13 +20,13 @@ export class MeteredService {
       return { allowed: true, remaining: -1 }; // -1 indicates unlimited
     }
 
-    // Check paid message credits first
-    if ((user as any).paidMessageCredits > 0) {
-      return { allowed: true, remaining: (user as any).paidMessageCredits };
+    // Check paid message credits
+    if (user.paidMessageCredits > 0) {
+      return { allowed: true, remaining: user.paidMessageCredits };
     }
 
     const today = new Date();
-    const lastDate = user.lastMessageDate ? new Date(user.lastMessageDate) : new Date(0);
+    const lastDate = user.lastMessageDate ? (user.lastMessageDate as admin.firestore.Timestamp).toDate() : new Date(0);
     const isSameDay =
       today.getDate() === lastDate.getDate() &&
       today.getMonth() === lastDate.getMonth() &&
@@ -45,31 +37,25 @@ export class MeteredService {
       return { allowed: true, remaining: this.DAILY_LIMIT };
     }
 
-    const remaining = Math.max(0, this.DAILY_LIMIT - user.dailyMessageCount);
+    const remaining = Math.max(0, this.DAILY_LIMIT - (user.dailyMessageCount || 0));
     return { allowed: remaining > 0, remaining };
   }
 
   async incrementUsage(userId: string): Promise<void> {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { dailyMessageCount: true, lastMessageDate: true, paidMessageCredits: true } as any,
-    });
+    const user = await this.firestore.findUnique('users', userId) as any;
 
     if (!user) return;
 
     // Priority: Use paid credits first if available
-    if ((user as any).paidMessageCredits > 0) {
-      await this.prisma.user.update({
-        where: { id: userId },
-        data: {
-          paidMessageCredits: { decrement: 1 },
-        },
+    if (user.paidMessageCredits > 0) {
+      await this.firestore.update('users', userId, {
+        paidMessageCredits: admin.firestore.FieldValue.increment(-1),
       });
       return;
     }
 
     const today = new Date();
-    const lastDate = user.lastMessageDate ? new Date(user.lastMessageDate) : new Date(0);
+    const lastDate = user.lastMessageDate ? (user.lastMessageDate as admin.firestore.Timestamp).toDate() : new Date(0);
     const isSameDay =
       today.getDate() === lastDate.getDate() &&
       today.getMonth() === lastDate.getMonth() &&
@@ -77,21 +63,15 @@ export class MeteredService {
 
     if (!isSameDay) {
       // Reset count for new day
-      await this.prisma.user.update({
-        where: { id: userId },
-        data: {
-          dailyMessageCount: 1,
-          lastMessageDate: today,
-        },
+      await this.firestore.update('users', userId, {
+        dailyMessageCount: 1,
+        lastMessageDate: admin.firestore.FieldValue.serverTimestamp(),
       });
     } else {
       // Increment count
-      await this.prisma.user.update({
-        where: { id: userId },
-        data: {
-          dailyMessageCount: { increment: 1 },
-          lastMessageDate: today,
-        },
+      await this.firestore.update('users', userId, {
+        dailyMessageCount: admin.firestore.FieldValue.increment(1),
+        lastMessageDate: admin.firestore.FieldValue.serverTimestamp(),
       });
     }
   }

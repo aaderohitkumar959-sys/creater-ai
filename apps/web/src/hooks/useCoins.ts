@@ -1,16 +1,21 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'react-hot-toast';
 
 export function useCoins() {
-    const { data: session } = useSession();
+    const { user } = useAuth();
     const [balance, setBalance] = useState(0);
     const [loading, setLoading] = useState(true);
 
     const fetchBalance = useCallback(async () => {
-        if (!session?.user?.id) return;
+        if (!user) return;
         try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/coin/balance/${session.user.id}`);
+            const token = await user.getIdToken();
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/coin/balance/${user.uid}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
             const data = await res.json();
             setBalance(data.balance);
         } catch (error) {
@@ -18,19 +23,23 @@ export function useCoins() {
         } finally {
             setLoading(false);
         }
-    }, [session?.user?.id]);
+    }, [user]);
 
     useEffect(() => {
         fetchBalance();
     }, [fetchBalance]);
 
     const spendCoins = async (amount: number, description: string) => {
-        if (!session?.user?.id) return;
+        if (!user) return;
         try {
+            const token = await user.getIdToken();
             const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/coin/spend`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: session.user.id, amount, description }),
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ amount, description }),
             });
 
             if (!res.ok) throw new Error('Failed to spend coins');
@@ -45,7 +54,6 @@ export function useCoins() {
 
     const buyCoins = async (packId: string, price: number) => {
         // Placeholder for payment gateway integration
-        // In a real app, this would call /payment/create-intent
         console.log(`Buying pack ${packId} for ${price}`);
 
         // Simulate successful purchase for demo

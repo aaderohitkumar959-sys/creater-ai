@@ -1,13 +1,10 @@
-import { getSession } from "next-auth/react";
+import { auth } from "./firebase";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '';
 
 async function fetchWithAuth(endpoint: string, options: RequestInit = {}) {
-    const session = await getSession();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const token = (session as any)?.accessToken; // Assuming accessToken is available in session
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const userId = (session as any)?.user?.id;
+    const user = auth.currentUser;
+    const token = user ? await user.getIdToken() : null;
 
     const headers = {
         'Content-Type': 'application/json',
@@ -34,9 +31,7 @@ export const api = {
     },
 
     createStripePaymentIntent: async (coinPackId: string) => {
-        const session = await getSession();
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const userId = (session as any)?.user?.id || 'user-placeholder';
+        const userId = auth.currentUser?.uid || 'user-placeholder';
 
         return fetchWithAuth('/payment/stripe/create-intent', {
             method: 'POST',
@@ -45,9 +40,7 @@ export const api = {
     },
 
     createRazorpayOrder: async (coinPackId: string) => {
-        const session = await getSession();
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const userId = (session as any)?.user?.id || 'user-placeholder';
+        const userId = auth.currentUser?.uid || 'user-placeholder';
 
         return fetchWithAuth('/payment/razorpay/create-order', {
             method: 'POST',
@@ -56,18 +49,14 @@ export const api = {
     },
 
     getWalletBalance: async () => {
-        const session = await getSession();
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const userId = (session as any)?.user?.id || 'user-placeholder';
+        const userId = auth.currentUser?.uid || 'user-placeholder';
 
         const result = await fetchWithAuth(`/coin/balance/${userId}`);
         return result.balance;
     },
 
     getTransactionHistory: async () => {
-        const session = await getSession();
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const userId = (session as any)?.user?.id || 'user-placeholder';
+        const userId = auth.currentUser?.uid || 'user-placeholder';
 
         return fetchWithAuth(`/coin/transactions/${userId}`);
     },

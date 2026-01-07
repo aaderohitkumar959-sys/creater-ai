@@ -1,14 +1,15 @@
 import { Injectable, ForbiddenException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { FirestoreService } from '../prisma/firestore.service';
 import { AIService, ChatMessage } from '../ai/ai.service';
 import { ModerationService } from '../moderation/moderation.service';
 import { AnalyticsService } from '../analytics/analytics.service';
 import { MeteredService } from '../meter/meter.service';
+import * as admin from 'firebase-admin';
 
 @Injectable()
 export class ChatService {
   constructor(
-    private prisma: PrismaService,
+    private firestore: FirestoreService,
     private aiService: AIService,
     private moderation: ModerationService,
     private analytics: AnalyticsService,
@@ -20,84 +21,73 @@ export class ChatService {
     content: string,
     sender: 'USER' | 'CREATOR',
   ) {
-    return this.prisma.message.create({
-      data: {
-        conversationId,
-        content,
-        sender,
-      },
-    });
+    const messageData = {
+      conversationId,
+      content,
+      sender,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    };
+    const docRef = await this.firestore.collection('conversations')
+      .doc(conversationId)
+      .collection('messages')
+      .add(messageData);
+
+    return { id: docRef.id, ...messageData };
   }
 
   async getMessages(conversationId: string) {
-    return this.prisma.message.findMany({
-      where: { conversationId },
-      orderBy: { createdAt: 'asc' },
-    });
+    const snapshot = await this.firestore.collection('conversations')
+      .doc(conversationId)
+      .collection('messages')
+      .orderBy('createdAt', 'asc')
+      .get();
+
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   }
 
   async getUserConversations(userId: string) {
-    return this.prisma.conversation.findMany({
-      where: { userId },
-      include: {
-        persona: true,
-        messages: {
-          take: 1,
-          orderBy: { createdAt: 'desc' },
-        },
-      },
-      orderBy: { updatedAt: 'desc' },
-    });
+    const snapshot = await this.firestore.collection('conversations')
+      .where('userId', '==', userId)
+      .orderBy('updatedAt', 'desc')
+      .get();
+
+    return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
   }
 
   async createConversation(userId: string, personaId: string) {
-    const userExists = await this.prisma.user.findUnique({
-      where: { id: userId },
-    });
-    if (!userExists) {
-      const guestEmail = `${userId}@guest.creatorai.com`;
-      await this.prisma.user.upsert({
-        where: { id: userId },
-        update: {},
-        create: {
-          id: userId,
-          email: guestEmail,
-          name: 'Guest User',
-          role: 'USER',
-        },
+    const convId = `${userId}_${personaId}`;
+    const convRef = this.firestore.collection('conversations').doc(convId);
+    const doc = await convRef.get();
+
+    if (!doc.exists) {
+      await convRef.set({
+        userId,
+        personaId,
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    } else {
+      await convRef.update({
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       });
     }
 
-    return this.prisma.conversation.upsert({
-      where: {
-        userId_personaId: {
-          userId,
-          personaId,
-        },
-      },
-      update: {},
-      create: {
-        userId,
-        personaId,
-      },
-      include: {
-        persona: true,
-        messages: {
-          take: 15,
-          orderBy: { createdAt: 'desc' }
-        }
-      },
-    });
+    const persona = await this.firestore.findUnique('personas', personaId);
+    const messages = await this.getMessages(convId);
+
+    return {
+      id: convId,
+      userId,
+      personaId,
+      persona,
+      messages: messages.slice(-15),
+    };
   }
 
   async sendMessage(userId: string, personaId: string, message: string) {
     // 0. Metering Check
     const { allowed, remaining } = await this.meteredService.checkLimit(userId);
     if (!allowed) {
-      // Return a gentle error instead of throwing to keep the "no error" vibe if possible, 
-      // but 403 is appropriate for limits. However, user said "NEVER SHOW TECHNICAL ERRORS". 
-      // We'll let the controller handle 403 or return a special AI response.
-      // For limit reached, it's better to be explicit but friendly.
       throw new ForbiddenException(
         'You ran out of messages! 🕒 Come back tomorrow!',
       );
@@ -111,17 +101,15 @@ export class ChatService {
         moderationResult.reason || 'CONTENT_VIOLATION',
         message,
       );
-      // Return in-character refusal instead of error
       return {
-        userMessage: { content: message, createdAt: new Date() }, // Mock
+        userMessage: { content: message, createdAt: new Date() },
         aiMessage: { content: "I can't talk about that 🙅‍♀️", createdAt: new Date() },
         remainingMessages: remaining
       };
     }
 
     // 2. Setup Conversation
-    const resolvedPersonaId = await this.resolvePersonaId(personaId);
-    const conversation = await this.createConversation(userId, resolvedPersonaId);
+    const conversation = await this.createConversation(userId, personaId);
 
     // 3. Save User Message
     const userMessage = await this.saveMessage(
@@ -131,27 +119,16 @@ export class ChatService {
     );
     await this.meteredService.incrementUsage(userId);
 
-    // 4. Prepare History for AI (Stateless transformation)
-    // We fetch from DB here because web might not send it yet, 
-    // but we design it so we *could* accept it.
-    // For now, fetching from DB ensures consistency.
-    const rawHistory = await this.getMessages(conversation.id);
-    const history: ChatMessage[] = rawHistory
-      .slice(-15) // Keep it short per requirements
+    // 4. Prepare History for AI
+    const history: ChatMessage[] = (conversation.messages as any[])
       .map(m => ({
         role: m.sender === 'USER' ? 'user' : 'assistant',
         content: m.content
       }));
 
     // 5. Generate AI Response
-    // We treat the "personaId" as the character config ID if it matches, 
-    // otherwise we might need to map DB persona to config.
-    // For this rebuild, we assume we use the config ID. 
-    // If resolvedPersonaId is a UUID, we might default to 'default' or map it.
-    // Let's assume for now we use 'default' or a mapped one.
-    // We'll trust the AI Service to handle the ID or default.
     const aiResponse = await this.aiService.generateResponse(
-      resolvedPersonaId, // Pass the ID, service handles config lookup
+      personaId,
       history,
       message
     );
@@ -166,13 +143,12 @@ export class ChatService {
     return {
       userMessage,
       aiMessage,
-      tokensUsed: 0, // Not tracking tokens specifically anymore for user
+      tokensUsed: 0,
       model: 'llama-3.1',
       remainingMessages: remaining > 0 ? remaining - 1 : -1,
     };
   }
 
-  // Keeping streamMessage for backward compatibility but routing to new logic
   async *streamMessage(
     userId: string,
     personaId: string,
@@ -184,10 +160,8 @@ export class ChatService {
     remainingMessages?: number;
   }> {
     try {
-      // Reuse sendMessage logic but yield results
       const result = await this.sendMessage(userId, personaId, message);
 
-      // Simulate streaming or just yield complete
       yield {
         type: 'chunk',
         content: result.aiMessage.content as string
@@ -195,7 +169,7 @@ export class ChatService {
 
       yield {
         type: 'complete',
-        messageId: 'id' in result.aiMessage ? result.aiMessage.id : `blocked-${Date.now()}`,
+        messageId: result.aiMessage.id,
         remainingMessages: result.remainingMessages
       };
 
@@ -213,58 +187,16 @@ export class ChatService {
     giftId: string,
     amount: number,
   ) {
-    await this.prisma.coinWallet.update({
-      where: { userId },
-      data: { balance: { decrement: amount } },
+    await this.firestore.update('users', userId, {
+      coinBalance: admin.firestore.FieldValue.increment(-amount),
     });
-
-    const persona = await this.prisma.persona.findUnique({
-      where: { id: personaId },
-      include: { creator: true },
-    });
-
-    if (persona && persona.creator) {
-      const creatorShare = Math.floor(amount * 0.7);
-      await this.prisma.creator.update({
-        where: { id: persona.creator.id },
-        data: { earnings: { increment: creatorShare } },
-      });
-    }
 
     const conversation = await this.createConversation(userId, personaId);
 
-    return this.prisma.message.create({
-      data: {
-        conversationId: conversation.id,
-        content: `🎁 Sent a gift! (${amount} coins)`,
-        sender: 'USER',
-      },
-    });
-  }
-
-  private async resolvePersonaId(idOrSlug: string): Promise<string> {
-    // If it maps to a config ID, return it directly? 
-    // Actually the DB personas presumably link to these configs or ARE these configs.
-    // We will stick to the DB ID resolution for now to maintain referential integrity.
-    const uuidRegex =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    if (uuidRegex.test(idOrSlug)) return idOrSlug;
-
-    const slugifiedName = idOrSlug.replace(/-/g, ' ');
-    const persona = await this.prisma.persona.findFirst({
-      where: {
-        name: { contains: slugifiedName, mode: 'insensitive' },
-      },
-      select: { id: true },
-    });
-
-    if (!persona) {
-      // Fallback for config-based IDs that might not be in DB yet? 
-      // Or just throw. The Prompt says "Validate character exists".
-      // We will let it throw if not found in DB, assuming DB is source of truth for IDs.
-      throw new Error(`Persona not found: ${idOrSlug}`);
-    }
-
-    return persona.id;
+    return this.saveMessage(
+      conversation.id,
+      `🎁 Sent a gift! (${amount} coins)`,
+      'USER',
+    );
   }
 }

@@ -9,7 +9,7 @@ import { Send, Image as ImageIcon, Sparkles, Lock, Loader2 } from 'lucide-react'
 import { cn } from '@/lib/utils';
 import { toast } from 'react-hot-toast';
 import { useChat } from '@/hooks/useChat';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Message {
     id: string;
@@ -32,7 +32,7 @@ interface ChatInterfaceProps {
 }
 
 export const ChatInterface: React.FC<ChatInterfaceProps> = ({ persona, initialMessages = [] }) => {
-    const { data: session } = useSession();
+    const { user } = useAuth();
     const [messages, setMessages] = useState<Message[]>(initialMessages);
     const [inputValue, setInputValue] = useState('');
     const [isTyping, setIsTyping] = useState(false);
@@ -204,7 +204,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ persona, initialMe
 
                                 {message.sender === 'USER' && (
                                     <Avatar className="w-10 h-10 border-2 border-primary/20 flex-shrink-0">
-                                        <AvatarImage src={session?.user?.image || ''} alt="You" />
+                                        <AvatarImage src={user?.photoURL || ''} alt="You" />
                                         <AvatarFallback>U</AvatarFallback>
                                     </Avatar>
                                 )}

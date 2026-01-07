@@ -1,37 +1,75 @@
 "use strict";
-var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+Object.defineProperty(exports, "DailyRewardService", {
+    enumerable: true,
+    get: function() {
+        return DailyRewardService;
+    }
+});
+const _common = require("@nestjs/common");
+const _firestoreservice = require("../prisma/firestore.service");
+const _coinservice = require("../coin/coin.service");
+const _firebaseadmin = /*#__PURE__*/ _interop_require_wildcard(require("firebase-admin"));
+function _getRequireWildcardCache(nodeInterop) {
+    if (typeof WeakMap !== "function") return null;
+    var cacheBabelInterop = new WeakMap();
+    var cacheNodeInterop = new WeakMap();
+    return (_getRequireWildcardCache = function(nodeInterop) {
+        return nodeInterop ? cacheNodeInterop : cacheBabelInterop;
+    })(nodeInterop);
+}
+function _interop_require_wildcard(obj, nodeInterop) {
+    if (!nodeInterop && obj && obj.__esModule) {
+        return obj;
+    }
+    if (obj === null || typeof obj !== "object" && typeof obj !== "function") {
+        return {
+            default: obj
+        };
+    }
+    var cache = _getRequireWildcardCache(nodeInterop);
+    if (cache && cache.has(obj)) {
+        return cache.get(obj);
+    }
+    var newObj = {
+        __proto__: null
+    };
+    var hasPropertyDescriptor = Object.defineProperty && Object.getOwnPropertyDescriptor;
+    for(var key in obj){
+        if (key !== "default" && Object.prototype.hasOwnProperty.call(obj, key)) {
+            var desc = hasPropertyDescriptor ? Object.getOwnPropertyDescriptor(obj, key) : null;
+            if (desc && (desc.get || desc.set)) {
+                Object.defineProperty(newObj, key, desc);
+            } else {
+                newObj[key] = obj[key];
+            }
+        }
+    }
+    newObj.default = obj;
+    if (cache) {
+        cache.set(obj, newObj);
+    }
+    return newObj;
+}
+function _ts_decorate(decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    else for(var i = decorators.length - 1; i >= 0; i--)if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
-};
-var __metadata = (this && this.__metadata) || function (k, v) {
+}
+function _ts_metadata(k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.DailyRewardService = void 0;
-const common_1 = require("@nestjs/common");
-const prisma_service_1 = require("../prisma/prisma.service");
-const coin_service_1 = require("../coin/coin.service");
+}
 let DailyRewardService = class DailyRewardService {
-    prisma;
-    coinService;
-    constructor(prisma, coinService) {
-        this.prisma = prisma;
-        this.coinService = coinService;
-    }
     async claimDailyReward(userId) {
-        const user = await this.prisma.user.findUnique({
-            where: { id: userId },
-        });
-        if (!user) {
-            throw new Error('User not found');
-        }
+        const user = await this.firestore.findUnique('users', userId);
+        if (!user) throw new Error('User not found');
         const now = new Date();
         const today = this.getDateString(now);
-        const lastClaim = user.lastDailyRewardClaimed
-            ? this.getDateString(user.lastDailyRewardClaimed)
-            : null;
+        const lastClaimDoc = user.lastDailyRewardClaimed?.toDate ? user.lastDailyRewardClaimed.toDate() : user.lastDailyRewardClaimed;
+        const lastClaim = lastClaimDoc ? this.getDateString(new Date(lastClaimDoc)) : null;
         if (lastClaim === today) {
             const nextReward = new Date(now);
             nextReward.setDate(nextReward.getDate() + 1);
@@ -41,44 +79,23 @@ let DailyRewardService = class DailyRewardService {
                 coinsGranted: 0,
                 currentStreak: user.loginStreak || 0,
                 bonusMultiplier: this.getBonusMultiplier(user.loginStreak || 0),
-                nextRewardAt: nextReward,
+                nextRewardAt: nextReward
             };
         }
         const yesterday = new Date(now);
         yesterday.setDate(yesterday.getDate() - 1);
         const yesterdayStr = this.getDateString(yesterday);
         let newStreak;
-        if (lastClaim === yesterdayStr) {
-            newStreak = (user.loginStreak || 0) + 1;
-        }
-        else if (lastClaim === null) {
-            newStreak = 1;
-        }
-        else {
-            newStreak = 1;
-        }
+        if (lastClaim === yesterdayStr) newStreak = (user.loginStreak || 0) + 1;
+        else newStreak = 1;
         const bonusMultiplier = this.getBonusMultiplier(newStreak);
         const baseReward = 10;
         const totalCoins = Math.floor(baseReward * bonusMultiplier);
-        await this.prisma.user.update({
-            where: { id: userId },
-            data: {
-                loginStreak: newStreak,
-                lastDailyRewardClaimed: now,
-            },
+        await this.firestore.update('users', userId, {
+            loginStreak: newStreak,
+            lastDailyRewardClaimed: _firebaseadmin.firestore.FieldValue.serverTimestamp()
         });
-        await this.coinService.addCoins(userId, totalCoins, `Daily reward (Day ${newStreak})`, {
-            streak: newStreak,
-            baseReward,
-            bonusMultiplier,
-            totalCoins,
-        });
-        console.log('[DAILY_REWARD] Claimed:', {
-            userId,
-            streak: newStreak,
-            coins: totalCoins,
-            multiplier: bonusMultiplier,
-        });
+        await this.coinService.addCoins(userId, totalCoins, `Daily reward (Day ${newStreak})`);
         const nextReward = new Date(now);
         nextReward.setDate(nextReward.getDate() + 1);
         nextReward.setHours(0, 0, 0, 0);
@@ -87,40 +104,23 @@ let DailyRewardService = class DailyRewardService {
             coinsGranted: totalCoins,
             currentStreak: newStreak,
             bonusMultiplier,
-            nextRewardAt: nextReward,
+            nextRewardAt: nextReward
         };
     }
     async canClaimToday(userId) {
-        const user = await this.prisma.user.findUnique({
-            where: { id: userId },
-        });
-        if (!user) {
-            throw new Error('User not found');
-        }
+        const user = await this.firestore.findUnique('users', userId);
+        if (!user) throw new Error('User not found');
         const now = new Date();
         const today = this.getDateString(now);
-        const lastClaim = user.lastDailyRewardClaimed
-            ? this.getDateString(user.lastDailyRewardClaimed)
-            : null;
+        const lastClaimDoc = user.lastDailyRewardClaimed?.toDate ? user.lastDailyRewardClaimed.toDate() : user.lastDailyRewardClaimed;
+        const lastClaim = lastClaimDoc ? this.getDateString(new Date(lastClaimDoc)) : null;
         const canClaim = lastClaim !== today;
         const currentStreak = user.loginStreak || 0;
         const yesterday = new Date(now);
         yesterday.setDate(yesterday.getDate() - 1);
         const yesterdayStr = this.getDateString(yesterday);
-        let potentialStreak;
-        if (canClaim) {
-            if (lastClaim === yesterdayStr) {
-                potentialStreak = currentStreak + 1;
-            }
-            else {
-                potentialStreak = 1;
-            }
-        }
-        else {
-            potentialStreak = currentStreak;
-        }
-        const bonusMultiplier = this.getBonusMultiplier(potentialStreak);
-        const potentialReward = Math.floor(10 * bonusMultiplier);
+        let potentialStreak = canClaim ? lastClaim === yesterdayStr ? currentStreak + 1 : 1 : currentStreak;
+        const potentialReward = Math.floor(10 * this.getBonusMultiplier(potentialStreak));
         let nextRewardAt = null;
         if (!canClaim) {
             nextRewardAt = new Date(now);
@@ -131,27 +131,23 @@ let DailyRewardService = class DailyRewardService {
             canClaim,
             currentStreak,
             nextRewardAt,
-            potentialReward,
+            potentialReward
         };
     }
     async getStreakCalendar(userId) {
-        const user = await this.prisma.user.findUnique({
-            where: { id: userId },
-        });
-        if (!user) {
-            throw new Error('User not found');
-        }
+        const user = await this.firestore.findUnique('users', userId);
+        if (!user) throw new Error('User not found');
         const now = new Date();
         const currentStreak = user.loginStreak || 0;
-        const lastClaim = user.lastDailyRewardClaimed;
+        const lastClaimDoc = user.lastDailyRewardClaimed?.toDate ? user.lastDailyRewardClaimed.toDate() : user.lastDailyRewardClaimed;
+        const lastClaim = lastClaimDoc ? new Date(lastClaimDoc) : null;
         const calendar = [];
-        for (let i = 6; i >= 0; i--) {
+        for(let i = 6; i >= 0; i--){
             const date = new Date(now);
             date.setDate(date.getDate() - i);
             const dateStr = this.getDateString(date);
             let claimed = false;
             if (lastClaim && currentStreak > 0) {
-                const daysSinceLastClaim = Math.floor((now.getTime() - lastClaim.getTime()) / (1000 * 60 * 60 * 24));
                 const streakStart = new Date(lastClaim);
                 streakStart.setDate(streakStart.getDate() - (currentStreak - 1));
                 claimed = date >= streakStart && date <= lastClaim;
@@ -159,38 +155,38 @@ let DailyRewardService = class DailyRewardService {
             calendar.push({
                 date: dateStr,
                 claimed,
-                dayNumber: 7 - i,
+                dayNumber: 7 - i
             });
         }
         return {
             days: calendar,
-            currentStreak,
+            currentStreak
         };
     }
     getBonusMultiplier(streak) {
-        if (streak >= 30)
-            return 3;
-        if (streak >= 7)
-            return 2;
+        if (streak >= 30) return 3;
+        if (streak >= 7) return 2;
         return 1;
     }
     getDateString(date) {
         return date.toISOString().split('T')[0];
     }
     async resetStreak(userId) {
-        await this.prisma.user.update({
-            where: { id: userId },
-            data: {
-                loginStreak: 0,
-                lastDailyRewardClaimed: null,
-            },
+        await this.firestore.update('users', userId, {
+            loginStreak: 0,
+            lastDailyRewardClaimed: null
         });
-        console.log('[DAILY_REWARD] Streak reset for user:', userId);
+    }
+    constructor(firestore, coinService){
+        this.firestore = firestore;
+        this.coinService = coinService;
     }
 };
-exports.DailyRewardService = DailyRewardService;
-exports.DailyRewardService = DailyRewardService = __decorate([
-    (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService,
-        coin_service_1.CoinService])
+DailyRewardService = _ts_decorate([
+    (0, _common.Injectable)(),
+    _ts_metadata("design:type", Function),
+    _ts_metadata("design:paramtypes", [
+        typeof _firestoreservice.FirestoreService === "undefined" ? Object : _firestoreservice.FirestoreService,
+        typeof _coinservice.CoinService === "undefined" ? Object : _coinservice.CoinService
+    ])
 ], DailyRewardService);

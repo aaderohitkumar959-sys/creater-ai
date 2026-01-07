@@ -7,10 +7,10 @@ import { SpeedInsights } from '@vercel/speed-insights/next';
 
 export const metadata: Metadata = {
   title: {
-    default: "Syelope - You are heard.",
-    template: "%s | Syelope"
+    default: "CreaterAI - You are heard.",
+    template: "%s | CreaterAI"
   },
-  description: "Syelope is a private AI character chat platform where users can talk freely, feel understood, and connect emotionally with AI characters.",
+  description: "CreaterAI is a private AI character chat platform where users can talk freely, feel understood, and connect emotionally with AI characters.",
   manifest: "/manifest.json",
   icons: {
     icon: "/favicon.ico",
@@ -21,18 +21,20 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: "website",
-    siteName: "Syelope",
-    title: "Syelope – You are heard.",
+    siteName: "CreaterAI",
+    title: "CreaterAI – You are heard.",
     description: "A private space for when you're overwhelmed. No judgment. No expectations. Just presence.",
-    images: ["/syelope-logo.jpg"],
+    images: ["/brand-logo.png"],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Syelope – You are heard.",
-    description: "A private space for when you're overwhelmed. No judgment. No expectations. Just presence.",
-    images: ["/syelope-logo.jpg"],
+    title: "CreaterAI – You are heard.",
+    description: "A private space with high-fidelity presence. No judgment. No expectations.",
+    images: ["/brand-logo.png"],
   },
 };
+
+import { AuthProvider } from "@/contexts/AuthContext";
 
 export default function RootLayout({
   children,
@@ -54,9 +56,11 @@ export default function RootLayout({
         suppressHydrationWarning
       >
         <Providers>
-          <LayoutContent>
-            {children}
-          </LayoutContent>
+          <AuthProvider>
+            <LayoutContent>
+              {children}
+            </LayoutContent>
+          </AuthProvider>
 
           {/* Vercel Analytics - Privacy-friendly page tracking */}
           <Analytics />

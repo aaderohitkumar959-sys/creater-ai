@@ -1,6 +1,12 @@
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.BaseLLMProvider = void 0;
-class BaseLLMProvider {
-}
-exports.BaseLLMProvider = BaseLLMProvider;
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+Object.defineProperty(exports, "BaseLLMProvider", {
+    enumerable: true,
+    get: function() {
+        return BaseLLMProvider;
+    }
+});
+let BaseLLMProvider = class BaseLLMProvider {
+};

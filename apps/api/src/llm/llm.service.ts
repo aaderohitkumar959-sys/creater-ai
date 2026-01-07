@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { FirestoreService } from '../prisma/firestore.service';
 import { ConfigService } from '@nestjs/config';
 import { BaseLLMProvider, LLMMessage } from './providers/base.provider';
 import { GroqProvider } from './providers/groq.provider';
@@ -18,14 +18,13 @@ export class LLMService {
   private openRouterProvider: OpenRouterProvider;
 
   constructor(
-    private prisma: PrismaService,
+    private firestore: FirestoreService,
     private config: ConfigService,
   ) {
     const groqKey = this.config.get<string>('GROQ_API_KEY');
     if (groqKey) {
       this.groqProvider = new GroqProvider(groqKey);
     }
-    // Always have OpenRouter as fallback
     this.openRouterProvider = new OpenRouterProvider(this.config);
   }
 
@@ -34,66 +33,46 @@ export class LLMService {
     userMessage: string,
     conversationHistory: { sender: string; content: string }[] = [],
   ): Promise<{ content: string; tokensUsed: number; model: string }> {
-    // Fetch persona details
-    const persona = await this.prisma.persona.findUnique({
-      where: { id: personaId },
-      include: { trainingData: true },
-    });
+    const persona = await this.firestore.findUnique('personas', personaId) as any;
 
     if (!persona) {
       throw new Error('Persona not found');
     }
 
-    // Build context
     const context: PersonaContext = {
       name: persona.name,
       description: persona.description || undefined,
       personality: persona.personality || {},
-      trainingData: persona.trainingData.map((td) => td.content).slice(0, 3),
+      trainingData: persona.trainingData?.slice(0, 3) || [],
     };
 
-    // Build system prompt
     const systemPrompt = this.buildSystemPrompt(context);
 
-    // Build message history
     const messages: LLMMessage[] = [
       { role: 'system', content: systemPrompt },
       ...conversationHistory.slice(-5).map((msg) => ({
-        role:
-          msg.sender === 'USER' ? ('user' as const) : ('assistant' as const),
+        role: msg.sender === 'USER' ? ('user' as const) : ('assistant' as const),
         content: msg.content,
       })),
       { role: 'user', content: userMessage },
     ];
 
-    // Try Groq first, then OpenRouter
     try {
       if (this.groqProvider) {
         const response = await this.groqProvider.generateResponse(messages, {
           temperature: 0.8,
           maxTokens: 500,
         });
-        return {
-          content: response.content,
-          tokensUsed: response.tokensUsed,
-          model: response.model,
-        };
+        return response;
       }
     } catch (error) {
       console.error('Groq failure, falling back to OpenRouter:', error);
     }
 
-    // Fallback to OpenRouter
-    const response = await this.openRouterProvider.generateResponse(messages, {
+    return this.openRouterProvider.generateResponse(messages, {
       temperature: 0.8,
       maxTokens: 500,
     });
-
-    return {
-      content: response.content,
-      tokensUsed: response.tokensUsed,
-      model: response.model,
-    };
   }
 
   async *streamPersonaResponse(
@@ -101,42 +80,31 @@ export class LLMService {
     userMessage: string,
     conversationHistory: { sender: string; content: string }[] = [],
   ): AsyncGenerator<string> {
-    // Fetch persona details
-    const persona = await this.prisma.persona.findUnique({
-      where: { id: personaId },
-      include: { trainingData: true },
-    });
+    const persona = await this.firestore.findUnique('personas', personaId) as any;
 
     if (!persona) {
       throw new Error('Persona not found');
     }
 
-    // Build context
     const context: PersonaContext = {
       name: persona.name,
       description: persona.description || undefined,
       personality: persona.personality || {},
-      trainingData: persona.trainingData.map((td) => td.content).slice(0, 3),
+      trainingData: persona.trainingData?.slice(0, 3) || [],
     };
 
-    // Build system prompt
     const systemPrompt = this.buildSystemPrompt(context);
 
-    // Build message history
     const messages: LLMMessage[] = [
       { role: 'system', content: systemPrompt },
       ...conversationHistory.slice(-5).map((msg) => ({
-        role:
-          msg.sender === 'USER' ? ('user' as const) : ('assistant' as const),
+        role: msg.sender === 'USER' ? ('user' as const) : ('assistant' as const),
         content: msg.content,
       })),
       { role: 'user', content: userMessage },
     ];
 
-    // Stream response
     let streamSucceeded = false;
-
-    // Try Groq first
     try {
       if (this.groqProvider) {
         yield* this.groqProvider.streamResponse(messages, {
@@ -149,7 +117,6 @@ export class LLMService {
       console.error('Groq streaming failure, falling back to OpenRouter:', error);
     }
 
-    // Fallback to OpenRouter (non-streaming for simplicity in fallback, or yield* if supported)
     if (!streamSucceeded) {
       const response = await this.openRouterProvider.generateResponse(messages, {
         temperature: 0.8,
@@ -166,64 +133,44 @@ export class LLMService {
       prompt += `\n\nYour description: ${context.description}`;
     }
 
-    // Enhanced personality prompt with all 6 traits
     if (context.personality && typeof context.personality === 'object') {
       const p = context.personality as Record<string, number>;
       const traits: string[] = [];
 
-      // Friendliness
       if (p.friendliness !== undefined) {
         if (p.friendliness > 75) traits.push('You are very warm and welcoming');
-        else if (p.friendliness > 50)
-          traits.push('You are friendly and approachable');
-        else if (p.friendliness > 25)
-          traits.push('You are polite but reserved');
+        else if (p.friendliness > 50) traits.push('You are friendly and approachable');
+        else if (p.friendliness > 25) traits.push('You are polite but reserved');
         else traits.push('You are formal and distant');
       }
 
-      // Humor
       if (p.humor !== undefined) {
-        if (p.humor > 75)
-          traits.push('You love making jokes and being playful');
-        else if (p.humor > 50)
-          traits.push('You occasionally add humor to conversations');
-        else if (p.humor > 25)
-          traits.push('You are mostly serious with rare humor');
+        if (p.humor > 75) traits.push('You love making jokes and being playful');
+        else if (p.humor > 50) traits.push('You occasionally add humor to conversations');
+        else if (p.humor > 25) traits.push('You are mostly serious with rare humor');
         else traits.push('You are completely serious and professional');
       }
 
-      // Empathy
       if (p.empathy !== undefined) {
-        if (p.empathy > 75)
-          traits.push('You are deeply compassionate and understanding');
-        else if (p.empathy > 50)
-          traits.push('You show genuine care for others');
-        else if (p.empathy > 25)
-          traits.push('You are practical with some emotional awareness');
+        if (p.empathy > 75) traits.push('You are deeply compassionate and understanding');
+        else if (p.empathy > 50) traits.push('You show genuine care for others');
+        else if (p.empathy > 25) traits.push('You are practical with some emotional awareness');
         else traits.push('You are purely logical and detached');
       }
 
-      // Profanity
       if (p.profanity !== undefined) {
-        if (p.profanity > 50)
-          traits.push('You use casual and informal language freely');
-        else if (p.profanity > 25)
-          traits.push('You occasionally use mild informal language');
+        if (p.profanity > 50) traits.push('You use casual and informal language freely');
+        else if (p.profanity > 25) traits.push('You occasionally use mild informal language');
         else traits.push('You always use clean and professional language');
       }
 
-      // Verbosity
       if (p.verbosity !== undefined) {
-        if (p.verbosity > 75)
-          traits.push('You give detailed, comprehensive responses');
-        else if (p.verbosity > 50)
-          traits.push('You provide moderate amounts of detail');
-        else if (p.verbosity > 25)
-          traits.push('You are concise but informative');
+        if (p.verbosity > 75) traits.push('You give detailed, comprehensive responses');
+        else if (p.verbosity > 50) traits.push('You provide moderate amounts of detail');
+        else if (p.verbosity > 25) traits.push('You are concise but informative');
         else traits.push('You are extremely brief and to the point');
       }
 
-      // Emoji
       if (p.emoji !== undefined) {
         if (p.emoji > 75) traits.push('You use lots of emojis 😊🎉✨');
         else if (p.emoji > 50) traits.push('You occasionally use emojis 👍');

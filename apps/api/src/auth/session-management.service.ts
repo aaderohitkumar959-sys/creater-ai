@@ -1,42 +1,34 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { FirestoreService } from '../prisma/firestore.service';
+import * as admin from 'firebase-admin';
 
 @Injectable()
 export class SessionManagementService {
-    constructor(private prisma: PrismaService) { }
+    constructor(private firestore: FirestoreService) { }
 
-    /**
-     * Invalidate all sessions (OAuth sessions)
-     */
     async invalidateAllSessions(userId: string): Promise<void> {
-        // Delete all sessions for this user
-        await this.prisma.session.deleteMany({
-            where: { userId },
-        });
+        // In Firebase, we revoke refresh tokens to sign out from all devices
+        await admin.auth().revokeRefreshTokens(userId);
 
-        console.log('[SESSION] Invalidated all sessions for user:', userId);
+        // Also clear any custom session tracking docs
+        const sessions = await this.firestore.findMany('sessions', (ref) => ref.where('userId', '==', userId)) as any[];
+        await Promise.all(sessions.map(s => this.firestore.delete('sessions', s.id)));
     }
 
-    /**
-     * Logout from all devices (OAuth sessions)
-     */
     async logoutAllDevices(userId: string): Promise<void> {
         await this.invalidateAllSessions(userId);
     }
 
-    /**
-     * Get active sessions for user
-     */
     async getActiveSessions(userId: string) {
-        const sessions = await this.prisma.session.findMany({
-            where: { userId },
-            orderBy: { createdAt: 'desc' },
-        });
+        // Fetch custom session tracking docs if they exist
+        const sessions = await this.firestore.findMany('sessions', (ref) =>
+            ref.where('userId', '==', userId).orderBy('createdAt', 'desc')
+        ) as any[];
 
         return sessions.map((session) => ({
             id: session.id,
-            createdAt: session.createdAt,
-            expiresAt: session.expires, // Fixed: was expiresAt, but schema has expires
+            createdAt: session.createdAt?.toDate ? session.createdAt.toDate() : session.createdAt,
+            expiresAt: session.expires?.toDate ? session.expires.toDate() : session.expires,
         }));
     }
 }

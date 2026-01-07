@@ -19,7 +19,7 @@ import {
     Trash2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/contexts/AuthContext';
 import { TopBar } from '@/components/navigation/top-bar';
 
 interface Notification {
@@ -53,7 +53,7 @@ const mockNotifications: Notification[] = [
     {
         id: '3',
         type: 'system',
-        title: 'Welcome to Syelope!',
+        title: 'Welcome to CreaterAI!',
         body: 'Start exploring and chatting with unique AI personalities tailored just for you.',
         timestamp: '3h ago',
         isRead: true,
@@ -80,7 +80,7 @@ const mockNotifications: Notification[] = [
 
 export default function NotificationsPage() {
     const router = useRouter();
-    const { status } = useSession();
+    const { user, loading: authLoading } = useAuth();
     const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
     const [filter, setFilter] = useState<'all' | 'unread'>('all');
 
@@ -102,7 +102,9 @@ export default function NotificationsPage() {
         ));
     };
 
-    if (status === 'unauthenticated') {
+    if (authLoading) return null; // Or a loading spinner
+
+    if (!user) {
         return (
             <div className="min-h-screen bg-[var(--bg-primary)] flex flex-col">
                 <TopBar showSearch={false} showNotifications={false} />

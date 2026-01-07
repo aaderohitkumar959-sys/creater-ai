@@ -1,80 +1,97 @@
 "use strict";
-var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+Object.defineProperty(exports, "SubscriptionController", {
+    enumerable: true,
+    get: function() {
+        return SubscriptionController;
+    }
+});
+const _common = require("@nestjs/common");
+const _subscriptionservice = require("./subscription.service");
+const _jwtauthguard = require("../auth/jwt-auth.guard");
+function _ts_decorate(decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    else for(var i = decorators.length - 1; i >= 0; i--)if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
-};
-var __metadata = (this && this.__metadata) || function (k, v) {
+}
+function _ts_metadata(k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
-};
-var __param = (this && this.__param) || function (paramIndex, decorator) {
-    return function (target, key) { decorator(target, key, paramIndex); }
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.SubscriptionController = void 0;
-const common_1 = require("@nestjs/common");
-const subscription_service_1 = require("./subscription.service");
-const jwt_auth_guard_1 = require("../auth/jwt-auth.guard");
+}
+function _ts_param(paramIndex, decorator) {
+    return function(target, key) {
+        decorator(target, key, paramIndex);
+    };
+}
 let SubscriptionController = class SubscriptionController {
-    subscriptionService;
-    constructor(subscriptionService) {
-        this.subscriptionService = subscriptionService;
-    }
-    async getStatus(req) {
+    /**
+     * Get current subscription status
+     */ async getStatus(req) {
         const userId = req.user.id;
         return await this.subscriptionService.getSubscriptionStatus(userId);
     }
-    getTiers() {
+    /**
+     * Get available subscription tiers and pricing
+     */ getTiers() {
         return [
             {
-                tier: subscription_service_1.SubscriptionTier.FREE,
+                tier: _subscriptionservice.SubscriptionTier.FREE,
                 name: 'Free',
                 price: 0,
                 interval: null,
-                benefits: this.subscriptionService.getBenefits(subscription_service_1.SubscriptionTier.FREE),
+                benefits: this.subscriptionService.getBenefits(_subscriptionservice.SubscriptionTier.FREE)
             },
             {
-                tier: subscription_service_1.SubscriptionTier.PREMIUM_MONTHLY,
+                tier: _subscriptionservice.SubscriptionTier.PREMIUM_MONTHLY,
                 name: 'Premium',
                 price: 9.99,
                 interval: 'month',
-                benefits: this.subscriptionService.getBenefits(subscription_service_1.SubscriptionTier.PREMIUM_MONTHLY),
+                benefits: this.subscriptionService.getBenefits(_subscriptionservice.SubscriptionTier.PREMIUM_MONTHLY)
             },
             {
-                tier: subscription_service_1.SubscriptionTier.PREMIUM_YEARLY,
+                tier: _subscriptionservice.SubscriptionTier.PREMIUM_YEARLY,
                 name: 'Premium Annual',
                 price: 99.99,
                 interval: 'year',
                 savings: '16% off',
-                benefits: this.subscriptionService.getBenefits(subscription_service_1.SubscriptionTier.PREMIUM_YEARLY),
-            },
+                benefits: this.subscriptionService.getBenefits(_subscriptionservice.SubscriptionTier.PREMIUM_YEARLY)
+            }
         ];
     }
-    async createCheckout(req, body) {
+    /**
+     * Create checkout session for subscription
+     */ async createCheckout(req, body) {
         const userId = req.user.id;
         const { tier } = body;
         const session = await this.subscriptionService.createCheckoutSession(userId, tier);
         return {
             sessionId: session.sessionId,
-            url: session.url,
+            url: session.url
         };
     }
-    async cancel(req) {
+    /**
+     * Cancel subscription at period end
+     */ async cancel(req) {
         const userId = req.user.id;
         await this.subscriptionService.cancelAtPeriodEnd(userId);
         return {
-            message: 'Your subscription will be canceled at the end of the current billing period',
+            message: 'Your subscription will be canceled at the end of the current billing period'
         };
     }
-    async reactivate(req) {
+    /**
+     * Reactivate canceled subscription
+     */ async reactivate(req) {
         const userId = req.user.id;
         await this.subscriptionService.reactivateSubscription(userId);
         return {
-            message: 'Your subscription has been reactivated',
+            message: 'Your subscription has been reactivated'
         };
     }
-    async handleWebhook(signature, req) {
+    /**
+     * Stripe webhook for subscription events
+     */ async handleWebhook(signature, req) {
         const payload = req.rawBody;
         if (!payload) {
             throw new Error('Missing raw body');
@@ -84,63 +101,81 @@ let SubscriptionController = class SubscriptionController {
         try {
             const event = stripe.webhooks.constructEvent(payload, signature, webhookSecret);
             await this.subscriptionService.handleSubscriptionWebhook(event);
-            return { received: true };
-        }
-        catch (err) {
+            return {
+                received: true
+            };
+        } catch (err) {
             console.error('[SUBSCRIPTION] Webhook error:', err.message);
             throw new Error(`Webhook Error: ${err.message}`);
         }
     }
+    constructor(subscriptionService){
+        this.subscriptionService = subscriptionService;
+    }
 };
-exports.SubscriptionController = SubscriptionController;
-__decorate([
-    (0, common_1.Get)('status'),
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    __param(0, (0, common_1.Req)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", Promise)
+_ts_decorate([
+    (0, _common.Get)('status'),
+    (0, _common.UseGuards)(_jwtauthguard.JwtAuthGuard),
+    _ts_param(0, (0, _common.Req)()),
+    _ts_metadata("design:type", Function),
+    _ts_metadata("design:paramtypes", [
+        Object
+    ]),
+    _ts_metadata("design:returntype", Promise)
 ], SubscriptionController.prototype, "getStatus", null);
-__decorate([
-    (0, common_1.Get)('tiers'),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", []),
-    __metadata("design:returntype", void 0)
+_ts_decorate([
+    (0, _common.Get)('tiers'),
+    _ts_metadata("design:type", Function),
+    _ts_metadata("design:paramtypes", []),
+    _ts_metadata("design:returntype", void 0)
 ], SubscriptionController.prototype, "getTiers", null);
-__decorate([
-    (0, common_1.Post)('checkout'),
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    __param(0, (0, common_1.Req)()),
-    __param(1, (0, common_1.Body)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, Object]),
-    __metadata("design:returntype", Promise)
+_ts_decorate([
+    (0, _common.Post)('checkout'),
+    (0, _common.UseGuards)(_jwtauthguard.JwtAuthGuard),
+    _ts_param(0, (0, _common.Req)()),
+    _ts_param(1, (0, _common.Body)()),
+    _ts_metadata("design:type", Function),
+    _ts_metadata("design:paramtypes", [
+        Object,
+        Object
+    ]),
+    _ts_metadata("design:returntype", Promise)
 ], SubscriptionController.prototype, "createCheckout", null);
-__decorate([
-    (0, common_1.Post)('cancel'),
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    __param(0, (0, common_1.Req)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", Promise)
+_ts_decorate([
+    (0, _common.Post)('cancel'),
+    (0, _common.UseGuards)(_jwtauthguard.JwtAuthGuard),
+    _ts_param(0, (0, _common.Req)()),
+    _ts_metadata("design:type", Function),
+    _ts_metadata("design:paramtypes", [
+        Object
+    ]),
+    _ts_metadata("design:returntype", Promise)
 ], SubscriptionController.prototype, "cancel", null);
-__decorate([
-    (0, common_1.Post)('reactivate'),
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
-    __param(0, (0, common_1.Req)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", Promise)
+_ts_decorate([
+    (0, _common.Post)('reactivate'),
+    (0, _common.UseGuards)(_jwtauthguard.JwtAuthGuard),
+    _ts_param(0, (0, _common.Req)()),
+    _ts_metadata("design:type", Function),
+    _ts_metadata("design:paramtypes", [
+        Object
+    ]),
+    _ts_metadata("design:returntype", Promise)
 ], SubscriptionController.prototype, "reactivate", null);
-__decorate([
-    (0, common_1.Post)('webhook'),
-    __param(0, (0, common_1.Headers)('stripe-signature')),
-    __param(1, (0, common_1.Req)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, Object]),
-    __metadata("design:returntype", Promise)
+_ts_decorate([
+    (0, _common.Post)('webhook'),
+    _ts_param(0, (0, _common.Headers)('stripe-signature')),
+    _ts_param(1, (0, _common.Req)()),
+    _ts_metadata("design:type", Function),
+    _ts_metadata("design:paramtypes", [
+        String,
+        Object
+    ]),
+    _ts_metadata("design:returntype", Promise)
 ], SubscriptionController.prototype, "handleWebhook", null);
-exports.SubscriptionController = SubscriptionController = __decorate([
-    (0, common_1.Controller)('subscription'),
-    __metadata("design:paramtypes", [subscription_service_1.SubscriptionService])
+SubscriptionController = _ts_decorate([
+    (0, _common.Controller)('subscription'),
+    _ts_metadata("design:type", Function),
+    _ts_metadata("design:paramtypes", [
+        typeof _subscriptionservice.SubscriptionService === "undefined" ? Object : _subscriptionservice.SubscriptionService
+    ])
 ], SubscriptionController);

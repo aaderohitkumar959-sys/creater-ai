@@ -13,7 +13,7 @@ import { Coins, TrendingUp, ArrowUpRight, ArrowDownLeft } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { api } from '@/lib/api';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 
 
@@ -56,40 +56,40 @@ export default function WalletPage() {
     const [isPremium, setIsPremium] = useState(false);
     const [loading, setLoading] = useState(true);
 
-    const { data: session, status: authStatus } = useSession();
+    const { user, loading: authLoading } = useAuth();
     const router = useRouter();
 
     useEffect(() => {
         const fetchWalletData = async () => {
-            if (authStatus === 'unauthenticated') {
+            if (authLoading) return;
+
+            if (!user) {
                 setLoading(false);
                 return;
             }
 
-            if (session?.user?.id) {
-                try {
-                    const [walletBalance, history] = await Promise.all([
-                        api.getWalletBalance(),
-                        api.getTransactionHistory()
-                    ]);
-                    setBalance(walletBalance);
-                    setTransactions(history.map((tx: any) => ({
-                        id: tx.id,
-                        type: tx.type,
-                        amount: tx.amount,
-                        description: tx.description,
-                        createdAt: new Date(tx.createdAt),
-                    })));
-                } catch (error) {
-                    console.error('Failed to fetch wallet data:', error);
-                } finally {
-                    setLoading(false);
-                }
+            try {
+                const [walletBalance, history] = await Promise.all([
+                    api.getWalletBalance(),
+                    api.getTransactionHistory()
+                ]);
+                setBalance(walletBalance);
+                setTransactions(history.map((tx: any) => ({
+                    id: tx.id,
+                    type: tx.type,
+                    amount: tx.amount,
+                    description: tx.description,
+                    createdAt: new Date(tx.createdAt),
+                })));
+            } catch (error) {
+                console.error('Failed to fetch wallet data:', error);
+            } finally {
+                setLoading(false);
             }
         };
 
         fetchWalletData();
-    }, [session, authStatus]);
+    }, [user, authLoading]);
 
     const handleUpgrade = () => {
         // TODO: Navigate to premium purchase flow

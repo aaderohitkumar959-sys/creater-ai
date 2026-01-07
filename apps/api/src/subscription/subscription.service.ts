@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { FirestoreService } from '../prisma/firestore.service';
+import * as admin from 'firebase-admin';
 import Stripe from 'stripe';
 
 export enum SubscriptionTier {
@@ -24,368 +25,146 @@ export interface SubscriptionBenefits {
 export class SubscriptionService {
     private stripe: Stripe;
 
-    // Subscription pricing (optimized for market competitiveness)
     private readonly PRICING = {
-        [SubscriptionTier.STARTER_MONTHLY]: {
-            priceUSD: 4.99,
-            priceId: process.env.STRIPE_STARTER_MONTHLY_PRICE_ID,
-        },
-        [SubscriptionTier.STARTER_YEARLY]: {
-            priceUSD: 49.99, // $4.17/month (17% discount)
-            priceId: process.env.STRIPE_STARTER_YEARLY_PRICE_ID,
-        },
-        [SubscriptionTier.PREMIUM_MONTHLY]: {
-            priceUSD: 7.99,
-            priceId: process.env.STRIPE_PREMIUM_MONTHLY_PRICE_ID,
-        },
-        [SubscriptionTier.PREMIUM_YEARLY]: {
-            priceUSD: 74.99, // $6.25/month (22% discount)
-            priceId: process.env.STRIPE_PREMIUM_YEARLY_PRICE_ID,
-        },
-        [SubscriptionTier.UNLIMITED_MONTHLY]: {
-            priceUSD: 12.99,
-            priceId: process.env.STRIPE_UNLIMITED_MONTHLY_PRICE_ID,
-        },
-        [SubscriptionTier.UNLIMITED_YEARLY]: {
-            priceUSD: 129.99, // $10.83/month (17% discount)
-            priceId: process.env.STRIPE_UNLIMITED_YEARLY_PRICE_ID,
-        },
+        [SubscriptionTier.STARTER_MONTHLY]: { priceUSD: 4.99, priceId: process.env.STRIPE_STARTER_MONTHLY_PRICE_ID },
+        [SubscriptionTier.STARTER_YEARLY]: { priceUSD: 49.99, priceId: process.env.STRIPE_STARTER_YEARLY_PRICE_ID },
+        [SubscriptionTier.PREMIUM_MONTHLY]: { priceUSD: 7.99, priceId: process.env.STRIPE_PREMIUM_MONTHLY_PRICE_ID },
+        [SubscriptionTier.PREMIUM_YEARLY]: { priceUSD: 74.99, priceId: process.env.STRIPE_PREMIUM_YEARLY_PRICE_ID },
+        [SubscriptionTier.UNLIMITED_MONTHLY]: { priceUSD: 12.99, priceId: process.env.STRIPE_UNLIMITED_MONTHLY_PRICE_ID },
+        [SubscriptionTier.UNLIMITED_YEARLY]: { priceUSD: 129.99, priceId: process.env.STRIPE_UNLIMITED_YEARLY_PRICE_ID },
     };
 
-    constructor(private prisma: PrismaService) {
-        this.stripe = new Stripe(
-            process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder',
-            {
-                apiVersion: '2025-11-17.clover' as any,
-            },
-        );
+    constructor(private firestore: FirestoreService) {
+        this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder', {
+            apiVersion: '2023-10-16' as any,
+        });
     }
 
-    /**
-     * Get subscription benefits for a tier
-     */
     getBenefits(tier: SubscriptionTier): SubscriptionBenefits {
         const benefits: Record<SubscriptionTier, SubscriptionBenefits> = {
-            [SubscriptionTier.FREE]: {
-                messagesPerDay: 50, // Reduced to encourage upgrades
-                hasLongTermMemory: false,
-                priorityAI: false,
-                adFree: false,
-                earlyAccess: false,
-            },
-            [SubscriptionTier.STARTER_MONTHLY]: {
-                messagesPerDay: 200,
-                hasLongTermMemory: true,
-                priorityAI: false,
-                adFree: true,
-                earlyAccess: false,
-            },
-            [SubscriptionTier.STARTER_YEARLY]: {
-                messagesPerDay: 200,
-                hasLongTermMemory: true,
-                priorityAI: false,
-                adFree: true,
-                earlyAccess: false,
-            },
-            [SubscriptionTier.PREMIUM_MONTHLY]: {
-                messagesPerDay: 500,
-                hasLongTermMemory: true,
-                priorityAI: true,
-                adFree: true,
-                earlyAccess: true,
-            },
-            [SubscriptionTier.PREMIUM_YEARLY]: {
-                messagesPerDay: 500,
-                hasLongTermMemory: true,
-                priorityAI: true,
-                adFree: true,
-                earlyAccess: true,
-            },
-            [SubscriptionTier.UNLIMITED_MONTHLY]: {
-                messagesPerDay: 999999, // Effectively unlimited
-                hasLongTermMemory: true,
-                priorityAI: true,
-                adFree: true,
-                earlyAccess: true,
-            },
-            [SubscriptionTier.UNLIMITED_YEARLY]: {
-                messagesPerDay: 999999, // Effectively unlimited
-                hasLongTermMemory: true,
-                priorityAI: true,
-                adFree: true,
-                earlyAccess: true,
-            },
+            [SubscriptionTier.FREE]: { messagesPerDay: 50, hasLongTermMemory: false, priorityAI: false, adFree: false, earlyAccess: false },
+            [SubscriptionTier.STARTER_MONTHLY]: { messagesPerDay: 200, hasLongTermMemory: true, priorityAI: false, adFree: true, earlyAccess: false },
+            [SubscriptionTier.STARTER_YEARLY]: { messagesPerDay: 200, hasLongTermMemory: true, priorityAI: false, adFree: true, earlyAccess: false },
+            [SubscriptionTier.PREMIUM_MONTHLY]: { messagesPerDay: 500, hasLongTermMemory: true, priorityAI: true, adFree: true, earlyAccess: true },
+            [SubscriptionTier.PREMIUM_YEARLY]: { messagesPerDay: 500, hasLongTermMemory: true, priorityAI: true, adFree: true, earlyAccess: true },
+            [SubscriptionTier.UNLIMITED_MONTHLY]: { messagesPerDay: 999999, hasLongTermMemory: true, priorityAI: true, adFree: true, earlyAccess: true },
+            [SubscriptionTier.UNLIMITED_YEARLY]: { messagesPerDay: 999999, hasLongTermMemory: true, priorityAI: true, adFree: true, earlyAccess: true },
         };
-
         return benefits[tier];
     }
 
-    /**
-     * Get user's current subscription status
-     */
     async getSubscriptionStatus(userId: string) {
-        const subscription = await this.prisma.subscription.findUnique({
-            where: { userId },
-        });
+        const subscription = await this.firestore.findUnique('subscriptions', userId) as any;
 
         if (!subscription || subscription.status !== 'ACTIVE') {
-            return {
-                tier: SubscriptionTier.FREE,
-                status: 'FREE',
-                benefits: this.getBenefits(SubscriptionTier.FREE),
-            };
+            return { tier: SubscriptionTier.FREE, status: 'FREE', benefits: this.getBenefits(SubscriptionTier.FREE) };
         }
 
         const tier = subscription.tier as SubscriptionTier;
-
         return {
             tier,
             status: subscription.status,
             benefits: this.getBenefits(tier),
-            currentPeriodEnd: subscription.currentPeriodEnd,
+            currentPeriodEnd: subscription.currentPeriodEnd?.toDate?.() || subscription.currentPeriodEnd,
             cancelAtPeriodEnd: subscription.cancelAtPeriodEnd,
         };
     }
 
-    /**
-     * Create Stripe subscription checkout session
-     */
-    async createCheckoutSession(
-        userId: string,
-        tier: SubscriptionTier,
-    ): Promise<{ sessionId: string; url: string }> {
-        if (tier === SubscriptionTier.FREE) {
-            throw new Error('Cannot create checkout for free tier');
-        }
-
-        const user = await this.prisma.user.findUnique({
-            where: { id: userId },
-        });
-
-        if (!user || !user.email) {
-            throw new Error('User not found or missing email');
-        }
+    async createCheckoutSession(userId: string, tier: SubscriptionTier) {
+        if (tier === SubscriptionTier.FREE) throw new Error('Cannot create checkout for free tier');
+        const user = await this.firestore.findUnique('users', userId) as any;
+        if (!user || !user.email) throw new Error('User not found or missing email');
 
         const pricing = this.PRICING[tier];
-        if (!pricing || !pricing.priceId) {
-            throw new Error('Price ID not configured for tier: ' + tier);
-        }
+        if (!pricing || !pricing.priceId) throw new Error('Price ID not configured');
 
-        // Create or get Stripe customer
         let customerId = user.stripeCustomerId;
         if (!customerId) {
-            const customer = await this.stripe.customers.create({
-                email: user.email,
-                metadata: { userId },
-            });
+            const customer = await this.stripe.customers.create({ email: user.email, metadata: { userId } });
             customerId = customer.id;
-
-            await this.prisma.user.update({
-                where: { id: userId },
-                data: { stripeCustomerId: customerId },
-            });
+            await this.firestore.update('users', userId, { stripeCustomerId: customerId });
         }
 
-        // Create checkout session
         const session = await this.stripe.checkout.sessions.create({
             customer: customerId,
-            line_items: [
-                {
-                    price: pricing.priceId,
-                    quantity: 1,
-                },
-            ],
+            line_items: [{ price: pricing.priceId, quantity: 1 }],
             mode: 'subscription',
             success_url: `${process.env.FRONTEND_URL}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
             cancel_url: `${process.env.FRONTEND_URL}/pricing`,
-            metadata: {
-                userId,
-                tier,
-            },
+            metadata: { userId, tier },
         });
 
-        return {
-            sessionId: session.id,
-            url: session.url!,
-        };
+        return { sessionId: session.id, url: session.url! };
     }
 
-    /**
-     * Handle Stripe subscription webhook
-     */
     async handleSubscriptionWebhook(event: Stripe.Event) {
-        console.log('[SUBSCRIPTION] Webhook received:', event.type);
-
         switch (event.type) {
             case 'customer.subscription.created':
             case 'customer.subscription.updated':
                 await this.syncSubscription(event.data.object as Stripe.Subscription);
                 break;
-
             case 'customer.subscription.deleted':
-                await this.cancelSubscription(
-                    event.data.object as Stripe.Subscription,
-                );
+                await this.cancelSubscription(event.data.object as Stripe.Subscription);
                 break;
-
-            case 'invoice.payment_succeeded':
-                console.log('[SUBSCRIPTION] Payment succeeded');
-                break;
-
             case 'invoice.payment_failed':
                 await this.handlePaymentFailed(event.data.object as Stripe.Invoice);
                 break;
-
-            default:
-                console.log('[SUBSCRIPTION] Unhandled event type:', event.type);
         }
     }
 
-    /**
-     * Sync subscription from Stripe to database
-     */
-    private async syncSubscription(stripeSubscription: Stripe.Subscription) {
-        const userId = stripeSubscription.metadata.userId;
-        if (!userId) {
-            console.error('[SUBSCRIPTION] Missing userId in metadata');
-            return;
-        }
-
-        const tier = (stripeSubscription.metadata.tier ||
-            'PREMIUM_MONTHLY') as SubscriptionTier;
-
-        await this.prisma.subscription.upsert({
-            where: { userId },
-            create: {
-                userId,
-                tier,
-                plan: tier, // Required by Prisma schema
-                status: stripeSubscription.status.toUpperCase(),
-                stripeSubscriptionId: stripeSubscription.id,
-                stripeCustomerId: stripeSubscription.customer as string,
-                currentPeriodStart: new Date(
-                    (stripeSubscription as any).current_period_start * 1000,
-                ),
-                currentPeriodEnd: new Date(
-                    (stripeSubscription as any).current_period_end * 1000,
-                ),
-                endDate: new Date(
-                    (stripeSubscription as any).current_period_end * 1000,
-                ), // Required by Prisma schema
-                cancelAtPeriodEnd: (stripeSubscription as any).cancel_at_period_end,
-            },
-            update: {
-                tier,
-                status: stripeSubscription.status.toUpperCase(),
-                currentPeriodStart: new Date(
-                    (stripeSubscription as any).current_period_start * 1000,
-                ),
-                currentPeriodEnd: new Date(
-                    (stripeSubscription as any).current_period_end * 1000,
-                ),
-                cancelAtPeriodEnd: (stripeSubscription as any).cancel_at_period_end,
-            },
-        });
-
-        console.log('[SUBSCRIPTION] Synced:', { userId, tier });
-    }
-
-    /**
-     * Cancel subscription in database
-     */
-    private async cancelSubscription(stripeSubscription: Stripe.Subscription) {
-        const userId = stripeSubscription.metadata.userId;
+    private async syncSubscription(stripeSub: Stripe.Subscription) {
+        const userId = stripeSub.metadata.userId;
         if (!userId) return;
 
-        await this.prisma.subscription.update({
-            where: { userId },
-            data: {
-                status: 'CANCELED',
-                canceledAt: new Date(),
-            },
-        });
+        const tier = (stripeSub.metadata.tier || SubscriptionTier.PREMIUM_MONTHLY) as SubscriptionTier;
 
-        console.log('[SUBSCRIPTION] Canceled:', userId);
+        await this.firestore.update('subscriptions', userId, {
+            tier,
+            status: stripeSub.status.toUpperCase(),
+            stripeSubscriptionId: stripeSub.id,
+            stripeCustomerId: stripeSub.customer as string,
+            currentPeriodStart: admin.firestore.Timestamp.fromMillis(stripeSub.current_period_start * 1000),
+            currentPeriodEnd: admin.firestore.Timestamp.fromMillis(stripeSub.current_period_end * 1000),
+            cancelAtPeriodEnd: stripeSub.cancel_at_period_end,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        }, true);
     }
 
-    /**
-     * Handle failed payment
-     */
+    private async cancelSubscription(stripeSub: Stripe.Subscription) {
+        const userId = stripeSub.metadata.userId;
+        if (!userId) return;
+        await this.firestore.update('subscriptions', userId, {
+            status: 'CANCELED',
+            canceledAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+    }
+
     private async handlePaymentFailed(invoice: Stripe.Invoice) {
         const customerId = invoice.customer as string;
-        const user = await this.prisma.user.findFirst({
-            where: { stripeCustomerId: customerId },
-        });
-
-        if (user) {
-            // TODO: Send email notification
-            console.log('[SUBSCRIPTION] Payment failed for user:', user.id);
-
-            // Update subscription status
-            await this.prisma.subscription.updateMany({
-                where: { userId: user.id },
-                data: { status: 'PAST_DUE' },
-            });
+        const users = await this.firestore.findMany('users', (ref) => ref.where('stripeCustomerId', '==', customerId)) as any[];
+        if (users.length > 0) {
+            await this.firestore.update('subscriptions', users[0].id, { status: 'PAST_DUE' });
         }
     }
 
-    /**
-     * Cancel subscription at period end
-     */
-    async cancelAtPeriodEnd(userId: string): Promise<boolean> {
-        const subscription = await this.prisma.subscription.findUnique({
-            where: { userId },
-        });
+    async cancelAtPeriodEnd(userId: string) {
+        const subscription = await this.firestore.findUnique('subscriptions', userId) as any;
+        if (!subscription || !subscription.stripeSubscriptionId) throw new Error('No active subscription');
 
-        if (!subscription || !subscription.stripeSubscriptionId) {
-            throw new Error('No active subscription found');
-        }
-
-        await this.stripe.subscriptions.update(subscription.stripeSubscriptionId, {
-            cancel_at_period_end: true,
-        });
-
-        await this.prisma.subscription.update({
-            where: { userId },
-            data: { cancelAtPeriodEnd: true },
-        });
-
-        console.log('[SUBSCRIPTION] Marked for cancellation:', userId);
+        await this.stripe.subscriptions.update(subscription.stripeSubscriptionId, { cancel_at_period_end: true });
+        await this.firestore.update('subscriptions', userId, { cancelAtPeriodEnd: true });
         return true;
     }
 
-    /**
-     * Reactivate canceled subscription
-     */
-    async reactivateSubscription(userId: string): Promise<boolean> {
-        const subscription = await this.prisma.subscription.findUnique({
-            where: { userId },
-        });
+    async reactivateSubscription(userId: string) {
+        const subscription = await this.firestore.findUnique('subscriptions', userId) as any;
+        if (!subscription || !subscription.stripeSubscriptionId) throw new Error('No subscription');
 
-        if (!subscription || !subscription.stripeSubscriptionId) {
-            throw new Error('No subscription found');
-        }
-
-        if (!subscription.cancelAtPeriodEnd) {
-            throw new Error('Subscription is not scheduled for cancellation');
-        }
-
-        await this.stripe.subscriptions.update(subscription.stripeSubscriptionId, {
-            cancel_at_period_end: false,
-        });
-
-        await this.prisma.subscription.update({
-            where: { userId },
-            data: { cancelAtPeriodEnd: false },
-        });
-
-        console.log('[SUBSCRIPTION] Reactivated:', userId);
+        await this.stripe.subscriptions.update(subscription.stripeSubscriptionId, { cancel_at_period_end: false });
+        await this.firestore.update('subscriptions', userId, { cancelAtPeriodEnd: false });
         return true;
     }
 
-    /**
-     * Check if user has premium access
-     */
     async hasPremiumAccess(userId: string): Promise<boolean> {
         const status = await this.getSubscriptionStatus(userId);
         return status.tier !== SubscriptionTier.FREE && status.status === 'ACTIVE';

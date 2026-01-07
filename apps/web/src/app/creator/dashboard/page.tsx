@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -11,18 +11,23 @@ import { toast } from 'react-hot-toast';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 
 export default function CreatorDashboard() {
-    const { data: session } = useSession();
+    const { user, loading: authLoading } = useAuth();
     const [stats, setStats] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const { isSubscribed, subscribeToNotifications, permission } = usePushNotifications();
 
     useEffect(() => {
         const fetchStats = async () => {
-            if (!session?.user?.id) return;
+            if (authLoading) return;
+            if (!user) {
+                setLoading(false);
+                return;
+            }
             try {
+                const token = await user.getIdToken();
                 const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/creator/dashboard`, {
                     headers: {
-                        'Authorization': `Bearer ${session.user.accessToken || ''}`
+                        'Authorization': `Bearer ${token}`
                     }
                 });
                 if (res.ok) {
@@ -37,14 +42,16 @@ export default function CreatorDashboard() {
         };
 
         fetchStats();
-    }, [session]);
+    }, [user, authLoading]);
 
     const handleUpdatePricing = async (personaId: string, newCost: number) => {
+        if (!user) return;
+        const token = await user.getIdToken();
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/personas/${personaId}`, {
             method: 'PATCH',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${session?.user?.accessToken || ''}`
+                'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify({ defaultCoinCost: newCost })
         });

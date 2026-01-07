@@ -37,8 +37,8 @@ DO NOT offer advice or fix things. Just listen and validate.
             temperature: 0.8,
         }, {
             headers: {
-                'HTTP-Referer': 'https://syelope-web.vercel.app',
-                'X-Title': 'CreatorAI Companion',
+                'HTTP-Referer': 'https://createrai-web.vercel.app',
+                'X-Title': 'CreaterAI Companion',
             },
         });
 

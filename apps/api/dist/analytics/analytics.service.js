@@ -1,197 +1,130 @@
 "use strict";
-var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+Object.defineProperty(exports, "AnalyticsService", {
+    enumerable: true,
+    get: function() {
+        return AnalyticsService;
+    }
+});
+const _common = require("@nestjs/common");
+const _firestoreservice = require("../prisma/firestore.service");
+function _ts_decorate(decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    else for(var i = decorators.length - 1; i >= 0; i--)if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
-};
-var __metadata = (this && this.__metadata) || function (k, v) {
+}
+function _ts_metadata(k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.AnalyticsService = void 0;
-const common_1 = require("@nestjs/common");
-const prisma_service_1 = require("../prisma/prisma.service");
+}
 let AnalyticsService = class AnalyticsService {
-    prisma;
-    constructor(prisma) {
-        this.prisma = prisma;
-    }
     async trackEvent(userId, event, metadata) {
-        return this.prisma.analyticsEvent.create({
-            data: {
-                userId,
-                event,
-                metadata: metadata || {},
-            },
+        return this.firestore.create('analytics_events', {
+            userId,
+            event,
+            metadata: metadata || {}
         });
     }
     async getDashboardStats() {
-        const [totalUsers, totalRevenue, totalMessages, activeUsers24h] = await Promise.all([
-            this.prisma.user.count(),
-            this.prisma.payment.aggregate({
-                _sum: { amount: true },
-                where: { status: 'COMPLETED' },
-            }),
-            this.prisma.message.count(),
-            this.prisma.user.count({
-                where: {
-                    updatedAt: {
-                        gte: new Date(Date.now() - 24 * 60 * 60 * 1000),
-                    },
-                },
-            }),
+        const db = this.firestore.getFirestore();
+        const [totalUsers, totalMessages, payments] = await Promise.all([
+            this.firestore.count('users'),
+            db.collectionGroup('messages').count().get().then((s)=>s.data().count),
+            this.firestore.findMany('payments', (ref)=>ref.where('status', '==', 'COMPLETED'))
         ]);
+        const totalRevenue = payments.reduce((sum, p)=>sum + (p.amount || 0), 0);
+        const activeUsers24h = await this.firestore.count('users', (ref)=>ref.where('updatedAt', '>=', new Date(Date.now() - 24 * 60 * 60 * 1000)));
+        // Revenue chart (last 30 days)
         const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-        const revenueData = await this.prisma.payment.groupBy({
-            by: ['createdAt'],
-            _sum: { amount: true },
-            where: {
-                status: 'COMPLETED',
-                createdAt: { gte: thirtyDaysAgo },
-            },
-            orderBy: { createdAt: 'asc' },
+        const recentPayments = payments.filter((p)=>{
+            const date = p.createdAt?.toDate ? p.createdAt.toDate() : new Date(p.createdAt);
+            return date >= thirtyDaysAgo;
         });
-        const revenueChart = revenueData.reduce((acc, curr) => {
-            const date = curr.createdAt.toISOString().split('T')[0];
-            const existing = acc.find((item) => item.date === date);
-            if (existing) {
-                existing.amount += curr._sum.amount || 0;
-            }
-            else {
-                acc.push({ date, amount: curr._sum.amount || 0 });
-            }
+        const revenueChart = recentPayments.reduce((acc, p)=>{
+            const date = (p.createdAt?.toDate ? p.createdAt.toDate() : new Date(p.createdAt)).toISOString().split('T')[0];
+            const existing = acc.find((item)=>item.date === date);
+            if (existing) existing.amount += p.amount || 0;
+            else acc.push({
+                date,
+                amount: p.amount || 0
+            });
             return acc;
-        }, []);
+        }, []).sort((a, b)=>a.date.localeCompare(b.date));
         return {
             totalUsers,
             activeUsers24h,
-            totalRevenue: totalRevenue._sum.amount || 0,
+            totalRevenue,
             totalMessages,
-            revenueChart,
+            revenueChart
         };
     }
     async getCreatorStats() {
-        const [totalCreators, topCreators] = await Promise.all([
-            this.prisma.creator.count(),
-            this.prisma.creator.findMany({
-                take: 5,
-                orderBy: { earnings: 'desc' },
-                include: {
-                    user: {
-                        select: { name: true, email: true, image: true },
-                    },
-                    _count: {
-                        select: { personas: true },
-                    },
-                },
-            }),
+        const [totalCreators, creators] = await Promise.all([
+            this.firestore.count('creators'),
+            this.firestore.findMany('creators', (ref)=>ref.orderBy('earnings', 'desc').limit(5))
         ]);
+        const topCreators = await Promise.all(creators.map(async (c)=>{
+            const user = await this.firestore.findUnique('users', c.userId);
+            const personasCount = await this.firestore.count('personas', (ref)=>ref.where('creatorId', '==', c.id));
+            return {
+                ...c,
+                user: {
+                    name: user?.name,
+                    email: user?.email,
+                    image: user?.image
+                },
+                _count: {
+                    personas: personasCount
+                }
+            };
+        }));
         return {
             totalCreators,
             topCreators,
-            pendingPayouts: 0,
+            pendingPayouts: 0
         };
     }
     async getCreatorOverview(userId) {
-        const creator = await this.prisma.creator.findUnique({
-            where: { userId },
-            include: {
-                personas: {
-                    include: {
-                        _count: {
-                            select: { conversations: true },
-                        },
-                    },
-                },
-            },
-        });
-        if (!creator) {
-            throw new Error('Creator not found');
+        const creator = await this.firestore.findUnique('creators', userId);
+        if (!creator) throw new Error('Creator not found');
+        const personas = await this.firestore.findMany('personas', (ref)=>ref.where('creatorId', '==', creator.id));
+        // Total messages for all personas of this creator
+        const db = this.firestore.getFirestore();
+        let totalMessages = 0;
+        for (const persona of personas){
+            const count = await db.collectionGroup('messages').where('personaId', '==', persona.id).count().get();
+            totalMessages += count.data().count;
         }
-        const messageCount = await this.prisma.message.count({
-            where: {
-                conversation: {
-                    persona: {
-                        creatorId: creator.id,
-                    },
-                },
-            },
-        });
         return {
-            earnings: creator.earnings,
-            personasCount: creator.personas.length,
-            totalMessages: messageCount,
-            personas: creator.personas,
+            earnings: creator.earnings || 0,
+            personasCount: personas.length,
+            totalMessages,
+            personas
         };
     }
     async getEarningsTimeSeries(userId, days) {
-        const creator = await this.prisma.creator.findUnique({
-            where: { userId },
-        });
-        if (!creator) {
-            throw new Error('Creator not found');
-        }
         const data = [];
         const now = new Date();
-        for (let i = days - 1; i >= 0; i--) {
+        for(let i = days - 1; i >= 0; i--){
             const date = new Date(now);
             date.setDate(date.getDate() - i);
             data.push({
                 date: date.toISOString().split('T')[0],
-                amount: Math.random() * 100,
+                amount: Math.random() * 100
             });
         }
         return data;
     }
-    async getMessageStats(userId) {
-        const creator = await this.prisma.creator.findUnique({
-            where: { userId },
-        });
-        if (!creator) {
-            throw new Error('Creator not found');
-        }
-        const totalMessages = await this.prisma.message.count({
-            where: {
-                conversation: {
-                    persona: {
-                        creatorId: creator.id,
-                    },
-                },
-            },
-        });
-        return {
-            total: totalMessages,
-            thisWeek: 0,
-            growth: 0,
-        };
-    }
-    async getPersonaPerformance(userId) {
-        const creator = await this.prisma.creator.findUnique({
-            where: { userId },
-            include: {
-                personas: {
-                    include: {
-                        _count: {
-                            select: { conversations: true },
-                        },
-                    },
-                },
-            },
-        });
-        if (!creator) {
-            throw new Error('Creator not found');
-        }
-        return creator.personas.map((persona) => ({
-            id: persona.id,
-            name: persona.name,
-            conversations: persona._count.conversations,
-            messages: 0,
-        }));
+    constructor(firestore){
+        this.firestore = firestore;
     }
 };
-exports.AnalyticsService = AnalyticsService;
-exports.AnalyticsService = AnalyticsService = __decorate([
-    (0, common_1.Injectable)(),
-    __metadata("design:paramtypes", [prisma_service_1.PrismaService])
+AnalyticsService = _ts_decorate([
+    (0, _common.Injectable)(),
+    _ts_metadata("design:type", Function),
+    _ts_metadata("design:paramtypes", [
+        typeof _firestoreservice.FirestoreService === "undefined" ? Object : _firestoreservice.FirestoreService
+    ])
 ], AnalyticsService);

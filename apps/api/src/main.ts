@@ -35,8 +35,8 @@ async function bootstrap() {
 
   // 2. Strict CORS - Allow production Vercel and localhost
   const allowedOrigins = [
-    'https://syelope-web.vercel.app',  // New Production Domain
-    'https://creater-ai-web.vercel.app',  // Legacy Production Domain
+    'https://createrai-web.vercel.app',    // Production Domain
+    'https://creater-ai-web.vercel.app',   // Alternative Production Domain
     'http://localhost:3000',               // Local dev
     'http://localhost:3001',               // Local backend dev
   ];
@@ -84,9 +84,26 @@ async function bootstrap() {
   // SMART FAILSAFE: ACTIVE (Production Mode)
   app.useGlobalFilters(new FailsafeFilter());
 
-  const port = process.env.PORT ?? 3001;
-  console.log(`[Bootstrap] Attempting to listen on port ${port}...`);
-  await app.listen(port, '0.0.0.0');
-  console.log(`[Bootstrap] Application is running on: ${await app.getUrl()}`);
+  if (process.env.NODE_ENV !== 'production') {
+    const port = process.env.PORT ?? 3001;
+    console.log(`[Bootstrap] Attempting to listen on port ${port}...`);
+    await app.listen(port, '0.0.0.0');
+    console.log(`[Bootstrap] Application is running on: ${await app.getUrl()}`);
+  }
+
+  await app.init();
+  return app.getHttpAdapter().getInstance();
 }
-bootstrap();
+
+let expressApp: any;
+
+export const api = require('firebase-functions').https.onRequest(async (req, res) => {
+  if (!expressApp) {
+    expressApp = await bootstrap();
+  }
+  return expressApp(req, res);
+});
+
+if (process.env.NODE_ENV !== 'production') {
+  bootstrap();
+}

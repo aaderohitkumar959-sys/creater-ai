@@ -13,7 +13,7 @@ import { Search, Star, MessageSquare } from 'lucide-react';
 
 import { cn } from '@/lib/utils';
 import { api } from '@/lib/api';
-import { useSession } from 'next-auth/react';
+import { useAuth } from '@/contexts/AuthContext';
 
 
 interface Conversation {
@@ -33,11 +33,13 @@ export default function MessagesPage() {
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
 
-    const { status: authStatus } = useSession();
+    const { user, loading: authLoading } = useAuth();
 
     useEffect(() => {
         const fetchConversations = async () => {
-            if (authStatus === 'unauthenticated') {
+            if (authLoading) return;
+
+            if (!user) {
                 setLoading(false);
                 return;
             }
@@ -63,7 +65,7 @@ export default function MessagesPage() {
         };
 
         fetchConversations();
-    }, [authStatus]);
+    }, [user, authLoading]);
 
     const handleConversationClick = (id: string) => {
         router.push(`/public-chat/${id}`);
@@ -129,18 +131,18 @@ export default function MessagesPage() {
                             <MessageSquare className="text-[var(--text-muted)]" size={32} />
                         </div>
                         <h3 className="text-lg font-bold text-white mb-2">
-                            {authStatus === 'unauthenticated' ? 'Log in to see messages' : 'No conversations yet'}
+                            {user ? 'No conversations yet' : 'Log in to see messages'}
                         </h3>
                         <p className="text-[var(--text-secondary)] mb-8 max-w-xs mx-auto">
-                            {authStatus === 'unauthenticated'
-                                ? 'Sign in to start chatting with your favorite AI personalities.'
-                                : 'Start a conversation with an AI character from the explore page.'}
+                            {user
+                                ? 'Start a conversation with an AI character from the explore page.'
+                                : 'Sign in to start chatting with your favorite AI personalities.'}
                         </p>
                         <button
-                            onClick={() => router.push(authStatus === 'unauthenticated' ? '/login' : '/explore')}
+                            onClick={() => router.push(user ? '/explore' : '/login')}
                             className="px-8 py-3 rounded-xl bg-gradient-accent text-white font-bold shadow-lg shadow-blue-500/20"
                         >
-                            {authStatus === 'unauthenticated' ? 'Sign In' : 'Explore AI'}
+                            {user ? 'Explore AI' : 'Sign In'}
                         </button>
                     </div>
                 ) : (

@@ -1,25 +1,30 @@
 "use strict";
-var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+Object.defineProperty(exports, "AnalyticsController", {
+    enumerable: true,
+    get: function() {
+        return AnalyticsController;
+    }
+});
+const _common = require("@nestjs/common");
+const _analyticsservice = require("./analytics.service");
+function _ts_decorate(decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    else for(var i = decorators.length - 1; i >= 0; i--)if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
-};
-var __metadata = (this && this.__metadata) || function (k, v) {
+}
+function _ts_metadata(k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
-};
-var __param = (this && this.__param) || function (paramIndex, decorator) {
-    return function (target, key) { decorator(target, key, paramIndex); }
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.AnalyticsController = void 0;
-const common_1 = require("@nestjs/common");
-const analytics_service_1 = require("./analytics.service");
+}
+function _ts_param(paramIndex, decorator) {
+    return function(target, key) {
+        decorator(target, key, paramIndex);
+    };
+}
 let AnalyticsController = class AnalyticsController {
-    analyticsService;
-    constructor(analyticsService) {
-        this.analyticsService = analyticsService;
-    }
     async getOverview(userId) {
         return this.analyticsService.getCreatorOverview(userId);
     }
@@ -33,38 +38,52 @@ let AnalyticsController = class AnalyticsController {
     async getPersonas(userId) {
         return this.analyticsService.getPersonaPerformance(userId);
     }
+    constructor(analyticsService){
+        this.analyticsService = analyticsService;
+    }
 };
-exports.AnalyticsController = AnalyticsController;
-__decorate([
-    (0, common_1.Get)('creator/:userId/overview'),
-    __param(0, (0, common_1.Param)('userId')),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
-    __metadata("design:returntype", Promise)
+_ts_decorate([
+    (0, _common.Get)('creator/:userId/overview'),
+    _ts_param(0, (0, _common.Param)('userId')),
+    _ts_metadata("design:type", Function),
+    _ts_metadata("design:paramtypes", [
+        String
+    ]),
+    _ts_metadata("design:returntype", Promise)
 ], AnalyticsController.prototype, "getOverview", null);
-__decorate([
-    (0, common_1.Get)('creator/:userId/earnings'),
-    __param(0, (0, common_1.Param)('userId')),
-    __param(1, (0, common_1.Query)('days')),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String, String]),
-    __metadata("design:returntype", Promise)
+_ts_decorate([
+    (0, _common.Get)('creator/:userId/earnings'),
+    _ts_param(0, (0, _common.Param)('userId')),
+    _ts_param(1, (0, _common.Query)('days')),
+    _ts_metadata("design:type", Function),
+    _ts_metadata("design:paramtypes", [
+        String,
+        String
+    ]),
+    _ts_metadata("design:returntype", Promise)
 ], AnalyticsController.prototype, "getEarnings", null);
-__decorate([
-    (0, common_1.Get)('creator/:userId/messages'),
-    __param(0, (0, common_1.Param)('userId')),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
-    __metadata("design:returntype", Promise)
+_ts_decorate([
+    (0, _common.Get)('creator/:userId/messages'),
+    _ts_param(0, (0, _common.Param)('userId')),
+    _ts_metadata("design:type", Function),
+    _ts_metadata("design:paramtypes", [
+        String
+    ]),
+    _ts_metadata("design:returntype", Promise)
 ], AnalyticsController.prototype, "getMessages", null);
-__decorate([
-    (0, common_1.Get)('creator/:userId/personas'),
-    __param(0, (0, common_1.Param)('userId')),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [String]),
-    __metadata("design:returntype", Promise)
+_ts_decorate([
+    (0, _common.Get)('creator/:userId/personas'),
+    _ts_param(0, (0, _common.Param)('userId')),
+    _ts_metadata("design:type", Function),
+    _ts_metadata("design:paramtypes", [
+        String
+    ]),
+    _ts_metadata("design:returntype", Promise)
 ], AnalyticsController.prototype, "getPersonas", null);
-exports.AnalyticsController = AnalyticsController = __decorate([
-    (0, common_1.Controller)('analytics'),
-    __metadata("design:paramtypes", [analytics_service_1.AnalyticsService])
+AnalyticsController = _ts_decorate([
+    (0, _common.Controller)('analytics'),
+    _ts_metadata("design:type", Function),
+    _ts_metadata("design:paramtypes", [
+        typeof _analyticsservice.AnalyticsService === "undefined" ? Object : _analyticsservice.AnalyticsService
+    ])
 ], AnalyticsController);

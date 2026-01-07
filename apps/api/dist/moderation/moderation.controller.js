@@ -1,41 +1,53 @@
 "use strict";
-var __decorate = (this && this.__decorate) || function (decorators, target, key, desc) {
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+Object.defineProperty(exports, "ModerationController", {
+    enumerable: true,
+    get: function() {
+        return ModerationController;
+    }
+});
+const _common = require("@nestjs/common");
+const _moderationservice = require("./moderation.service");
+const _jwtauthguard = require("../auth/jwt-auth.guard");
+const _rolesguard = require("../auth/roles.guard");
+function _ts_decorate(decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
-    else for (var i = decorators.length - 1; i >= 0; i--) if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
+    else for(var i = decorators.length - 1; i >= 0; i--)if (d = decorators[i]) r = (c < 3 ? d(r) : c > 3 ? d(target, key, r) : d(target, key)) || r;
     return c > 3 && r && Object.defineProperty(target, key, r), r;
-};
-var __metadata = (this && this.__metadata) || function (k, v) {
+}
+function _ts_metadata(k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
-};
-var __param = (this && this.__param) || function (paramIndex, decorator) {
-    return function (target, key) { decorator(target, key, paramIndex); }
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.ModerationController = void 0;
-const common_1 = require("@nestjs/common");
-const moderation_service_1 = require("./moderation.service");
-const jwt_auth_guard_1 = require("../auth/jwt-auth.guard");
-const roles_guard_1 = require("../auth/roles.guard");
+}
+function _ts_param(paramIndex, decorator) {
+    return function(target, key) {
+        decorator(target, key, paramIndex);
+    };
+}
 let ModerationController = class ModerationController {
-    moderationService;
-    constructor(moderationService) {
-        this.moderationService = moderationService;
-    }
     async checkContent({ content }) {
         return this.moderationService.checkContent(content);
     }
+    constructor(moderationService){
+        this.moderationService = moderationService;
+    }
 };
-exports.ModerationController = ModerationController;
-__decorate([
-    (0, common_1.Post)('check'),
-    __param(0, (0, common_1.Body)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
-    __metadata("design:returntype", Promise)
+_ts_decorate([
+    (0, _common.Post)('check'),
+    _ts_param(0, (0, _common.Body)()),
+    _ts_metadata("design:type", Function),
+    _ts_metadata("design:paramtypes", [
+        Object
+    ]),
+    _ts_metadata("design:returntype", Promise)
 ], ModerationController.prototype, "checkContent", null);
-exports.ModerationController = ModerationController = __decorate([
-    (0, common_1.Controller)('moderation'),
-    (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard, roles_guard_1.RolesGuard),
-    __metadata("design:paramtypes", [moderation_service_1.ModerationService])
+ModerationController = _ts_decorate([
+    (0, _common.Controller)('moderation'),
+    (0, _common.UseGuards)(_jwtauthguard.JwtAuthGuard, _rolesguard.RolesGuard),
+    _ts_metadata("design:type", Function),
+    _ts_metadata("design:paramtypes", [
+        typeof _moderationservice.ModerationService === "undefined" ? Object : _moderationservice.ModerationService
+    ])
 ], ModerationController);

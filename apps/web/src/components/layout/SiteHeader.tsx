@@ -1,23 +1,22 @@
 "use client";
 
 import Link from "next/link";
-import { useSession } from "next-auth/react";
+import { useAuth } from "@/contexts/AuthContext";
 import { CoinBalance } from "@/components/coin/CoinBalance";
 import { WelcomeTutorial } from "@/components/onboarding/WelcomeTutorial";
-import { Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export function SiteHeader() {
-    const { data: session } = useSession();
+    const { user } = useAuth();
 
     return (
         <>
             <nav className="border-b border-border backdrop-blur-xl bg-glass sticky top-0 z-50">
                 <div className="container mx-auto px-4 py-4 flex justify-between items-center">
                     <Link href="/" className="flex items-center gap-2">
-                        <img src="/syelope-logo.jpg" alt="Syelope" className="w-8 h-8 rounded-lg object-contain" />
+                        <img src="/brand-logo.png" alt="CreaterAI" className="w-8 h-8 rounded-lg object-contain" />
                         <span className="text-2xl font-bold text-gradient">
-                            Syelope
+                            CreaterAI
                         </span>
                     </Link>
 
@@ -33,7 +32,7 @@ export function SiteHeader() {
                             </Button>
                         </Link>
 
-                        {session ? (
+                        {user ? (
                             <>
                                 <CoinBalance />
                                 <Link href="/dashboard">
