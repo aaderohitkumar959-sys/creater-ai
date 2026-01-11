@@ -187,10 +187,10 @@ export default function ExplorePage() {
         <div className="min-h-screen bg-[var(--bg-primary)]">
             <TopBar />
 
-            {/* Search Bar */}
+            {/* Search Bar - Dark theme optimized */}
             <div className="container-mobile pt-4 pb-2">
                 <div className="relative">
-                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" size={20} />
+                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40" size={20} />
                     <input
                         type="text"
                         placeholder="Search AI personalities..."
@@ -198,17 +198,17 @@ export default function ExplorePage() {
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className={cn(
                             'w-full pl-12 pr-12 py-3.5 rounded-xl',
-                            'glass-medium border border-[var(--border-medium)]',
-                            'text-[var(--text-primary)] placeholder:text-[var(--text-muted)]',
-                            'focus:border-[var(--accent-blue)] focus:outline-none',
+                            'bg-white/[0.08] border border-white/10',
+                            'text-white placeholder:text-white/40',
+                            'focus:bg-white/[0.12] focus:border-violet-500/50 focus:outline-none',
                             'transition-all duration-250'
                         )}
                     />
                     <button
                         className={cn(
                             'absolute right-3 top-1/2 -translate-y-1/2',
-                            'p-2 rounded-lg glass-light',
-                            'text-[var(--text-secondary)] hover:text-[var(--text-primary)]',
+                            'p-2 rounded-lg bg-white/5 hover:bg-white/10',
+                            'text-white/40 hover:text-white',
                             'transition-all duration-250'
                         )}
                         aria-label="Filters"

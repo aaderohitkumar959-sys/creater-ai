@@ -10,8 +10,6 @@
     "vercel-build": "next build"
   },
   "dependencies": {
-    "ai": "^3.4.0",
-    "openai": "^4.28.0",
     "@creator-ai/database": "*",
     "@radix-ui/react-avatar": "^1.1.11",
     "@radix-ui/react-checkbox": "^1.3.3",
@@ -25,19 +23,21 @@
     "@stripe/stripe-js": "^8.5.3",
     "@vercel/analytics": "^1.6.1",
     "@vercel/speed-insights": "^1.3.1",
+    "ai": "^3.4.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "firebase": "^11.10.0",
     "lucide-react": "^0.554.0",
     "next": "^16.0.7",
+    "openai": "^4.28.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hot-toast": "^2.6.0",
     "recharts": "^3.5.1",
     "socket.io-client": "^4.8.1",
     "tailwind-merge": "^3.4.0",
-    "zod": "^3.22.4",
-    "firebase": "^11.0.0"
+    "zod": "^3.22.4"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

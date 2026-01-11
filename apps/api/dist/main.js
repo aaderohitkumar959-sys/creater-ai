@@ -2,12 +2,6 @@
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-Object.defineProperty(exports, "api", {
-    enumerable: true,
-    get: function() {
-        return api;
-    }
-});
 const _core = require("@nestjs/core");
 const _appmodule = require("./app.module");
 const _common = require("@nestjs/common");
@@ -50,7 +44,7 @@ async function bootstrap() {
     }));
     // 2. Strict CORS - Allow production Vercel and localhost
     const allowedOrigins = [
-        'https://syelope-web.vercel.app',
+        'https://createrai-web.vercel.app',
         'https://creater-ai-web.vercel.app',
         'http://localhost:3000',
         'http://localhost:3001'
@@ -91,22 +85,9 @@ async function bootstrap() {
     }));
     // SMART FAILSAFE: ACTIVE (Production Mode)
     app.useGlobalFilters(new _failsafefilter.FailsafeFilter());
-    if (process.env.NODE_ENV !== 'production') {
-        const port = process.env.PORT ?? 3001;
-        console.log(`[Bootstrap] Attempting to listen on port ${port}...`);
-        await app.listen(port, '0.0.0.0');
-        console.log(`[Bootstrap] Application is running on: ${await app.getUrl()}`);
-    }
-    await app.init();
-    return app.getHttpAdapter().getInstance();
+    const port = process.env.PORT ?? 3001;
+    console.log(`[Bootstrap] Attempting to listen on port ${port}...`);
+    await app.listen(port, '0.0.0.0');
+    console.log(`[Bootstrap] Application is running on: ${await app.getUrl()}`);
 }
-let expressApp;
-const api = require('firebase-functions').https.onRequest(async (req, res)=>{
-    if (!expressApp) {
-        expressApp = await bootstrap();
-    }
-    return expressApp(req, res);
-});
-if (process.env.NODE_ENV !== 'production') {
-    bootstrap();
-}
+bootstrap();

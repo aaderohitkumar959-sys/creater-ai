@@ -127,19 +127,10 @@ export const BottomNav: React.FC = () => {
                                             <img src={user.photoURL} alt="U" className="w-full h-full object-cover" />
                                         </div>
                                     ) : (
-                                        item.id === 'messages' ? (
-                                            <div className={cn(
-                                                "w-6 h-6 rounded-lg overflow-hidden border",
-                                                active ? "border-[var(--accent-blue)]" : "border-white/10"
-                                            )}>
-                                                <img src="/brand-logo.png" alt="C" className="w-full h-full object-contain" />
-                                            </div>
-                                        ) : (
-                                            React.cloneElement(item.icon as React.ReactElement, {
-                                                size: 24,
-                                                strokeWidth: active ? 2.5 : 2,
-                                            } as any)
-                                        )
+                                        React.cloneElement(item.icon as React.ReactElement, {
+                                            size: 24,
+                                            strokeWidth: active ? 2.5 : 2,
+                                        } as any)
                                     )}
                                 </div>
 
