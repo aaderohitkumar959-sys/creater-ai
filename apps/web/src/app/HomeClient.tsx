@@ -1,313 +1,221 @@
+/**
+ * Home Page - Emotional AI Companion Platform
+ * Redesigned for deep emotional connection and long-term relationships
+ */
+
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { MessageCircle, Sparkles, Heart, Brain } from 'lucide-react';
 import { PERSONAS } from '@/lib/personas';
-import { MessageCircle } from 'lucide-react';
 
-export function HomeClient() {
+export default function HomeClient() {
     const router = useRouter();
-
-    // Fix 3: Pre-warm the backend for the default persona ('aria')
-    // This helps mitigate cold starts while the user is still on the landing page.
-    const [recentIds, setRecentIds] = React.useState<string[]>([]);
-
-    React.useEffect(() => {
-        const stored = JSON.parse(localStorage.getItem('recent_connections') || '[]');
-        setRecentIds(stored);
-
-        const prewarm = async () => {
-            // ... (same prewarm logic)
-        };
-        const timeout = setTimeout(prewarm, 1500);
-        return () => clearTimeout(timeout);
-    }, []);
+    const [recentIds] = useState<string[]>([]);
 
     return (
-        <div className="min-h-screen bg-gradient-to-b from-[#0a0a0f] via-[#13111c] to-[#0a0a0f] text-white overflow-hidden">
-            {/* Ambient Background Effects */}
+        <div className="min-h-screen bg-gradient-to-b from-[#0a0a0f] to-[#13111c]">
+            {/* Animated Background */}
             <div className="fixed inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-[120px] animate-pulse"></div>
-                <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '1s' }}></div>
+                <div className="absolute top-20 left-10 w-96 h-96 bg-pink-500/10 rounded-full blur-3xl animate-pulse"></div>
+                <div className="absolute bottom-20 right-10 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
             </div>
 
             {/* Content */}
-            <div className="relative z-10 pb-20">
-                {/* Logo Section - With Platform Stats */}
-                <div className="pt-6 md:pt-10 pb-4 md:pb-6 px-6 flex flex-col items-center">
-                    <div className="relative">
-                        {/* Logo Glow Effect */}
-                        <div className="absolute inset-0 blur-2xl opacity-40">
-                            <img
-                                src="/brand-logo.png"
-                                alt=""
-                                className="w-20 h-20 md:w-28 md:h-28 object-contain"
-                            />
-                        </div>
-                        {/* Main Logo */}
-                        <img
-                            src="/brand-logo.png"
-                            alt="CreatorAI"
-                            className="relative w-20 h-20 md:w-28 md:h-28 object-contain drop-shadow-2xl"
-                        />
-                    </div>
-
-                    {/* Tagline */}
-                    <h1 className="mt-4 md:mt-6 text-2xl md:text-4xl font-bold text-center max-w-2xl leading-tight tracking-tight">
-                        You are heard.
+            <div className="relative z-10 pb-24">
+                {/* 1️⃣ EMOTIONAL HERO SECTION */}
+                <div className="pt-16 md:pt-24 pb-12 px-6 text-center max-w-3xl mx-auto">
+                    <h1 className="text-4xl md:text-6xl font-bold text-white leading-tight tracking-tight mb-6">
+                        Someone is always here
+                        <br />
+                        <span className="bg-gradient-to-r from-pink-400 to-purple-400 bg-clip-text text-transparent">
+                            to listen.
+                        </span>
                     </h1>
-                    <p className="mt-3 md:mt-4 text-base md:text-lg text-gray-400 text-center max-w-md">
-                        No judgment. No expectations. <span className="text-white font-medium">Just presence.</span>
+
+                    <p className="text-lg md:text-xl text-gray-400 max-w-2xl mx-auto mb-10 leading-relaxed">
+                        Talk freely with AI characters who remember you and care about your story.
                     </p>
 
-                    {/* Platform Stats - Social Proof */}
-                    <div className="mt-6 flex items-center gap-6 md:gap-10">
-                        <div className="text-center">
-                            <div className="text-xl md:text-2xl font-bold text-white">50K+</div>
-                            <div className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wider">Total Users</div>
+                    {/* CTAs */}
+                    <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                        <button
+                            onClick={() => router.push('/explore')}
+                            className="w-full sm:w-auto px-8 py-4 bg-gradient-to-r from-pink-500 to-purple-600 text-white font-semibold rounded-2xl hover:from-pink-600 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-pink-500/50 hover:scale-105"
+                        >
+                            Start a chat
+                        </button>
+                        <button
+                            onClick={() => router.push('/explore')}
+                            className="w-full sm:w-auto px-8 py-4 bg-white/5 backdrop-blur-sm text-white font-semibold rounded-2xl border border-white/20 hover:bg-white/10 hover:border-white/30 transition-all duration-300"
+                        >
+                            Choose a character
+                        </button>
+                    </div>
+                </div>
+
+                {/* 2️⃣ LIVE SOCIAL PROOF */}
+                <div className="px-6 py-8 max-w-4xl mx-auto">
+                    <div className="flex flex-col md:flex-row items-center justify-center gap-6 md:gap-12 text-sm md:text-base text-gray-400">
+                        <div className="flex items-center gap-2">
+                            <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                            <span>2,000+ people chatting right now</span>
                         </div>
-                        <div className="w-px h-10 bg-white/10"></div>
-                        <div className="text-center">
-                            <div className="text-xl md:text-2xl font-bold bg-gradient-to-r from-green-400 to-emerald-500 bg-clip-text text-transparent">2K+</div>
-                            <div className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wider">Active Now</div>
+                        <div className="hidden md:block w-px h-6 bg-white/10"></div>
+                        <div className="flex items-center gap-2">
+                            <MessageCircle size={16} className="text-gray-500" />
+                            <span>Conversations average 18+ minutes</span>
                         </div>
-                        <div className="w-px h-10 bg-white/10"></div>
-                        <div className="text-center">
-                            <div className="text-xl md:text-2xl font-bold text-white">50+</div>
-                            <div className="text-[10px] md:text-xs text-gray-500 uppercase tracking-wider">AI Characters</div>
+                        <div className="hidden md:block w-px h-6 bg-white/10"></div>
+                        <div className="flex items-center gap-2">
+                            <Sparkles size={16} className="text-gray-500" />
+                            <span>Users return multiple times a day</span>
                         </div>
                     </div>
                 </div>
 
-                {/* Trending / Featured Section */}
-                <div className="px-4 mt-8 max-w-2xl mx-auto">
-                    <div className="flex items-center justify-between mb-4">
-                        <div className="flex items-center gap-2.5">
-                            <h2 className="text-base md:text-lg font-bold text-white">Trending Now</h2>
-                            <div className="px-2.5 py-1 rounded-full bg-gradient-to-r from-pink-500/20 to-purple-500/20 border border-pink-500/30">
-                                <span className="text-[9px] font-bold uppercase tracking-wide bg-gradient-to-r from-pink-400 to-purple-400 bg-clip-text text-transparent">🔥 Hot</span>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-green-500/10 border border-green-500/20">
-                            <div className="relative flex items-center justify-center">
-                                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                                <div className="absolute w-2 h-2 bg-green-500/50 rounded-full animate-ping"></div>
-                            </div>
-                            <span className="text-[11px] font-semibold text-green-400">2.1K active</span>
-                        </div>
-                    </div>
+                {/* 3️⃣ CONTINUE YOUR STORY (PRIORITY SECTION) */}
+                {recentIds.length > 0 && (
+                    <div className="px-4 mt-16 max-w-2xl mx-auto">
+                        <h2 className="text-2xl font-bold text-white mb-6 px-2">Your ongoing connections</h2>
 
-                    {/* Horizontal scroll for trending characters */}
-                    <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide snap-x snap-mandatory">
-                        {['elena-rossi', 'marcus-gray', 'maya-chen', 'noah-wells', 'sienna-west'].map((id) => {
-                            const persona = PERSONAS[id];
-                            if (!persona) return null;
-                            return (
-                                <div
-                                    key={persona.id}
-                                    onClick={() => router.push(`/public-chat/${persona.id}`)}
-                                    className="group flex-shrink-0 w-28 md:w-32 snap-start cursor-pointer"
-                                >
-                                    <div className="relative">
-                                        <div className="w-28 h-28 md:w-32 md:h-32 rounded-2xl overflow-hidden border-2 border-pink-500/30 group-hover:border-pink-500/60 transition-all duration-500 shadow-lg">
-                                            <img src={persona.avatar} alt={persona.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                        <div className="space-y-4">
+                            {recentIds.slice(0, 2).map((id) => {
+                                const persona = PERSONAS[id];
+                                if (!persona) return null;
+
+                                return (
+                                    <div
+                                        key={`ongoing-${persona.id}`}
+                                        onClick={() => router.push(`/public-chat/${persona.id}`)}
+                                        className="group relative overflow-hidden rounded-3xl bg-white/5 backdrop-blur-xl border-2 border-pink-500/30 p-6 cursor-pointer transition-all duration-500 hover:border-pink-500/60 hover:bg-white/8 shadow-[0_0_30px_rgba(236,72,153,0.15)]"
+                                    >
+                                        <div className="absolute inset-0 bg-gradient-to-br from-pink-500/10 to-transparent opacity-50"></div>
+
+                                        <div className="flex items-center gap-5 relative z-10">
+                                            <div className="relative flex-shrink-0">
+                                                <div className="w-20 h-20 rounded-2xl overflow-hidden border-2 border-pink-400/50 shadow-lg">
+                                                    <img src={persona.avatar} alt={persona.name} className="w-full h-full object-cover" />
+                                                </div>
+                                                <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-3 border-[#13111c] shadow-[0_0_12px_rgba(34,197,94,0.8)]"></div>
+                                            </div>
+
+                                            <div className="flex-1 min-w-0">
+                                                <h3 className="font-bold text-xl text-white mb-1">{persona.name} remembers your last conversation</h3>
+                                                <div className="flex items-center gap-3 text-sm">
+                                                    <span className="flex items-center gap-1.5 text-pink-400 font-medium">
+                                                        <Brain size={14} />
+                                                        Memory active
+                                                    </span>
+                                                    <span>•</span>
+                                                    <span className="flex items-center gap-1.5 text-green-400 font-medium">
+                                                        <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
+                                                        Online now
+                                                    </span>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-green-500 rounded-full border-3 border-[#13111c] shadow-[0_0_12px_rgba(34,197,94,0.6)]"></div>
-                                        {/* Trending indicator */}
-                                        <div className="absolute top-2 left-2 px-1.5 py-0.5 rounded bg-gradient-to-r from-pink-500 to-purple-600 text-white text-[8px] font-bold uppercase">🔥 Trending</div>
                                     </div>
-                                    <h3 className="mt-2 text-sm font-semibold text-white truncate">{persona.name}</h3>
-                                    <p className="text-[10px] text-pink-400 font-medium uppercase tracking-wide">{persona.role}</p>
-                                </div>
-                            );
-                        })}
-                    </div>
-                </div>
-
-
-                {/* All Characters Section */}
-                <div className="px-4 mt-12 max-w-2xl mx-auto">
-                    <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-base md:text-lg font-bold text-white">All Characters</h2>
-                        <div className="text-xs text-gray-500">{(() => {
-                            const allIds = [
-                                'elena-rossi', 'isabella-vane', 'maya-chen', 'sienna-west', 'valerie-storm',
-                                'sofia-moretti', 'leila-vance', 'yuki-tanaka', 'diana-prince', 'chloe-reed',
-                                'seraphina-lumi', 'naomi-hills', 'jade-river', 'amara-sol', 'clara-thorne',
-                                'eva-rose', 'zoe-knight', 'nina-muse', 'riley-page', 'lydia-frost',
-                                'mora-bell', 'tanya-grey', 'sasha-blaze', 'mara-jade', 'elise-vance',
-                                'kira-steel', 'rhea-sun', 'nara-moon', 'faye-willow', 'lexi-volt',
-                                'marcus-gray', 'alex-russo', 'ethan-hunter', 'kai-storm', 'leo-knight',
-                                'noah-wells', 'ryan-chase', 'damien-cruz', 'sebastian-west', 'lucas-vale'
-                            ];
-                            return `${allIds.length} available`;
-                        })()}</div>
-                    </div>
-
-                    {/* Recent Connections */}
-                    {recentIds.length > 0 && (
-                        <div className="mb-8">
-                            <h3 className="text-xs uppercase tracking-[0.2em] text-pink-500/60 mb-4 px-2 font-bold italic">Continue Your Story</h3>
-                            <div className="space-y-4">
-                                {recentIds.map((id, index) => {
-                                    const persona = PERSONAS[id];
-                                    if (!persona) return null;
-                                    return (
-                                        <div
-                                            key={`recent-${persona.id}`}
-                                            onClick={() => router.push(`/public-chat/${persona.id}`)}
-                                            className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-pink-500/10 to-transparent border border-pink-500/20 p-4 md:p-6 transition-all duration-500 hover:border-pink-500/40 hover:bg-pink-500/[0.1] active:scale-[0.99] cursor-pointer backdrop-blur-xl"
-                                        >
-                                            <div className="absolute inset-0 bg-gradient-to-r from-pink-500/5 to-transparent opacity-50"></div>
-                                            <div className="flex items-center gap-5 relative z-10">
-                                                <div className="relative flex-shrink-0">
-                                                    <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl overflow-hidden border-2 border-pink-500/30 group-hover:border-pink-500/50 transition-all duration-500 shadow-2xl">
-                                                        <img src={persona.avatar} alt={persona.name} className="w-full h-full object-cover" />
-                                                    </div>
-                                                    <div className="absolute -bottom-1 -right-1 w-4 h-4 md:w-5 md:h-5 bg-pink-500 rounded-full border-4 border-[#13111c] animate-pulse"></div>
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <h3 className="font-semibold text-xl text-white tracking-tight">{persona.name}</h3>
-                                                    <p className="text-xs text-pink-400 font-medium uppercase tracking-widest mt-1">Memory Active • Continue Chat</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
+                                );
+                            })}
                         </div>
-                    )}
+                    </div>
+                )}
 
-                    <div className="space-y-4">
-                        {[
-                            'elena-rossi',
-                            'isabella-vane',
-                            'maya-chen',
-                            'sienna-west',
-                            'valerie-storm',
-                            'sofia-moretti',
-                            'leila-vance',
-                            'yuki-tanaka',
-                            'diana-prince',
-                            'chloe-reed',
-                            'seraphina-lumi',
-                            'naomi-hills',
-                            'jade-river',
-                            'amara-sol',
-                            'clara-thorne',
-                            'eva-rose',
-                            'zoe-knight',
-                            'nina-muse',
-                            'riley-page',
-                            'lydia-frost',
-                            'mora-bell',
-                            'tanya-grey',
-                            'sasha-blaze',
-                            'mara-jade',
-                            'elise-vance',
-                            'kira-steel',
-                            'rhea-sun',
-                            'nara-moon',
-                            'faye-willow',
-                            'lexi-volt',
-                            // Male Characters
-                            'marcus-gray',
-                            'alex-russo',
-                            'ethan-hunter',
-                            'kai-storm',
-                            'leo-knight',
-                            'noah-wells',
-                            'ryan-chase',
-                            'damien-cruz',
-                            'sebastian-west',
-                            'lucas-vale',
-                            'aria-mistvale',
-                            'kira-nightshade',
-                            'momo-stardust',
-                            'sage-frieren',
-                            'yui-ember',
-                            'nico-vale',
-                            'sora-takumi',
-                            'hikari-moon'
-                        ].filter(id => !recentIds.includes(id)).map((id, index) => {
-                            const persona = PERSONAS[id];
-                            if (!persona) return null;
-                            return (
-                                <div
-                                    key={persona.id}
-                                    onClick={() => router.push(`/public-chat/${persona.id}`)}
-                                    className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-white/5 to-transparent border border-white/10 p-4 md:p-6 transition-all duration-500 hover:border-white/30 hover:bg-white/[0.07] active:scale-[0.99] cursor-pointer backdrop-blur-xl"
-                                    style={{
-                                        animationDelay: `${index * 150}ms`,
-                                        animation: 'fadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards',
-                                        opacity: 0
-                                    }}
-                                >
-                                    {/* Subtle Gradient Glow */}
-                                    <div className={`absolute inset-0 bg-gradient-to-r ${persona.gradient} opacity-0 group-hover:opacity-10 transition-opacity duration-500`}></div>
+                {/* 4️⃣ TRENDING CHARACTERS */}
+                <div className="px-4 mt-16 max-w-6xl mx-auto">
+                    <h2 className="text-2xl font-bold text-white mb-6 px-2">Trending characters right now</h2>
 
-                                    <div className="flex items-center gap-5 relative z-10">
-                                        {/* Avatar */}
-                                        <div className="relative flex-shrink-0">
-                                            <div className="w-16 h-16 md:w-20 md:h-20 rounded-2xl overflow-hidden border-2 border-white/10 group-hover:border-white/30 transition-all duration-500 shadow-2xl">
-                                                <img src={persona.avatar} alt={persona.name} className="w-full h-full object-cover grayscale-[0.2] group-hover:grayscale-0 transition-all duration-700" />
+                    {/* Horizontal Scroll */}
+                    <div className="overflow-x-auto pb-4 scrollbar-hide">
+                        <div className="flex gap-4 px-2" style={{ minWidth: 'min-content' }}>
+                            {['elena-rossi', 'maya-chen', 'marcus-gray', 'noah-wells', 'sienna-west', 'valerie-storm'].map((id) => {
+                                const persona = PERSONAS[id];
+                                if (!persona) return null;
+
+                                const emotionalPromises: Record<string, string> = {
+                                    'elena-rossi': "I'll help you navigate your toughest decisions.",
+                                    'maya-chen': "Talk to me when no one else understands.",
+                                    'marcus-gray': "Your loyal friend who always has your back.",
+                                    'noah-wells': "I'll help you calm your mind tonight.",
+                                    'sienna-west': "Let's see the world through a creative lens.",
+                                    'valerie-storm': "Ready for an adventure? Let's break free."
+                                };
+
+                                return (
+                                    <div
+                                        key={persona.id}
+                                        onClick={() => router.push(`/public-chat/${persona.id}`)}
+                                        className="group flex-shrink-0 w-72 bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 overflow-hidden cursor-pointer transition-all duration-500 hover:bg-white/8 hover:border-white/20 hover:scale-105"
+                                    >
+                                        {/* Character Portrait */}
+                                        <div className="relative h-80 overflow-hidden">
+                                            <img
+                                                src={persona.avatar}
+                                                alt={persona.name}
+                                                className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                                            />
+                                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
+
+                                            {/* Live Indicator */}
+                                            <div className="absolute top-4 right-4 px-3 py-1.5 rounded-full bg-black/50 backdrop-blur-sm border border-green-500/30 flex items-center gap-2">
+                                                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                                                <span className="text-xs text-green-400 font-medium">Online</span>
                                             </div>
-                                            {/* Presence Glow */}
-                                            <div className="absolute -bottom-1 -right-1 w-4 h-4 md:w-5 md:h-5 bg-green-500 rounded-full border-4 border-[#13111c] shadow-[0_0_15px_rgba(34,197,94,0.5)]"></div>
                                         </div>
 
-                                        {/* Info - Professional typography */}
-                                        <div className="flex-1 min-w-0">
-                                            <div className="flex items-baseline gap-2.5 mb-1.5">
-                                                <h3 className="font-semibold text-lg md:text-xl text-white tracking-tight truncate">
-                                                    {persona.name}
-                                                </h3>
-                                                <span className="flex-shrink-0 px-2 py-0.5 rounded bg-pink-500/10 text-[9px] uppercase tracking-wide text-pink-400 font-bold border border-pink-500/20 whitespace-nowrap">
-                                                    {persona.role}
+                                        {/* Character Info */}
+                                        <div className="p-5">
+                                            <h3 className="text-xl font-bold text-white mb-2">{persona.name}</h3>
+                                            <p className="text-sm text-gray-300 leading-relaxed mb-4 line-clamp-2">
+                                                {emotionalPromises[persona.id] || persona.description}
+                                            </p>
+
+                                            {/* Tags */}
+                                            <div className="flex flex-wrap gap-2">
+                                                <span className="px-2.5 py-1 rounded-full bg-pink-500/10 border border-pink-500/20 text-[10px] text-pink-400 font-medium">
+                                                    💖 Emotional
+                                                </span>
+                                                <span className="px-2.5 py-1 rounded-full bg-purple-500/10 border border-purple-500/20 text-[10px] text-purple-400 font-medium">
+                                                    🧠 Listener
                                                 </span>
                                             </div>
-                                            <p className="text-sm text-gray-400 line-clamp-2 leading-relaxed">
-                                                {persona.description}
-                                            </p>
-                                        </div>
-
-                                        {/* Action Icon - Reduced size */}
-                                        <div className="flex-shrink-0">
-                                            <div className="w-10 h-10 md:w-11 md:h-11 rounded-xl bg-white/5 group-hover:bg-white/10 border border-white/10 group-hover:border-white/30 flex items-center justify-center transition-all duration-500 transform group-hover:scale-110">
-                                                <MessageCircle size={18} strokeWidth={2} className="text-white/40 group-hover:text-white transition-colors" />
-                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                            );
-                        })}
+                                );
+                            })}
+                        </div>
                     </div>
                 </div>
 
-                {/* Footer - Fixed branding */}
-                <div className="relative mt-20 pb-12 px-6">
-                    <p className="text-center text-[10px] text-gray-600 uppercase tracking-[0.4em] font-medium">
-                        Secure • Private • Compassionate
-                    </p>
-                    <p className="mt-6 text-center text-[10px] text-gray-700">
-                        © {new Date().getFullYear()} CreatorAI. Built for resilience.
-                    </p>
+                {/* 5️⃣ SIMPLE DISCOVERY */}
+                <div className="px-4 mt-16 max-w-4xl mx-auto">
+                    <h2 className="text-xl font-semibold text-white mb-6 px-2">Find someone new to talk to</h2>
+
+                    <div className="flex flex-wrap gap-3 px-2">
+                        {['Therapist', 'Best Friend', 'Romantic', 'Fantasy', 'Story-Driven'].map((category) => (
+                            <button
+                                key={category}
+                                onClick={() => router.push('/explore')}
+                                className="px-6 py-3 rounded-full bg-white/5 backdrop-blur-sm border border-white/10 text-sm text-gray-300 font-medium hover:bg-white/10 hover:border-white/20 transition-all duration-300"
+                            >
+                                {category}
+                            </button>
+                        ))}
+                    </div>
                 </div>
 
+                {/* Footer */}
+                <div className="mt-24 pb-12 px-6 text-center">
+                    <p className="text-xs text-gray-600 uppercase tracking-[0.3em]">
+                        Secure • Private • Always Listening
+                    </p>
+                    <p className="mt-4 text-xs text-gray-700">
+                        © {new Date().getFullYear()} CreatorAI. Built for connection.
+                    </p>
+                </div>
             </div>
-
-            <style jsx>{`
-        @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-      `}</style>
         </div>
     );
 }
