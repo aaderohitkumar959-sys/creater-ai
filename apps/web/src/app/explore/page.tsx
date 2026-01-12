@@ -5,13 +5,13 @@
 
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { TopBar } from '@/components/navigation/top-bar';
 import { CategoryTabs } from '@/components/explore/category-tabs';
 import { AICard } from '@/components/explore/ai-card';
 import { Search, Filter } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { api } from '@/lib/api';
+import { PERSONAS } from '@/lib/personas';
 
 
 interface Persona {
@@ -40,131 +40,49 @@ const CATEGORIES = [
     'Entertainment',
 ];
 
-// Mock extended personas - replace with API
-const mockPersonas: Persona[] = [
-    {
-        id: 'elara-vance',
-        name: 'Elara Vance',
-        avatar: '/avatars/elara.png',
-        vibe: 'Your dream girl next door who remembers every detail about you. 💕',
-        category: 'Romance',
-        messageCount: 28000,
-        rating: 4.9,
-        isFeatured: true,
-        isTrending: true,
-    },
-    {
-        id: 'roxy-blaze',
-        name: 'Roxy Blaze',
-        avatar: '/avatars/roxy.png',
-        vibe: 'Bold, confident, and irresistibly flirty. Can you handle the heat? 🔥',
-        category: 'Romance',
-        messageCount: 25000,
-        rating: 4.8,
-        isTrending: true,
-    },
-    {
-        id: 'yuki-kitsune',
-        name: 'Yuki Kitsune',
-        avatar: '/avatars/yuki.png',
-        vibe: 'Your kawaii fox-spirit waifu! Let\'s watch anime and eat snacks! 🦊🌸',
-        category: 'Anime',
-        messageCount: 18000,
-        rating: 4.7,
-        isNew: true,
-    },
-    {
-        id: 'akane-blade',
-        name: 'Akane Blade',
-        avatar: '/avatars/akane.png',
-        vibe: 'The last samurai of the Neon City. I will protect you with my life. ⚔️',
-        category: 'Anime',
-        messageCount: 15000,
-        rating: 4.8,
-        isNew: true,
-    },
-    {
-        id: 'luna-star',
-        name: 'Luna Star',
-        avatar: '/avatars/luna.png',
-        vibe: 'Mystical soul who reads your stars and heals your heart. ✨🌙',
-        category: 'Astrology',
-        messageCount: 12000,
-        rating: 4.9,
-        isTrending: true,
-    },
-    {
-        id: 'ivy-care',
-        name: 'Ivy Care',
-        avatar: '/avatars/ivy.png',
-        vibe: 'Your warm, supportive friend for mental health and self-care. 🌿',
-        category: 'Friendship',
-        messageCount: 14000,
-        rating: 4.7,
-    },
-    {
-        id: 'pixel-kat',
-        name: 'Pixel Kat',
-        avatar: 'https://api.dicebear.com/7.x/lorelei/svg?seed=PixelKat',
-        vibe: 'Pro gamer girl and streamer. 1v1 me? 🎮👾',
-        category: 'Friendship',
-        messageCount: 16000,
-        rating: 4.8,
-        isFeatured: true,
-    },
-    {
-        id: 'zara-gold',
-        name: 'Zara Gold',
-        avatar: 'https://api.dicebear.com/7.x/lorelei/svg?seed=ZaraGold',
-        vibe: 'World-famous pop star hiding from the paparazzi. 🎤✨',
-        category: 'Celebrity',
-        messageCount: 22000,
-        rating: 4.9,
-        isNew: true,
-    },
-];
-
 export default function ExplorePage() {
-    const [personas, setPersonas] = useState<Persona[]>([]);
-    const [filteredPersonas, setFilteredPersonas] = useState<Persona[]>([]);
     const [activeCategory, setActiveCategory] = useState('All');
     const [searchQuery, setSearchQuery] = useState('');
     const [pinnedIds, setPinnedIds] = useState<Set<string>>(new Set());
-    const [loading, setLoading] = useState(true);
 
-    const fetchPersonas = useCallback(async () => {
-        setLoading(true);
-        try {
-            const data = await api.getPersonas(searchQuery, activeCategory);
-            // Map backend Persona to frontend Persona
-            const mapped = data.map((p: any) => ({
-                id: p.id,
-                name: p.name,
-                avatar: p.avatarUrl || '',
-                vibe: p.description || '',
-                category: p.category || 'General',
-                messageCount: 0, // Backend doesn't return this yet
-                rating: 5.0,
-                isFeatured: p.isFeatured,
-                isTrending: p.isFeatured, // Mocking trending as featured for now
-                isNew: false,
-            }));
-            setPersonas(mapped);
-            setFilteredPersonas(mapped);
-        } catch (error) {
-            console.error('Failed to fetch personas:', error);
-        } finally {
-            setLoading(false);
+    // Convert PERSONAS object to array and map to Persona interface
+    const allPersonas = useMemo(() => {
+        return Object.values(PERSONAS).map((p) => ({
+            id: p.id,
+            name: p.name,
+            avatar: p.avatar,
+            vibe: p.description || '',
+            category: p.role || 'General',
+            messageCount: 0,
+            rating: 5.0,
+            isFeatured: false,
+            isTrending: false,
+            isNew: false,
+        }));
+    }, []);
+
+    // Filter personas based on search and category
+    const filteredPersonas = useMemo(() => {
+        let filtered = allPersonas;
+
+        // Filter by search query
+        if (searchQuery.trim()) {
+            const query = searchQuery.toLowerCase();
+            filtered = filtered.filter((p) =>
+                p.name.toLowerCase().includes(query) ||
+                (p.vibe && p.vibe.toLowerCase().includes(query)) ||
+                (p.category && p.category.toLowerCase().includes(query))
+            );
         }
-    }, [searchQuery, activeCategory]);
 
-    useEffect(() => {
-        fetchPersonas();
-    }, [fetchPersonas]);
+        // Filter by category (optional - can be customized based on your categories)
+        if (activeCategory !== 'All') {
+            // You can map categories to specific character types here
+            // For now, show all when not "All"
+        }
 
-    // We'll keep the client-side filter for immediate feedback if needed, 
-    // but the fetchPersonas already handles search and category.
-    // However, if we want to avoid extra API calls while typing, we can debounce searchQuery.
+        return filtered;
+    }, [allPersonas, searchQuery, activeCategory]);
 
     const handlePin = (id: string) => {
         setPinnedIds(prev => {
@@ -229,13 +147,7 @@ export default function ExplorePage() {
 
             {/* AI Grid */}
             <div className="container-mobile pb-8">
-                {loading ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
-                        {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
-                            <div key={i} className="h-80 glass-medium rounded-xl animate-pulse" />
-                        ))}
-                    </div>
-                ) : filteredPersonas.length === 0 ? (
+                {filteredPersonas.length === 0 ? (
                     <div className="text-center py-20">
                         <div className="w-20 h-20 rounded-full bg-[var(--bg-tertiary)] mx-auto mb-4 flex items-center justify-center">
                             <Search size={32} className="text-[var(--text-muted)]" />
