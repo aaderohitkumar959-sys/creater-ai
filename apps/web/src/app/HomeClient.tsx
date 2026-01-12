@@ -206,6 +206,60 @@ export default function HomeClient() {
                     </div>
                 </div>
 
+                {/* 6️⃣ ALL CHARACTERS GRID */}
+                <div className="px-4 mt-20 max-w-7xl mx-auto">
+                    <div className="flex items-baseline justify-between mb-6 px-2">
+                        <h2 className="text-2xl font-bold text-white">All Characters</h2>
+                        <span className="text-sm text-gray-400">{Object.keys(PERSONAS).length} available</span>
+                    </div>
+
+                    {/* Responsive Grid */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 px-2">
+                        {Object.values(PERSONAS).map((persona) => (
+                            <div
+                                key={persona.id}
+                                onClick={() => router.push(`/public-chat/${persona.id}`)}
+                                className="group bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 overflow-hidden cursor-pointer transition-all duration-500 hover:bg-white/8 hover:border-white/20 hover:scale-105 hover:shadow-2xl hover:shadow-pink-500/10"
+                            >
+                                {/* Character Portrait */}
+                                <div className="relative h-56 overflow-hidden">
+                                    <img
+                                        src={persona.avatar}
+                                        alt={persona.name}
+                                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent"></div>
+
+                                    {/* Live Indicator - Small */}
+                                    <div className="absolute top-3 right-3 px-2 py-1 rounded-full bg-black/60 backdrop-blur-sm border border-green-500/40 flex items-center gap-1.5">
+                                        <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+                                        <span className="text-[10px] text-green-400 font-medium">Online</span>
+                                    </div>
+
+                                    {/* Name Overlay */}
+                                    <div className="absolute bottom-0 left-0 right-0 p-4">
+                                        <h3 className="text-lg font-bold text-white mb-1 truncate">{persona.name}</h3>
+                                        <p className="text-xs text-gray-400 font-medium">{persona.role}</p>
+                                    </div>
+                                </div>
+
+                                {/* Character Info */}
+                                <div className="p-4">
+                                    <p className="text-sm text-gray-300 leading-relaxed line-clamp-2 mb-3">
+                                        {persona.description}
+                                    </p>
+
+                                    {/* Quick Start Button */}
+                                    <button className="w-full py-2.5 rounded-xl bg-gradient-to-r from-pink-500/10 to-purple-500/10 border border-pink-500/20 text-sm text-pink-400 font-medium hover:from-pink-500/20 hover:to-purple-500/20 hover:border-pink-500/40 transition-all duration-300 flex items-center justify-center gap-2">
+                                        <MessageCircle size={14} />
+                                        Start chatting
+                                    </button>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
                 {/* Footer */}
                 <div className="mt-24 pb-12 px-6 text-center">
                     <p className="text-xs text-gray-600 uppercase tracking-[0.3em]">
