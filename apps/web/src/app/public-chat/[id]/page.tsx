@@ -18,16 +18,8 @@ export default async function PublicChatPage({
         // redirect('/public-chat/aria');
 
         // Option 2: Show default
-        return (
-            <div className="h-screen w-full bg-black">
-                <ChatUI persona={PERSONAS['aria']} />
-            </div>
-        );
+        return <ChatUI persona={PERSONAS['aria']} />;
     }
 
-    return (
-        <div className="h-screen w-full bg-black">
-            <ChatUI persona={persona} />
-        </div>
-    );
+    return <ChatUI persona={persona} />;
 }

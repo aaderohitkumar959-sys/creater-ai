@@ -162,7 +162,7 @@ export const ChatUI: React.FC<ChatUIProps> = ({ persona }) => {
     };
 
     return (
-        <div className="flex-1 flex flex-col bg-[var(--bg-primary)] relative">
+        <div className="min-h-screen flex flex-col bg-[var(--bg-primary)] relative">
             {/* Top Bar */}
             <div className="glass-medium border-b border-[var(--border-medium)] backdrop-blur-xl sticky top-0 z-10">
                 <div className="container-mobile h-16 flex items-center justify-between">
