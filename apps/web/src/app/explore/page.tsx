@@ -45,6 +45,17 @@ export default function ExplorePage() {
     const [searchQuery, setSearchQuery] = useState('');
     const [pinnedIds, setPinnedIds] = useState<Set<string>>(new Set());
 
+    // Function to generate random chat count between 2k-15k
+    const getRandomChatCount = (id: string) => {
+        // Use character ID as seed for consistent numbers
+        const seed = id.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        const random = (seed * 9301 + 49297) % 233280;
+        const normalized = random / 233280;
+
+        // Generate number between 2000 and 15000
+        return Math.floor(2000 + normalized * 13000);
+    };
+
     // Convert PERSONAS object to array and map to Persona interface
     const allPersonas = useMemo(() => {
         return Object.values(PERSONAS).map((p) => ({
@@ -53,7 +64,7 @@ export default function ExplorePage() {
             avatar: p.avatar,
             vibe: p.description || '',
             category: p.role || 'General',
-            messageCount: 0,
+            messageCount: getRandomChatCount(p.id), // Random 2k-15k chats
             rating: 5.0,
             isFeatured: false,
             isTrending: false,
