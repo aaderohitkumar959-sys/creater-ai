@@ -4,6 +4,19 @@ const nextConfig: NextConfig = {
   transpilePackages: ["@creator-ai/database", "ai", "@ai-sdk/openai"],
   reactStrictMode: true,
 
+  // Security: Disable X-Powered-By header
+  poweredByHeader: false,
+
+  // Production optimizations
+  productionBrowserSourceMaps: false,
+
+  // Compiler optimizations
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production' ? {
+      exclude: ['error', 'warn'],
+    } : false,
+  },
+
   // Security: Enable TypeScript strict checking
   typescript: {
     ignoreBuildErrors: false, // FIXED: Now catches type errors at build time

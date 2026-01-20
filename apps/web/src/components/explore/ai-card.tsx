@@ -133,9 +133,9 @@ export const AICard: React.FC<AICardProps> = ({
                     <div className="flex items-center gap-1 text-[var(--text-muted)]">
                         <MessageCircle size={14} />
                         <span className="text-xs">
-                            {messageCount >= 1000
+                            {messageCount !== undefined && messageCount >= 1000
                                 ? `${(messageCount / 1000).toFixed(1)}k`
-                                : messageCount}
+                                : messageCount ?? 0}
                         </span>
                     </div>
 
